@@ -1,4 +1,4 @@
-import sys, pathlib, unittest
+import os, sys, pathlib, tempfile, unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "scripts"))
 import sweep
 
@@ -48,6 +48,36 @@ class RowProblem(unittest.TestCase):
             "applied": {"fifo": True, "mlock": True, "cpu": True},
             "cycles": 500, "cycles_requested": 1000}),
             "incomplete run or pre-integrity summary format")
+
+class BinaryIsStale(unittest.TestCase):
+    def test_stale_when_source_newer_than_binary(self):
+        with tempfile.TemporaryDirectory() as d:
+            binary = pathlib.Path(d) / "bin"
+            source = pathlib.Path(d) / "main.cpp"
+            binary.write_text("bin")
+            source.write_text("src")
+            now = 1_700_000_000
+            os.utime(binary, (now, now))
+            os.utime(source, (now + 10, now + 10))
+            self.assertTrue(sweep.binary_is_stale(str(binary), [str(source)]))
+
+    def test_fresh_when_binary_newer_than_all_sources(self):
+        with tempfile.TemporaryDirectory() as d:
+            binary = pathlib.Path(d) / "bin"
+            source = pathlib.Path(d) / "main.cpp"
+            binary.write_text("bin")
+            source.write_text("src")
+            now = 1_700_000_000
+            os.utime(source, (now, now))
+            os.utime(binary, (now + 10, now + 10))
+            self.assertFalse(sweep.binary_is_stale(str(binary), [str(source)]))
+
+    def test_missing_binary_returns_false(self):
+        with tempfile.TemporaryDirectory() as d:
+            source = pathlib.Path(d) / "main.cpp"
+            source.write_text("src")
+            missing = pathlib.Path(d) / "no_such_binary"
+            self.assertFalse(sweep.binary_is_stale(str(missing), [str(source)]))
 
 if __name__ == "__main__":
     unittest.main()
