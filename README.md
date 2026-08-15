@@ -4,9 +4,8 @@ A hard real-time control and telemetry stack: a 500 Hz C++20 control loop on
 Linux, measured as a latency distribution, with a Python ground station,
 simulation, and fault injection to follow.
 
-Status: v0.1 in progress. This repo currently contains the measurement
-harness and its methodology. The headline artifact, a p99.9 wakeup-jitter
-CDF with per-mitigation attribution, ships with v0.1.
+Status: v0.1 week 1 complete: harness landed and corrected. Next: Linux
+bring-up and qualification on the ProBook 465 G11.
 
 ## Layout
 
@@ -14,6 +13,8 @@ CDF with per-mitigation attribution, ships with v0.1.
     scripts/     campaign runner and plotting
     tests/       functional and unit tests (container-run for C++)
     docs/        methodology, plan, ADRs, AI log
+      methodology.md   measurement methodology
+      plan.md          release plan
 
 ## Build and test
 
