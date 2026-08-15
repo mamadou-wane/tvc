@@ -23,6 +23,8 @@ import json
 import pathlib
 import sys
 
+import sweep
+
 try:
     import matplotlib
     matplotlib.use("Agg")
@@ -84,19 +86,24 @@ def main() -> int:
     counts = []
     for i, path in enumerate(files):
         label = path.name.split(".")[0]
+
+        meta = rdir / f"{label}.summary.json"
+        if not meta.exists():
+            print(f"skipping {label}: no summary.json to verify config against")
+            continue
+        d = json.loads(meta.read_text())
+        if not sweep.row_ok(d):
+            print(f"skipping {label}: requested config was not applied")
+            continue
+
         xs, ys = read_cdf(path)
         if not xs:
             continue
         lo, hi = min(lo, min(xs)), max(hi, max(xs))
 
-        meta = rdir / f"{label}.summary.json"
-        if meta.exists():
-            d = json.loads(meta.read_text())
-            p999 = d["jitter_us"]["p99.9_naive" if args.naive else "p99.9"]
-            legend = f"{label}  ·  p99.9 {p999:,.0f} µs  ·  {d['config']}"
-            counts.append(d.get("cycles", 0))
-        else:
-            legend = label
+        p999 = d["jitter_us"]["p99.9_naive" if args.naive else "p99.9"]
+        legend = f"{label}  ·  p99.9 {p999:,.0f} µs  ·  {d['config']}"
+        counts.append(d.get("cycles", 0))
 
         ax.plot(xs, ys, lw=1.9, color=SERIES_COLORS[i % len(SERIES_COLORS)],
                 label=legend, solid_joinstyle="round")

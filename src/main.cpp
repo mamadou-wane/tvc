@@ -247,17 +247,10 @@ int main(int argc, char** argv) {
     std::printf("  running as %s\n", rt::describe_current().c_str());
 
     auto b = [](bool v) { return v ? "true" : "false"; };
-    utsname un{};
-    ::uname(&un);
     const std::string applied_json =
         std::string("{ \"mlock\": ") + b(!cfg.mlock || ok_mlock) +
         ", \"fifo\": " + b(!(cfg.fifo_prio > 0) || ok_fifo) +
         ", \"cpu\": " + b(cfg.cpu < 0 || ok_cpu) + " }";
-    const std::string env_json =
-        std::string("{ \"kernel\": \"") + un.release +
-        "\", \"machine\": \"" + un.machine +
-        "\", \"cpu_end\": " + std::to_string(::sched_getcpu()) +
-        ", \"timer_slack_ns\": 1 }";
 
     // ---- everything that allocates happens here, before the loop ----
     stats::LoopStats stats(period_ns);
@@ -355,6 +348,17 @@ int main(int argc, char** argv) {
                     " (largest %zu bytes)\n", t.allocs, t.frees, t.largest);
         if (t.allocs == 0 && t.frees == 0) std::puts("               hot path is clean");
     }
+
+    // Sampled after the loop, not before: cpu_end reflects where the process
+    // actually ran, and timer_slack_ns is read back rather than asserted.
+    utsname un{};
+    ::uname(&un);
+    const long slack = ::prctl(PR_GET_TIMERSLACK, 0UL, 0UL, 0UL, 0UL);
+    const std::string env_json =
+        std::string("{ \"kernel\": \"") + un.release +
+        "\", \"machine\": \"" + un.machine +
+        "\", \"cpu_end\": " + std::to_string(::sched_getcpu()) +
+        ", \"timer_slack_ns\": " + std::to_string(slack) + " }";
 
     const std::string cfgstr = config_string(cfg);
     bool wrote_ok = stats.write_csv(cfg.outdir, cfg.label);
