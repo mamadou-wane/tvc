@@ -14,8 +14,8 @@ and the figure regenerates from the committed CSVs:
 p99.9 wakeup jitter of 88.4 microseconds at 500 Hz, reproducible to within
 one microsecond across three independent runs (88 to 89 us), on a stock
 Ubuntu generic kernel with per-core isolation and power discipline. The
-naive baseline does not miss its deadlines by microseconds; it drifts whole
-seconds off schedule and cannot see that in its own measurement.
+naive baseline drifts whole seconds off schedule and cannot see that in its
+own measurement.
 
 ## The table
 
@@ -33,16 +33,15 @@ spread for p99.9. Full percentiles per run live in the committed summaries.
 
 ## What each level actually did
 
-**L0 is a correctness failure, not a jitter datapoint.** sleep_for(period)
+**L0 is a correctness failure before it is a jitter number.** sleep_for(period)
 from "now" drifts by the overshoot every cycle: roughly 57 us per cycle
 compounds to 17 seconds behind schedule over ten minutes, saturating the
 histogram ceiling (the drop counter caught 1,792 and 11,128 out-of-range
 samples in two of the repeats). Meanwhile the naive self-referenced series,
 measuring each wakeup against the previous one, reports a p99.9 near 700 us
 for the same runs. A harness that measures itself that way would have
-called this loop healthy. Absolute deadlines are not an optimization; they
-are the difference between a control loop and a metronome sliding off the
-song.
+called this loop healthy. Absolute deadlines are what separate a control
+loop from a metronome sliding off the song.
 
 **L1 makes the loop correct.** Zero missed deadlines from here on. The
 remaining ~565 us tail belongs to the platform: the p99 sits almost exactly
@@ -51,16 +50,14 @@ hundred paying a full deep-C-state exit on an undisciplined core.
 
 **L2 is an honest null result.** mlockall plus prefaulting changed nothing
 here because nothing was faulting; the mlock status line proves residency
-with a post-warm minor-fault recheck of zero. Memory locking is insurance,
-and this workload never filed a claim. It stays in the stack because the
-flight software will allocate at startup and must not fault later.
+with a post-warm minor-fault recheck of zero. It stays in the stack because
+the flight software will allocate at startup and must not fault later.
 
 **L3 exposes the placement lottery.** Same flags, three runs: p99.9 of
 555, 12, and 477 us. The 12 us run landed on CPU 0, which services constant
 interrupt traffic and therefore never sleeps deeply; the others landed on
 quiet cores that pay C-state exits. A 40x spread controlled entirely by
-where the scheduler happened to put the thread is the argument for pinning,
-made by the data instead of by assertion.
+where the scheduler put the thread is the argument for pinning.
 
 **L4 removes the lottery.** Pinned to CPU 7 (both SMT siblings isolated at
 boot, deep idle disabled on the pair, performance governor and EPP). The
@@ -72,16 +69,16 @@ loop itself.
 **L5 is the endpoint.** With the allocating log path removed and the
 allocation guard set to abort, the loop body runs in 0.3 us at p99.9 and
 the wakeup tail settles at 88.4 us, repeat after repeat. The guard proves
-the hot path clean at runtime; it is not a code-review claim.
+the hot path clean at runtime.
 
 ## What is left in the tail
 
 Beyond p99.99 each pinned run keeps roughly thirty events in the 400 to
 1,000 us range. Platform qualification bounds the firmware contribution
 (two stalls per hour, max 129 us), so these are something else, most
-likely interrupts still reaching the isolated pair. They are reported, not
-hidden: characterizing them with the osnoise tracer is the natural next
-measurement. Until then the honest claim stops at p99.9.
+likely interrupts still reaching the isolated pair. Characterizing them
+with the osnoise tracer is the next measurement. Until then the honest
+claim stops at p99.9.
 
 ## Regression gate
 
