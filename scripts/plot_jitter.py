@@ -63,6 +63,15 @@ def y_floor(counts, default=5e-6):
     return 0.5 / max(counts)
 
 
+def series_label(filename):
+    """Filename minus its known jitter-CSV suffix. `L3.jitter.csv` -> `L3`,
+    `L3.r2.jitter.csv` -> `L3.r2` (--repeat runs keep their .rN)."""
+    for suffix in (".jitter_naive.csv", ".jitter.csv"):
+        if filename.endswith(suffix):
+            return filename[: -len(suffix)]
+    return filename.split(".")[0]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--results", default="results")
@@ -85,7 +94,7 @@ def main() -> int:
     lo, hi = 1e9, 0.0
     counts = []
     for i, path in enumerate(files):
-        label = path.name.split(".")[0]
+        label = series_label(path.name)
 
         meta = rdir / f"{label}.summary.json"
         if not meta.exists():
