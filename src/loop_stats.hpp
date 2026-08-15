@@ -41,8 +41,8 @@ struct Summary {
 
 class LoopStats {
 public:
-    // period_ns is the expected sampling interval, and is what the coordinated
-    // omission correction backfills against.
+    // period_ns is the expected sampling interval: deadlines derive from it,
+    // and note_missed() uses it as the missed-cycle threshold.
     explicit LoopStats(std::int64_t period_ns);
     ~LoopStats();
     LoopStats(const LoopStats&)            = delete;
