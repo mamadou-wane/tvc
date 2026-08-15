@@ -152,15 +152,15 @@ Run each level long enough for the tail to be real. At 500 Hz, 300,000 cycles is
 Per run, into `--out`:
 
 ```
-L3.jitter_raw.csv          percentile sweep, microseconds
-L3.jitter_corrected.csv    same, coordinated-omission corrected
-L3.exec.csv                loop body execution time
-L3.summary.json            config and key percentiles
+L3.jitter.csv          wakeup jitter, microseconds, the published series
+L3.jitter_naive.csv    the naive self-referenced series, for the demonstration only
+L3.exec.csv            loop body execution time
+L3.summary.json        config and key percentiles
 ```
 
 `plot_jitter.py` renders all runs in a directory as a complementary CDF: x is jitter, y is the fraction of cycles worse than that value, log on both axes so the tail gets space proportional to how much it matters. A linear-y CDF compresses everything interesting into the top two percent of the plot, which is why latency work uses this form.
 
-`--corrected` plots the compensated series. Publish both.
+`--naive` plots the naive series instead of the published one, for the "Coordinated omission" demonstration above. The naive series is never a published number.
 
 ---
 
