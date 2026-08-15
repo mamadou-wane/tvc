@@ -45,16 +45,23 @@ def plan_levels(levels, cpu):
     return runnable, None
 
 
+def row_problem(summary):
+    """None if the row is good enough for the table, else a short reason it
+    was excluded: either the requested mitigation was not applied, or the
+    run is short or interrupted (or predates the cycles_requested field)."""
+    applied = summary.get("applied")
+    if not isinstance(applied, dict) or not all(applied.values()):
+        return "config was not applied"
+    if summary.get("cycles") != summary.get("cycles_requested"):
+        return "incomplete run or pre-integrity summary format"
+    return None
+
+
 def row_ok(summary):
     """A row enters the table only if every requested mitigation was applied
     and the run completed its full requested cycle count (an interrupted or
     short run cannot enter the table)."""
-    applied = summary.get("applied")
-    if not isinstance(applied, dict):
-        return False
-    if summary.get("cycles") != summary.get("cycles_requested"):
-        return False
-    return all(applied.values())
+    return row_problem(summary) is None
 
 
 def main() -> int:

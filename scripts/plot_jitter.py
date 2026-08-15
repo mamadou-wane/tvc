@@ -101,8 +101,9 @@ def main() -> int:
             print(f"skipping {label}: no summary.json to verify config against")
             continue
         d = json.loads(meta.read_text())
-        if not sweep.row_ok(d):
-            print(f"skipping {label}: requested config was not applied")
+        problem = sweep.row_problem(d)
+        if problem:
+            print(f"skipping {label}: {problem}")
             continue
 
         xs, ys = read_cdf(path)

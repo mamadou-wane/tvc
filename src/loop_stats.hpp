@@ -78,6 +78,7 @@ private:
     std::int64_t   early_        = 0;
     std::int64_t   min_signed_   = 0;
     std::int64_t   dropped_      = 0;
+    std::int64_t   recorded_     = 0;   // cycles passed to record(), independent of drops
     bool           seen_         = false;
 };
 

@@ -33,6 +33,7 @@ LoopStats::~LoopStats() {
 
 void LoopStats::record(std::int64_t jitter_ns, std::int64_t naive_ns,
                        std::int64_t exec_ns) noexcept {
+    recorded_++;
     if (!seen_ || jitter_ns < min_signed_) { min_signed_ = jitter_ns; seen_ = true; }
     if (jitter_ns < 0) early_++;
 
@@ -54,11 +55,15 @@ void LoopStats::reset() noexcept {
     seen_   = false;
     min_signed_ = 0;
     dropped_ = 0;
+    recorded_ = 0;
 }
 
 Summary LoopStats::summary() const {
     Summary s;
-    s.count        = jitter_raw_->total_count;
+    // record() calls, not the histogram's total_count: a sample past the
+    // ceiling still ran the cycle, it just didn't fit in the histogram, and
+    // dropped_samples is where that shows up instead.
+    s.count        = recorded_;
     s.missed       = missed_;
     s.early        = early_;
     s.min_ns       = min_signed_;
