@@ -24,8 +24,10 @@ class StrictExits(unittest.TestCase):
             self.assertIn("kernel", s["env"])
 
     def test_unwritable_out_exits_4(self):
+        # Two missing levels: the harness creates one directory level at most,
+        # so mkdir fails on the absent parent and the writes fail, even as root.
         p = subprocess.run(
-            [BIN, "--label=w", "--out=/nonexistent-dir-xyz", "--rate=1000",
+            [BIN, "--label=w", "--out=/nonexistent-a/b", "--rate=1000",
              "--cycles=200", "--warmup=10"],
             capture_output=True, text=True)
         self.assertEqual(p.returncode, 4)
