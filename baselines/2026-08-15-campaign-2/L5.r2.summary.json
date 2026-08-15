@@ -1,0 +1,18 @@
+{
+  "label": "L5.r2",
+  "config": "abs-deadline mlock fifo:80 cpu:7 no-alloc",
+  "applied": { "mlock": true, "fifo": true, "cpu": true },
+  "env": { "kernel": "7.0.0-29-generic", "machine": "x86_64", "cpu_end": 7, "timer_slack_ns": 0, "ac_online": true, "governor": "performance", "epp": "performance", "pkg_temp_c": 67 },
+  "period_us": 2000.000,
+  "cycles": 300000,
+  "cycles_requested": 300000,
+  "missed_deadlines": 0,
+  "early_wakeups": 0,
+  "jitter_us": {
+    "min": 2.805, "mean": 15.298, "p50": 12.751,
+    "p99": 87.167, "p99.9": 87.871, "p99.99": 417.279, "max": 844.287,
+    "p99.9_naive": 75.455
+  },
+  "dropped_samples": 0,
+  "exec_us": { "p50": 0.031, "p99.9": 0.321, "max": 3.277 }
+}
