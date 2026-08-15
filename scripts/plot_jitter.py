@@ -9,11 +9,12 @@ interesting into the top two percent of the plot, which is why latency work
 uses this form.
 
     ./scripts/plot_jitter.py --results results
-    ./scripts/plot_jitter.py --results results --corrected
+    ./scripts/plot_jitter.py --results results --naive
     ./scripts/plot_jitter.py --results results --out docs/jitter.svg
 
---corrected switches to the coordinated-omission-compensated series. Publish
-both. The gap between them is a real result, not an artifact.
+--naive plots what a self-referencing measurement (previous wakeup + period)
+would have reported. The primary series is coordinated-omission-free by
+construction; the naive series exists to demonstrate what CO hides.
 """
 
 import argparse
@@ -56,14 +57,14 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--results", default="results")
     ap.add_argument("--out", default=None, help="default: <results>/jitter.svg")
-    ap.add_argument("--corrected", action="store_true",
-                    help="plot the coordinated-omission-corrected series")
+    ap.add_argument("--naive", action="store_true",
+                    help="plot the self-referenced naive-measurement series (CO demo)")
     ap.add_argument("--target-us", type=float, default=100.0,
                     help="p99.9 deadline target marker (default: 100)")
     args = ap.parse_args()
 
     rdir = pathlib.Path(args.results)
-    series = "jitter_corrected" if args.corrected else "jitter_raw"
+    series = "jitter_naive" if args.naive else "jitter"
     files = sorted(rdir.glob(f"*.{series}.csv"))
     if not files:
         return print(f"no *.{series}.csv in {rdir} — run scripts/sweep.py first") or 1
@@ -82,7 +83,7 @@ def main() -> int:
         meta = rdir / f"{label}.summary.json"
         if meta.exists():
             d = json.loads(meta.read_text())
-            p999 = d["jitter_us"]["p99.9_corrected" if args.corrected else "p99.9"]
+            p999 = d["jitter_us"]["p99.9_naive" if args.naive else "p99.9"]
             legend = f"{label}  ·  p99.9 {p999:,.0f} µs  ·  {d['config']}"
         else:
             legend = label
@@ -112,7 +113,7 @@ def main() -> int:
     ax.set_ylabel("fraction of cycles worse", fontsize=10, color=INK)
     ax.set_title(
         "Control-loop wakeup jitter"
-        + ("  ·  coordinated-omission corrected" if args.corrected else ""),
+        + ("  ·  naive self-referenced measurement" if args.naive else ""),
         fontsize=12.5, color=INK, loc="left", pad=14)
 
     ax.grid(True, which="major", color=GRID, lw=0.7)
@@ -128,7 +129,7 @@ def main() -> int:
     leg.get_frame().set_linewidth(0.8)
 
     out = pathlib.Path(args.out) if args.out else rdir / (
-        "jitter_corrected.svg" if args.corrected else "jitter.svg")
+        "jitter_naive.svg" if args.naive else "jitter.svg")
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()
     fig.savefig(out, bbox_inches="tight")

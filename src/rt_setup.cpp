@@ -1,10 +1,14 @@
 #include "rt_setup.hpp"
 
+#include <alloca.h>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <malloc.h>
 #include <sched.h>
 #include <sys/mman.h>
+#include <sys/resource.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <vector>
 
@@ -14,20 +18,22 @@ std::string errno_str(const char* what) {
     return std::string(what) + ": " + std::strerror(errno);
 }
 
-// Touch every page of a stack region so the pages are resident and the guard
-// page has already been grown past. Marked noinline + volatile so the compiler
-// cannot decide this is dead.
+// Touch a stack region in one live frame. alloca plus an asm barrier so the
+// optimizer can neither elide the touch nor turn this into anything else.
 [[gnu::noinline]] void prefault_stack(std::size_t bytes) {
     if (bytes == 0) return;
-    volatile unsigned char buf[8192];
-    std::size_t done = 0;
-    while (done < bytes) {
-        for (std::size_t i = 0; i < sizeof(buf); i += 4096) buf[i] = 0;
-        done += sizeof(buf);
-        if (done >= bytes) break;
-        // Recurse rather than allocate, to keep growing the stack.
-        if (bytes - done > sizeof(buf)) { prefault_stack(bytes - done); return; }
-    }
+    unsigned char* p = static_cast<unsigned char*>(::alloca(bytes));
+    std::memset(p, 0, bytes);
+    __asm__ __volatile__("" ::"r"(p) : "memory");
+}
+
+std::size_t stack_budget(std::size_t requested) {
+    rlimit rl{};
+    if (::getrlimit(RLIMIT_STACK, &rl) != 0 || rl.rlim_cur == RLIM_INFINITY)
+        return requested;
+    // Half the limit: main() and callees already own part of the stack.
+    const std::size_t cap = static_cast<std::size_t>(rl.rlim_cur) / 2;
+    return requested < cap ? requested : cap;
 }
 
 }  // namespace
@@ -40,18 +46,33 @@ Result lock_memory(std::size_t stack_bytes, std::size_t heap_bytes) {
         r.detail = errno_str("mlockall");
         return r;
     }
-    prefault_stack(stack_bytes);
+    const std::size_t budget = stack_budget(stack_bytes);
+    prefault_stack(budget);
 
-    // Grow the arena to its working size and touch it, then hand it back. With
-    // MCL_FUTURE and M_TRIM_THRESHOLD left alone glibc keeps the arena, so
-    // later allocations during init do not fault.
+    // Keep freed memory in the arena instead of returning it to the kernel,
+    // then warm the arena to its working size. Without these mallopt calls a
+    // large warm block is served by mmap and munmapped on free (man mallopt),
+    // and the "prefault" buys nothing.
     if (heap_bytes) {
+        ::mallopt(M_TRIM_THRESHOLD, -1);
+        ::mallopt(M_MMAP_MAX, 0);
         std::vector<unsigned char> warm(heap_bytes);
         for (std::size_t i = 0; i < heap_bytes; i += 4096) warm[i] = 1;
     }
 
+    // Prove it: allocating and touching again should fault nearly nothing.
+    rusage before{}, after{};
+    ::getrusage(RUSAGE_SELF, &before);
+    if (heap_bytes) {
+        std::vector<unsigned char> check(heap_bytes / 2);
+        for (std::size_t i = 0; i < check.size(); i += 4096) check[i] = 1;
+    }
+    ::getrusage(RUSAGE_SELF, &after);
+
     r.ok = true;
-    r.detail = "MCL_CURRENT|MCL_FUTURE, stack and heap pre-faulted";
+    r.detail = "prefaulted " + std::to_string(budget >> 20) + " MiB stack, " +
+               std::to_string(heap_bytes >> 20) + " MiB heap; recheck minor faults: " +
+               std::to_string(after.ru_minflt - before.ru_minflt);
     return r;
 }
 

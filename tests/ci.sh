@@ -10,6 +10,6 @@ cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all"
 cmake --build build-asan -j
 if [ -d tests/functional ]; then
-  TVC_BIN="$PWD/build-asan/tvc_harness" python3 -m unittest discover -s tests/functional -v
+  TVC_ASAN=1 TVC_BIN="$PWD/build-asan/tvc_harness" python3 -m unittest discover -s tests/functional -v
 fi
 echo "ci.sh: all green"
