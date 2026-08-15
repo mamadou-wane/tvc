@@ -33,6 +33,7 @@ LoopStats::~LoopStats() {
 
 void LoopStats::record(std::int64_t jitter_ns, std::int64_t naive_ns,
                        std::int64_t exec_ns) noexcept {
+    recorded_++;
     if (!seen_ || jitter_ns < min_signed_) { min_signed_ = jitter_ns; seen_ = true; }
     if (jitter_ns < 0) early_++;
 
@@ -54,11 +55,15 @@ void LoopStats::reset() noexcept {
     seen_   = false;
     min_signed_ = 0;
     dropped_ = 0;
+    recorded_ = 0;
 }
 
 Summary LoopStats::summary() const {
     Summary s;
-    s.count        = jitter_raw_->total_count;
+    // record() calls, not the histogram's total_count: a sample past the
+    // ceiling still ran the cycle, it just didn't fit in the histogram, and
+    // dropped_samples is where that shows up instead.
+    s.count        = recorded_;
     s.missed       = missed_;
     s.early        = early_;
     s.min_ns       = min_signed_;
@@ -96,7 +101,8 @@ bool LoopStats::write_csv(const std::string& dir, const std::string& label) cons
 
 bool LoopStats::write_json(const std::string& path, const std::string& label,
                            const std::string& config, const std::string& applied_json,
-                           const std::string& env_json) const {
+                           const std::string& env_json,
+                           std::int64_t cycles_requested) const {
     FILE* f = std::fopen(path.c_str(), "w");
     if (!f) return false;
     const Summary s = summary();
@@ -109,6 +115,7 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         "  \"env\": %s,\n"
         "  \"period_us\": %.3f,\n"
         "  \"cycles\": %" PRId64 ",\n"
+        "  \"cycles_requested\": %" PRId64 ",\n"
         "  \"missed_deadlines\": %" PRId64 ",\n"
         "  \"early_wakeups\": %" PRId64 ",\n"
         "  \"jitter_us\": {\n"
@@ -120,7 +127,7 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         "  \"exec_us\": { \"p50\": %.3f, \"p99.9\": %.3f, \"max\": %.3f }\n"
         "}\n",
         label.c_str(), config.c_str(), applied_json.c_str(), env_json.c_str(), us(period_ns_),
-        s.count, s.missed, s.early,
+        s.count, cycles_requested, s.missed, s.early,
         us(s.min_ns), us(static_cast<std::int64_t>(s.mean_ns)), us(s.p50_ns),
         us(s.p99_ns), us(s.p999_ns), us(s.p9999_ns), us(s.max_ns),
         us(s.naive_p999_ns), s.dropped,

@@ -16,11 +16,38 @@ class PlanLevels(unittest.TestCase):
 
 class RowOk(unittest.TestCase):
     def test_rejects_unapplied_mitigation(self):
-        self.assertFalse(sweep.row_ok({"applied": {"fifo": False, "mlock": True, "cpu": True}}))
-        self.assertTrue(sweep.row_ok({"applied": {"fifo": True, "mlock": True, "cpu": True}}))
+        self.assertFalse(sweep.row_ok({
+            "applied": {"fifo": False, "mlock": True, "cpu": True},
+            "cycles": 1000, "cycles_requested": 1000}))
+        self.assertTrue(sweep.row_ok({
+            "applied": {"fifo": True, "mlock": True, "cpu": True},
+            "cycles": 1000, "cycles_requested": 1000}))
 
     def test_missing_applied_is_rejected(self):
         self.assertFalse(sweep.row_ok({}))
+
+    def test_rejects_short_run(self):
+        self.assertFalse(sweep.row_ok({
+            "applied": {"fifo": True, "mlock": True, "cpu": True},
+            "cycles": 500, "cycles_requested": 1000}))
+
+class RowProblem(unittest.TestCase):
+    def test_good_row_has_no_problem(self):
+        self.assertIsNone(sweep.row_problem({
+            "applied": {"fifo": True, "mlock": True, "cpu": True},
+            "cycles": 1000, "cycles_requested": 1000}))
+
+    def test_unapplied_mitigation_reason(self):
+        self.assertEqual(sweep.row_problem({
+            "applied": {"fifo": False, "mlock": True, "cpu": True},
+            "cycles": 1000, "cycles_requested": 1000}),
+            "config was not applied")
+
+    def test_short_run_reason(self):
+        self.assertEqual(sweep.row_problem({
+            "applied": {"fifo": True, "mlock": True, "cpu": True},
+            "cycles": 500, "cycles_requested": 1000}),
+            "incomplete run or pre-integrity summary format")
 
 if __name__ == "__main__":
     unittest.main()

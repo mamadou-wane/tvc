@@ -61,10 +61,13 @@ public:
 
     // Full percentile sweeps, one CSV per series, for plotting.
     bool write_csv(const std::string& dir, const std::string& label) const;
-    // Machine-readable run record for the sweep table.
+    // Machine-readable run record for the sweep table. cycles_requested is
+    // the configured --cycles value: comparing it against the recorded count
+    // is how a stale interrupted/short run is kept out of the table.
     bool write_json(const std::string& path, const std::string& label,
                     const std::string& config, const std::string& applied_json,
-                    const std::string& env_json) const;
+                    const std::string& env_json,
+                    std::int64_t cycles_requested) const;
 
 private:
     hdr_histogram* jitter_raw_   = nullptr;
@@ -75,6 +78,7 @@ private:
     std::int64_t   early_        = 0;
     std::int64_t   min_signed_   = 0;
     std::int64_t   dropped_      = 0;
+    std::int64_t   recorded_     = 0;   // cycles passed to record(), independent of drops
     bool           seen_         = false;
 };
 

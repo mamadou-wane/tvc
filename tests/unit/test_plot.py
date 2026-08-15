@@ -17,5 +17,18 @@ class YFloor(unittest.TestCase):
         self.assertAlmostEqual(plot_jitter.y_floor([300_000]), 0.5 / 300_000)
         self.assertEqual(plot_jitter.y_floor([]), 5e-6)
 
+class SeriesLabel(unittest.TestCase):
+    def test_plain(self):
+        self.assertEqual(plot_jitter.series_label("L3.jitter.csv"), "L3")
+
+    def test_repeat(self):
+        self.assertEqual(plot_jitter.series_label("L3.r2.jitter.csv"), "L3.r2")
+
+    def test_naive(self):
+        self.assertEqual(plot_jitter.series_label("L3.jitter_naive.csv"), "L3")
+
+    def test_naive_repeat(self):
+        self.assertEqual(plot_jitter.series_label("L3.r2.jitter_naive.csv"), "L3.r2")
+
 if __name__ == "__main__":
     unittest.main()

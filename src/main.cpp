@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <glob.h>
 #include <string>
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -197,6 +198,62 @@ bool parse(int argc, char** argv, Config& c) {
     return true;
 }
 
+// ---------------------------------------------------------------------------
+// Environment discipline fields, read post-loop only: never on the record
+// path. Every one of these is best-effort and absent in the CI container, so
+// each falls back to a sentinel rather than failing the run.
+std::string read_sysfs_line(const std::string& path) {
+    FILE* f = std::fopen(path.c_str(), "r");
+    if (!f) return "";
+    char buf[256];
+    std::string line;
+    if (std::fgets(buf, sizeof(buf), f)) line = buf;
+    std::fclose(f);
+    while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
+    return line;
+}
+
+std::string sysfs_or_unknown(const std::string& path) {
+    const std::string v = read_sysfs_line(path);
+    return v.empty() ? "unknown" : v;
+}
+
+// JSON literal: true, false, or "unknown". First power_supply/*/online that
+// reads 1 or 0 wins.
+std::string ac_online_json() {
+    glob_t g{};
+    std::string token = "\"unknown\"";
+    if (glob("/sys/class/power_supply/*/online", GLOB_NOSORT, nullptr, &g) == 0) {
+        for (std::size_t i = 0; i < g.gl_pathc; ++i) {
+            const std::string v = read_sysfs_line(g.gl_pathv[i]);
+            if (v == "1") { token = "true"; break; }
+            if (v == "0") { token = "false"; break; }
+        }
+    }
+    globfree(&g);
+    return token;
+}
+
+// hwmon whose name is "k10temp" -> temp1_input / 1000, integer Celsius.
+// -1 when no such hwmon exists.
+int read_pkg_temp_c() {
+    glob_t g{};
+    int result = -1;
+    if (glob("/sys/class/hwmon/hwmon*/name", GLOB_NOSORT, nullptr, &g) == 0) {
+        for (std::size_t i = 0; i < g.gl_pathc; ++i) {
+            const std::string name_path = g.gl_pathv[i];
+            if (read_sysfs_line(name_path) != "k10temp") continue;
+            const std::string dir = name_path.substr(0, name_path.size() - std::strlen("name"));
+            std::int64_t milli = 0;
+            if (to_i64(read_sysfs_line(dir + "temp1_input").c_str(), milli))
+                result = static_cast<int>(milli / 1000);
+            break;
+        }
+    }
+    globfree(&g);
+    return result;
+}
+
 std::string config_string(const Config& c) {
     std::string s;
     s += c.abs_deadline ? "abs-deadline " : "sleep_for ";
@@ -355,18 +412,26 @@ int main(int argc, char** argv) {
     utsname un{};
     ::uname(&un);
     const long slack = ::prctl(PR_GET_TIMERSLACK, 0UL, 0UL, 0UL, 0UL);
+    const int cpu_end = ::sched_getcpu();
+    const std::string cpufreq_dir =
+        "/sys/devices/system/cpu/cpu" + std::to_string(cpu_end) + "/cpufreq/";
     const std::string env_json =
         std::string("{ \"kernel\": \"") + un.release +
         "\", \"machine\": \"" + un.machine +
-        "\", \"cpu_end\": " + std::to_string(::sched_getcpu()) +
-        ", \"timer_slack_ns\": " + std::to_string(slack) + " }";
+        "\", \"cpu_end\": " + std::to_string(cpu_end) +
+        ", \"timer_slack_ns\": " + std::to_string(slack) +
+        ", \"ac_online\": " + ac_online_json() +
+        ", \"governor\": \"" + sysfs_or_unknown(cpufreq_dir + "scaling_governor") + "\"" +
+        ", \"epp\": \"" + sysfs_or_unknown(cpufreq_dir + "energy_performance_preference") + "\"" +
+        ", \"pkg_temp_c\": " + std::to_string(read_pkg_temp_c()) + " }";
 
     const std::string cfgstr = config_string(cfg);
     // Best effort, single level: a missing parent still fails the writes below.
     ::mkdir(cfg.outdir.c_str(), 0755);
     bool wrote_ok = stats.write_csv(cfg.outdir, cfg.label);
     wrote_ok = stats.write_json(cfg.outdir + "/" + cfg.label + ".summary.json",
-                                cfg.label, cfgstr, applied_json, env_json) && wrote_ok;
+                                cfg.label, cfgstr, applied_json, env_json,
+                                cfg.cycles) && wrote_ok;
     if (wrote_ok)
         std::printf("\n  wrote %s/%s.{jitter,jitter_naive,exec}.csv and .summary.json\n",
                     cfg.outdir.c_str(), cfg.label.c_str());

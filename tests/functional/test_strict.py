@@ -22,6 +22,8 @@ class StrictExits(unittest.TestCase):
             s = json.loads((pathlib.Path(d) / "s.summary.json").read_text())
             self.assertFalse(s["applied"]["fifo"])
             self.assertIn("kernel", s["env"])
+            for key in ("ac_online", "governor", "epp", "pkg_temp_c"):
+                self.assertIn(key, s["env"])
 
     def test_unwritable_out_exits_4(self):
         # Two missing levels: the harness creates one directory level at most,
