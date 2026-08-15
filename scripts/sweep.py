@@ -125,7 +125,7 @@ def main() -> int:
         pattern = f"{label}.summary.json" if args.repeat == 1 else f"{label}.r*.summary.json"
         summaries = [json.loads(p.read_text()) for p in sorted(outdir.glob(pattern))]
         good = [s for s in summaries if row_ok(s)]
-        excluded += [s["label"] for s in summaries if not row_ok(s)]
+        excluded += [(s["label"], row_problem(s)) for s in summaries if not row_ok(s)]
         if not good:
             continue
         p999s = [s["jitter_us"]["p99.9"] for s in good]
@@ -136,8 +136,9 @@ def main() -> int:
         base["p999_spread"] = (min(p999s), max(p999s)) if len(p999s) > 1 else None
         rows.append(base)
     if excluded:
-        print(f"\nexcluded (mitigation not applied): {', '.join(excluded)}",
-              file=sys.stderr)
+        print(file=sys.stderr)
+        for label, reason in excluded:
+            print(f"excluded {label}: {reason}", file=sys.stderr)
 
     if rows:
         w = shutil.get_terminal_size((100, 20)).columns
