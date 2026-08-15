@@ -4,16 +4,28 @@ A hard real-time control and telemetry stack: a 500 Hz C++20 control loop on
 Linux, measured as a latency distribution, with a Python ground station,
 simulation, and fault injection to follow.
 
-Status: v0.1 week 1 complete: harness landed and corrected. Next: Linux
-bring-up and qualification on the ProBook 465 G11.
+![Wakeup jitter CCDF across mitigation levels](docs/jitter.svg)
+
+**p99.9 wakeup jitter: 88.4 microseconds at 500 Hz**, reproducible to
+within one microsecond across three independent 300,000-cycle runs, on a
+stock Ubuntu generic kernel. The naive baseline drifts 17 seconds off
+schedule in the same ten minutes and cannot see it in its own measurement.
+Six mitigations, applied one at a time, each measured in isolation:
+[docs/results.md](docs/results.md).
+
+Status: v0.1 measurement campaign complete on the qualified platform.
+Next: the writeup polish and the telemetry stack (v0.2a).
 
 ## Layout
 
     src/         control-cycle timing harness (C++20)
-    scripts/     campaign runner and plotting
+    scripts/     campaign runner, plotting, regression gate
+    baselines/   committed campaign data the gate diffs against
     tests/       functional and unit tests (container-run for C++)
-    docs/        methodology, plan, ADRs, AI log
+    docs/        results, methodology, qualification, plan, ADRs, AI log
+      results.md       the campaign, level by level
       methodology.md   measurement methodology
+      qualification.md measured platform record
       plan.md          release plan
 
 ## Build and test
