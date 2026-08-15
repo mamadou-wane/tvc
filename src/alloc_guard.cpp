@@ -6,6 +6,7 @@
 
 #include "alloc_guard.hpp"
 
+#include <atomic>
 #include <cstdlib>
 #include <cstring>
 #include <new>
@@ -15,7 +16,9 @@ namespace {
 
 // Constant-initialised, so these are live before any dynamic initialisation.
 // Do not give them constructors.
-int             g_mode      = 0;
+// Written by the main thread around the run; read from any thread that
+// allocates. Relaxed atomic: no ordering needed, only tear-freedom.
+std::atomic<int> g_mode{0};
 thread_local int      t_depth   = 0;
 thread_local std::uint64_t t_allocs  = 0;
 thread_local std::uint64_t t_frees   = 0;
@@ -46,15 +49,17 @@ void die(const char* what, std::size_t bytes) {
 }
 
 inline void note_alloc(std::size_t bytes) {
-    if (g_mode == 0 || t_depth == 0) return;
-    if (g_mode == 2) die("allocation", bytes);
+    const int m = g_mode.load(std::memory_order_relaxed);
+    if (m == 0 || t_depth == 0) return;
+    if (m == 2) die("allocation", bytes);
     ++t_allocs;
     if (bytes > t_largest) t_largest = bytes;
 }
 
 inline void note_free() {
-    if (g_mode == 0 || t_depth == 0) return;
-    if (g_mode == 2) die("free", 0);
+    const int m = g_mode.load(std::memory_order_relaxed);
+    if (m == 0 || t_depth == 0) return;
+    if (m == 2) die("free", 0);
     ++t_frees;
 }
 
@@ -68,8 +73,8 @@ inline void* raw_alloc(std::size_t bytes) {
 
 namespace guard {
 
-void set_mode(Mode m) { g_mode = static_cast<int>(m); }
-Mode mode()           { return static_cast<Mode>(g_mode); }
+void set_mode(Mode m) { g_mode.store(static_cast<int>(m), std::memory_order_relaxed); }
+Mode mode()           { return static_cast<Mode>(g_mode.load(std::memory_order_relaxed)); }
 
 Tally tally() { return Tally{t_allocs, t_frees, t_largest}; }
 void  reset_tally() { t_allocs = 0; t_frees = 0; t_largest = 0; }

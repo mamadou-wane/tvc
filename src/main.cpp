@@ -19,6 +19,8 @@
 #include "rt_setup.hpp"
 
 #include <atomic>
+#include <cctype>
+#include <cerrno>
 #include <cinttypes>
 #include <cmath>
 #include <csignal>
@@ -27,6 +29,8 @@
 #include <cstring>
 #include <ctime>
 #include <string>
+#include <sys/prctl.h>
+#include <sys/utsname.h>
 #include <thread>
 #include <vector>
 
@@ -110,13 +114,38 @@ void usage() {
 "  --fifo=PRIO         SCHED_FIFO at PRIO (80 recommended, not 99)\n"
 "  --cpu=N             pin to CPU N\n"
 "  --no-naive-log      remove the allocating telemetry path from the cycle\n"
-"  --alloc-guard=MODE  off | count | abort                   (default: off)\n");
+"  --alloc-guard=MODE  off | count | abort                   (default: off)\n"
+"\n"
+"exit codes: 0 ok, 1 usage, 2 mitigation failed, 3 interrupted, 4 write failed\n"
+"label charset: [A-Za-z0-9._-]\n");
 }
 
 bool starts_with(const char* s, const char* p, const char** rest) {
     const std::size_t n = std::strlen(p);
     if (std::strncmp(s, p, n) == 0) { *rest = s + n; return true; }
     return false;
+}
+
+bool to_i64(const char* s, std::int64_t& out) {
+    char* end = nullptr;
+    errno = 0;
+    const long long v = std::strtoll(s, &end, 10);
+    if (errno != 0 || end == s || *end != '\0') return false;
+    out = v;
+    return true;
+}
+bool to_double(const char* s, double& out) {
+    char* end = nullptr;
+    errno = 0;
+    out = std::strtod(s, &end);
+    return errno == 0 && end != s && *end == '\0';
+}
+bool label_ok(const std::string& s) {
+    if (s.empty()) return false;
+    for (char c : s)
+        if (!std::isalnum(static_cast<unsigned char>(c)) &&
+            c != '.' && c != '_' && c != '-') return false;
+    return true;
 }
 
 bool parse(int argc, char** argv, Config& c) {
@@ -126,14 +155,28 @@ bool parse(int argc, char** argv, Config& c) {
         if (!std::strcmp(a, "--help") || !std::strcmp(a, "-h")) { usage(); return false; }
         else if (starts_with(a, "--label=",  &v)) c.label   = v;
         else if (starts_with(a, "--out=",    &v)) c.outdir  = v;
-        else if (starts_with(a, "--rate=",   &v)) c.rate_hz = std::atof(v);
-        else if (starts_with(a, "--cycles=", &v)) c.cycles  = std::atoll(v);
-        else if (starts_with(a, "--warmup=", &v)) c.warmup  = std::atoll(v);
+        else if (starts_with(a, "--rate=",   &v)) {
+            if (!to_double(v, c.rate_hz)) { std::fprintf(stderr, "bad value: %s\n", a); return false; }
+        }
+        else if (starts_with(a, "--cycles=", &v)) {
+            if (!to_i64(v, c.cycles)) { std::fprintf(stderr, "bad value: %s\n", a); return false; }
+        }
+        else if (starts_with(a, "--warmup=", &v)) {
+            if (!to_i64(v, c.warmup)) { std::fprintf(stderr, "bad value: %s\n", a); return false; }
+        }
         else if (!std::strcmp(a, "--abs-deadline")) c.abs_deadline = true;
         else if (!std::strcmp(a, "--mlock"))       c.mlock        = true;
         else if (!std::strcmp(a, "--no-naive-log")) c.naive_log   = false;
-        else if (starts_with(a, "--fifo=", &v)) c.fifo_prio = std::atoi(v);
-        else if (starts_with(a, "--cpu=",  &v)) c.cpu       = std::atoi(v);
+        else if (starts_with(a, "--fifo=", &v)) {
+            std::int64_t fifo = 0;
+            if (!to_i64(v, fifo)) { std::fprintf(stderr, "bad value: %s\n", a); return false; }
+            c.fifo_prio = static_cast<int>(fifo);
+        }
+        else if (starts_with(a, "--cpu=",  &v)) {
+            std::int64_t cpu = 0;
+            if (!to_i64(v, cpu)) { std::fprintf(stderr, "bad value: %s\n", a); return false; }
+            c.cpu = static_cast<int>(cpu);
+        }
         else if (starts_with(a, "--alloc-guard=", &v)) {
             if      (!std::strcmp(v, "off"))   c.alloc_guard = guard::Mode::Off;
             else if (!std::strcmp(v, "count")) c.alloc_guard = guard::Mode::Count;
@@ -142,7 +185,14 @@ bool parse(int argc, char** argv, Config& c) {
         }
         else { std::fprintf(stderr, "unknown argument: %s\n\n", a); usage(); return false; }
     }
-    if (c.rate_hz <= 0 || c.cycles <= 0) { std::fputs("rate and cycles must be positive\n", stderr); return false; }
+    if (!label_ok(c.label)) { std::fputs("bad --label: must match [A-Za-z0-9._-]\n", stderr); return false; }
+    if (c.rate_hz <= 0) { std::fputs("--rate must be positive\n", stderr); return false; }
+    if (c.cycles <= 0) { std::fputs("--cycles must be positive\n", stderr); return false; }
+    if (c.warmup < 0) { std::fputs("--warmup must be >= 0\n", stderr); return false; }
+    if (!(c.fifo_prio == 0 || (c.fifo_prio >= 1 && c.fifo_prio <= 99))) {
+        std::fputs("--fifo must be 0 or in [1, 99]\n", stderr); return false;
+    }
+    if (c.cpu < -1) { std::fputs("--cpu must be >= -1\n", stderr); return false; }
     return true;
 }
 
@@ -166,27 +216,48 @@ int main(int argc, char** argv) {
     std::signal(SIGINT,  on_signal);
     std::signal(SIGTERM, on_signal);
 
+    // 50 us default slack would otherwise contaminate every non-RT level.
+    ::prctl(PR_SET_TIMERSLACK, 1UL, 0UL, 0UL, 0UL);
+
     const std::int64_t period_ns =
         static_cast<std::int64_t>(kNsPerSec / cfg.rate_hz + 0.5);
 
     std::printf("tvc_harness  label=%s  %.0f Hz (%.3f ms cycle)  %" PRId64 " cycles\n",
                 cfg.label.c_str(), cfg.rate_hz, period_ns / 1e6, cfg.cycles);
 
+    bool ok_mlock = !cfg.mlock, ok_cpu = cfg.cpu < 0, ok_fifo = cfg.fifo_prio <= 0;
+
     // ---- privileges, applied and reported before anything is measured ----
     if (cfg.mlock) {
         const auto r = rt::lock_memory(8u << 20, 64u << 20);
+        ok_mlock = r.ok;
         std::printf("  mlock      %-4s %s\n", r.ok ? "ok" : "FAIL", r.detail.c_str());
     }
     if (cfg.cpu >= 0) {
         const auto r = rt::pin_to_cpu(cfg.cpu);
+        ok_cpu = r.ok;
         std::printf("  affinity   %-4s %s\n", r.ok ? "ok" : "FAIL", r.detail.c_str());
     }
     if (cfg.fifo_prio > 0) {
         const auto r = rt::set_fifo_priority(cfg.fifo_prio);
+        ok_fifo = r.ok;
         std::printf("  scheduler  %-4s %s\n", r.ok ? "ok" : "FAIL", r.detail.c_str());
         if (!r.ok) std::puts("             (needs CAP_SYS_NICE — try sudo, or raise RLIMIT_RTPRIO)");
     }
     std::printf("  running as %s\n", rt::describe_current().c_str());
+
+    auto b = [](bool v) { return v ? "true" : "false"; };
+    utsname un{};
+    ::uname(&un);
+    const std::string applied_json =
+        std::string("{ \"mlock\": ") + b(!cfg.mlock || ok_mlock) +
+        ", \"fifo\": " + b(!(cfg.fifo_prio > 0) || ok_fifo) +
+        ", \"cpu\": " + b(cfg.cpu < 0 || ok_cpu) + " }";
+    const std::string env_json =
+        std::string("{ \"kernel\": \"") + un.release +
+        "\", \"machine\": \"" + un.machine +
+        "\", \"cpu_end\": " + std::to_string(::sched_getcpu()) +
+        ", \"timer_slack_ns\": 1 }";
 
     // ---- everything that allocates happens here, before the loop ----
     stats::LoopStats stats(period_ns);
@@ -216,10 +287,10 @@ int main(int argc, char** argv) {
                 rc = ::clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, nullptr);
             } while (rc == EINTR);
         } else {
-            // The naive version: sleep for a duration measured from now. Drift
-            // and scheduler granularity both land straight in the tail.
-            const std::int64_t remain = deadline - now_ns();
-            if (remain > 0) std::this_thread::sleep_for(std::chrono::nanoseconds(remain));
+            // Genuinely naive: sleep one period from "now", the pattern that
+            // drifts by the overshoot every cycle. Measurement still happens
+            // against the origin schedule, so the drift is visible.
+            std::this_thread::sleep_for(std::chrono::nanoseconds(period_ns));
         }
 
         const std::int64_t woke = now_ns();
@@ -286,10 +357,20 @@ int main(int argc, char** argv) {
     }
 
     const std::string cfgstr = config_string(cfg);
-    if (!stats.write_csv(cfg.outdir, cfg.label))
-        std::fprintf(stderr, "\nwarning: could not write CSV into %s\n", cfg.outdir.c_str());
-    stats.write_json(cfg.outdir + "/" + cfg.label + ".summary.json", cfg.label, cfgstr);
-    std::printf("\n  wrote %s/%s.{jitter,jitter_naive,exec}.csv and .summary.json\n",
-                cfg.outdir.c_str(), cfg.label.c_str());
+    bool wrote_ok = stats.write_csv(cfg.outdir, cfg.label);
+    wrote_ok = stats.write_json(cfg.outdir + "/" + cfg.label + ".summary.json",
+                                cfg.label, cfgstr, applied_json, env_json) && wrote_ok;
+    if (wrote_ok)
+        std::printf("\n  wrote %s/%s.{jitter,jitter_naive,exec}.csv and .summary.json\n",
+                    cfg.outdir.c_str(), cfg.label.c_str());
+    else
+        std::fprintf(stderr, "\nerror: could not write results into %s\n", cfg.outdir.c_str());
+
+    const bool mitigation_failed =
+        (cfg.mlock && !ok_mlock) || (cfg.fifo_prio > 0 && !ok_fifo) ||
+        (cfg.cpu >= 0 && !ok_cpu);
+    if (!wrote_ok) return 4;
+    if (g_stop.load()) return 3;
+    if (mitigation_failed) return 2;
     return 0;
 }
