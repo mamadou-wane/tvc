@@ -63,7 +63,8 @@ public:
     bool write_csv(const std::string& dir, const std::string& label) const;
     // Machine-readable run record for the sweep table.
     bool write_json(const std::string& path, const std::string& label,
-                    const std::string& config) const;
+                    const std::string& config, const std::string& applied_json,
+                    const std::string& env_json) const;
 
 private:
     hdr_histogram* jitter_raw_   = nullptr;

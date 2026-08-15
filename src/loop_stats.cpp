@@ -95,7 +95,8 @@ bool LoopStats::write_csv(const std::string& dir, const std::string& label) cons
 }
 
 bool LoopStats::write_json(const std::string& path, const std::string& label,
-                           const std::string& config) const {
+                           const std::string& config, const std::string& applied_json,
+                           const std::string& env_json) const {
     FILE* f = std::fopen(path.c_str(), "w");
     if (!f) return false;
     const Summary s = summary();
@@ -104,6 +105,8 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         "{\n"
         "  \"label\": \"%s\",\n"
         "  \"config\": \"%s\",\n"
+        "  \"applied\": %s,\n"
+        "  \"env\": %s,\n"
         "  \"period_us\": %.3f,\n"
         "  \"cycles\": %" PRId64 ",\n"
         "  \"missed_deadlines\": %" PRId64 ",\n"
@@ -116,7 +119,7 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         "  \"dropped_samples\": %" PRId64 ",\n"
         "  \"exec_us\": { \"p50\": %.3f, \"p99.9\": %.3f, \"max\": %.3f }\n"
         "}\n",
-        label.c_str(), config.c_str(), us(period_ns_),
+        label.c_str(), config.c_str(), applied_json.c_str(), env_json.c_str(), us(period_ns_),
         s.count, s.missed, s.early,
         us(s.min_ns), us(static_cast<std::int64_t>(s.mean_ns)), us(s.p50_ns),
         us(s.p99_ns), us(s.p999_ns), us(s.p9999_ns), us(s.max_ns),
