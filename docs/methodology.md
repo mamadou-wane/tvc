@@ -79,21 +79,42 @@ The guard is thread-local by design. A drain thread doing I/O and formatting is 
 
 Numbers from a VM, WSL, or a container are not usable. Bare metal only.
 The reference machine is an HP ProBook 465 G11 (Ryzen 7 7735U: 8 cores,
-16 threads, homogeneous Zen 3+) on Ubuntu 24.04 LTS.
+16 threads, homogeneous Zen 3+) on Ubuntu 26.04 LTS, generic kernel 7.0.
+The measured platform record lives in qualification.md; NO_HZ_FULL and
+RCU_NOCB_CPU are confirmed enabled in this kernel, so the boot parameters
+below actually engage.
 
 **Identify the topology first.** `lscpu --all --extended` and
 `cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list`. On this
-part, core N typically pairs with thread N+8.
+machine, SMT siblings are adjacent pairs: core N is CPUs 2N and 2N+1, so
+the pairs are (0,1), (2,3) ... (14,15). Measured, not assumed; see
+qualification.md.
 
-**Isolate a full physical core.** Both SMT siblings, for example CPUs 3
-and 11:
+**Isolate a full physical core.** Both SMT siblings. The reference
+configuration uses core 3, CPUs 6 and 7:
 
-    isolcpus=3,11 nohz_full=3,11 rcu_nocbs=3,11
+    isolcpus=6,7 nohz_full=6,7 rcu_nocbs=6,7
 
 in GRUB_CMDLINE_LINUX_DEFAULT, then update-grub and reboot. Pin the loop
-to 3 and leave 11 idle. Isolating a lone SMT thread is not isolation: the
-sibling shares the core's execution units and caches. `nosmt` is the
+to CPU 7 and leave 6 idle. Core 0 is avoided because it carries default
+housekeeping and IRQ load. Isolating a lone SMT thread is not isolation:
+the sibling shares the core's execution units and caches. `nosmt` is the
 simpler alternative when the core count can be spared.
+
+**The comparison kernel is one package away.** From 26.04 the PREEMPT_RT
+kernel ships free in the archive, version-matched to generic
+(`linux-image-realtime`, 7.0.0-29 against 7.0.0-29-generic at the time of
+qualification). The campaign's kernel comparison axis reruns the sweep on
+it with everything else held constant.
+
+**Allow real-time priority without root.** In /etc/security/limits.conf:
+
+    @realtime  -  rtprio   99
+    @realtime  -  memlock  unlimited
+
+then `sudo groupadd realtime && sudo usermod -aG realtime $USER` and log
+back in. Running under sudo works too, but changes the environment being
+measured.
 
 **Move interrupts away.** Stop irqbalance if it is running; write masks
 excluding the isolated pair to /proc/irq/*/smp_affinity. Some kernel-
