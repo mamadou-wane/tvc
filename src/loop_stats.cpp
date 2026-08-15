@@ -96,7 +96,8 @@ bool LoopStats::write_csv(const std::string& dir, const std::string& label) cons
 
 bool LoopStats::write_json(const std::string& path, const std::string& label,
                            const std::string& config, const std::string& applied_json,
-                           const std::string& env_json) const {
+                           const std::string& env_json,
+                           std::int64_t cycles_requested) const {
     FILE* f = std::fopen(path.c_str(), "w");
     if (!f) return false;
     const Summary s = summary();
@@ -109,6 +110,7 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         "  \"env\": %s,\n"
         "  \"period_us\": %.3f,\n"
         "  \"cycles\": %" PRId64 ",\n"
+        "  \"cycles_requested\": %" PRId64 ",\n"
         "  \"missed_deadlines\": %" PRId64 ",\n"
         "  \"early_wakeups\": %" PRId64 ",\n"
         "  \"jitter_us\": {\n"
@@ -120,7 +122,7 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         "  \"exec_us\": { \"p50\": %.3f, \"p99.9\": %.3f, \"max\": %.3f }\n"
         "}\n",
         label.c_str(), config.c_str(), applied_json.c_str(), env_json.c_str(), us(period_ns_),
-        s.count, s.missed, s.early,
+        s.count, cycles_requested, s.missed, s.early,
         us(s.min_ns), us(static_cast<std::int64_t>(s.mean_ns)), us(s.p50_ns),
         us(s.p99_ns), us(s.p999_ns), us(s.p9999_ns), us(s.max_ns),
         us(s.naive_p999_ns), s.dropped,

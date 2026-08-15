@@ -46,9 +46,13 @@ def plan_levels(levels, cpu):
 
 
 def row_ok(summary):
-    """A row enters the table only if every requested mitigation was applied."""
+    """A row enters the table only if every requested mitigation was applied
+    and the run completed its full requested cycle count (an interrupted or
+    short run cannot enter the table)."""
     applied = summary.get("applied")
     if not isinstance(applied, dict):
+        return False
+    if summary.get("cycles") != summary.get("cycles_requested"):
         return False
     return all(applied.values())
 

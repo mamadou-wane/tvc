@@ -366,7 +366,8 @@ int main(int argc, char** argv) {
     ::mkdir(cfg.outdir.c_str(), 0755);
     bool wrote_ok = stats.write_csv(cfg.outdir, cfg.label);
     wrote_ok = stats.write_json(cfg.outdir + "/" + cfg.label + ".summary.json",
-                                cfg.label, cfgstr, applied_json, env_json) && wrote_ok;
+                                cfg.label, cfgstr, applied_json, env_json,
+                                cfg.cycles) && wrote_ok;
     if (wrote_ok)
         std::printf("\n  wrote %s/%s.{jitter,jitter_naive,exec}.csv and .summary.json\n",
                     cfg.outdir.c_str(), cfg.label.c_str());

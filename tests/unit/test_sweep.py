@@ -16,11 +16,20 @@ class PlanLevels(unittest.TestCase):
 
 class RowOk(unittest.TestCase):
     def test_rejects_unapplied_mitigation(self):
-        self.assertFalse(sweep.row_ok({"applied": {"fifo": False, "mlock": True, "cpu": True}}))
-        self.assertTrue(sweep.row_ok({"applied": {"fifo": True, "mlock": True, "cpu": True}}))
+        self.assertFalse(sweep.row_ok({
+            "applied": {"fifo": False, "mlock": True, "cpu": True},
+            "cycles": 1000, "cycles_requested": 1000}))
+        self.assertTrue(sweep.row_ok({
+            "applied": {"fifo": True, "mlock": True, "cpu": True},
+            "cycles": 1000, "cycles_requested": 1000}))
 
     def test_missing_applied_is_rejected(self):
         self.assertFalse(sweep.row_ok({}))
+
+    def test_rejects_short_run(self):
+        self.assertFalse(sweep.row_ok({
+            "applied": {"fifo": True, "mlock": True, "cpu": True},
+            "cycles": 500, "cycles_requested": 1000}))
 
 if __name__ == "__main__":
     unittest.main()
