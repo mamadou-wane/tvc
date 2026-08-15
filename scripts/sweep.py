@@ -93,13 +93,13 @@ def main() -> int:
         print("\n" + "=" * min(w, 96))
         print("CAMPAIGN SUMMARY — wakeup jitter, microseconds")
         print("=" * min(w, 96))
-        print(f"{'':4} {'p50':>9} {'p99':>9} {'p99.9':>10} {'p99.9 CO':>10} "
+        print(f"{'':4} {'p50':>9} {'p99':>9} {'p99.9':>10} {'p99.9 nv':>10} "
               f"{'max':>10} {'missed':>7}   config")
         base = None
         for r in rows:
             j = r["jitter_us"]
             print(f"{r['label']:4} {j['p50']:9.1f} {j['p99']:9.1f} {j['p99.9']:10.1f} "
-                  f"{j['p99.9_corrected']:10.1f} {j['max']:10.1f} "
+                  f"{j['p99.9_naive']:10.1f} {j['max']:10.1f} "
                   f"{r['missed_deadlines']:7d}   {r['config']}")
             if base is None:
                 base = j["p99.9"]

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(tvc_harness CXX)
 
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  message(FATAL_ERROR "Linux-only: clock_nanosleep/SCHED_FIFO/sched_setaffinity. Build in the tvc-dev container on other hosts.")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -12,10 +16,10 @@ endif()
 # -O2 with frame pointers and symbols. Optimised, because measuring a debug
 # build tells you nothing about the binary you would fly; frame pointers,
 # because perf needs them to unwind and the cost is under one percent.
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer -ffp-contract=off")
 
-# -ffast-math is deliberately absent. It permits floating-point reassociation,
-# which breaks the bit-identical agreement the voter depends on in phase 3.
+# -ffast-math is deliberately absent and -ffp-contract=off is set: both can
+# change bit-level results across builds, which breaks replay goldens.
 
 include(FetchContent)
 set(HDR_HISTOGRAM_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)

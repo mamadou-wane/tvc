@@ -10,11 +10,12 @@
 // Conflating them makes both uninterpretable, which is the most common way a
 // latency measurement lies.
 //
-// Jitter is recorded twice, raw and corrected. The corrected series applies
-// coordinated omission compensation: when one cycle runs long, the cycles it
-// displaced never got sampled, and their absence flatters the tail. Backfilling
-// them is what makes a p99.9 mean anything. Publishing both, and being able to
-// explain the gap, is the point.
+// Jitter is measured against absolute deadlines derived from a fixed origin,
+// so every cycle produces exactly one sample and nothing is ever omitted:
+// this design is coordinated-omission-free by construction. A second series,
+// jitter_naive, records what a self-referencing measurement (previous wakeup
+// + period) would have seen; the gap between the two is the CO demonstration
+// for the writeup, and the naive series is never the published number.
 //
 // All storage is allocated in the constructor. record() touches no allocator.
 
@@ -33,7 +34,8 @@ struct Summary {
     std::int64_t min_ns         = 0;   // signed: negative means early
     double       mean_ns        = 0;
     std::int64_t p50_ns = 0, p99_ns = 0, p999_ns = 0, p9999_ns = 0, max_ns = 0;
-    std::int64_t co_p999_ns     = 0;   // same percentile, omission-corrected
+    std::int64_t naive_p999_ns  = 0;   // self-referenced measurement, demo only
+    std::int64_t dropped        = 0;   // samples outside histogram range
     std::int64_t exec_p50_ns = 0, exec_p999_ns = 0, exec_max_ns = 0;
 };
 
@@ -47,10 +49,11 @@ public:
     LoopStats& operator=(const LoopStats&) = delete;
 
     // Hot path. Allocation-free, no syscalls, no locks.
-    void record(std::int64_t jitter_ns, std::int64_t exec_ns) noexcept;
+    void record(std::int64_t jitter_ns, std::int64_t naive_ns,
+                std::int64_t exec_ns) noexcept;
 
-    // Counted but not recorded: the deadline was already in the past when the
-    // loop got there, so a cycle was skipped outright.
+    // Counted in addition to the cycle's histogram sample: the cycle finished
+    // after its successor's deadline, so the schedule slipped a full period.
     void note_missed() noexcept { missed_++; }
 
     void    reset() noexcept;
@@ -63,14 +66,15 @@ public:
                     const std::string& config) const;
 
 private:
-    hdr_histogram* jitter_raw_ = nullptr;
-    hdr_histogram* jitter_co_  = nullptr;
-    hdr_histogram* exec_       = nullptr;
-    std::int64_t   period_ns_  = 0;
-    std::int64_t   missed_     = 0;
-    std::int64_t   early_      = 0;
-    std::int64_t   min_signed_ = 0;
-    bool           seen_       = false;
+    hdr_histogram* jitter_raw_   = nullptr;
+    hdr_histogram* jitter_naive_ = nullptr;
+    hdr_histogram* exec_         = nullptr;
+    std::int64_t   period_ns_    = 0;
+    std::int64_t   missed_       = 0;
+    std::int64_t   early_        = 0;
+    std::int64_t   min_signed_   = 0;
+    std::int64_t   dropped_      = 0;
+    bool           seen_         = false;
 };
 
 }  // namespace stats

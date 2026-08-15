@@ -204,6 +204,7 @@ int main(int argc, char** argv) {
     // common bug in fixed-rate loops.
     const std::int64_t origin = now_ns() + 10 * kNsPerSec / 1000;
     std::int64_t n = 0;
+    std::int64_t prev_woke = 0;
 
     while (n < total && !g_stop.load(std::memory_order_relaxed)) {
         const std::int64_t deadline = origin + n * period_ns;
@@ -222,6 +223,10 @@ int main(int argc, char** argv) {
         }
 
         const std::int64_t woke = now_ns();
+
+        const std::int64_t naive_jitter =
+            prev_woke ? woke - (prev_woke + period_ns) : 0;
+        prev_woke = woke;
 
         {
             guard::Cycle in_cycle;   // heap activity past this point is a violation
@@ -244,7 +249,7 @@ int main(int argc, char** argv) {
         const std::int64_t done = now_ns();
 
         if (n >= cfg.warmup) {
-            stats.record(woke - deadline, done - woke);
+            stats.record(woke - deadline, naive_jitter, done - woke);
             // A cycle whose successor's deadline is already behind us was not
             // merely late, it was skipped.
             if (done > deadline + period_ns) stats.note_missed();
@@ -265,12 +270,11 @@ int main(int argc, char** argv) {
     std::puts("\n  wakeup jitter, microseconds");
     std::printf("    p50 %9.1f   p99 %9.1f   p99.9 %9.1f   p99.99 %9.1f   max %9.1f\n",
                 us(s.p50_ns), us(s.p99_ns), us(s.p999_ns), us(s.p9999_ns), us(s.max_ns));
-    std::printf("    p99.9 corrected for coordinated omission: %.1f", us(s.co_p999_ns));
-    if (s.p999_ns > 0) {
-        const double ratio = static_cast<double>(s.co_p999_ns) / s.p999_ns;
-        std::printf("   (%.1fx the raw figure)", ratio);
-    }
-    std::puts("\n\n  loop body execution, microseconds");
+    std::printf("    p99.9 as a naive self-referenced measurement would report it: %.1f\n",
+                us(s.naive_p999_ns));
+    if (s.dropped > 0)
+        std::printf("    WARNING: %" PRId64 " samples outside histogram range\n", s.dropped);
+    std::puts("\n  loop body execution, microseconds");
     std::printf("    p50 %9.1f   p99.9 %9.1f   max %9.1f\n",
                 us(s.exec_p50_ns), us(s.exec_p999_ns), us(s.exec_max_ns));
 
@@ -285,7 +289,7 @@ int main(int argc, char** argv) {
     if (!stats.write_csv(cfg.outdir, cfg.label))
         std::fprintf(stderr, "\nwarning: could not write CSV into %s\n", cfg.outdir.c_str());
     stats.write_json(cfg.outdir + "/" + cfg.label + ".summary.json", cfg.label, cfgstr);
-    std::printf("\n  wrote %s/%s.{jitter_raw,jitter_corrected,exec}.csv and .summary.json\n",
+    std::printf("\n  wrote %s/%s.{jitter,jitter_naive,exec}.csv and .summary.json\n",
                 cfg.outdir.c_str(), cfg.label.c_str());
     return 0;
 }
