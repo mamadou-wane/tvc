@@ -134,7 +134,7 @@ def main() -> int:
         print("CAMPAIGN SUMMARY — wakeup jitter, microseconds")
         print("=" * min(w, 96))
         print(f"{'':4} {'p50':>9} {'p99':>9} {'p99.9':>16} {'p99.9 nv':>10} "
-              f"{'max':>10} {'missed':>7}   config")
+              f"{'max':>10} {'missed':>7} {'drop':>6}   config")
         base = None
         for r in rows:
             j = r["jitter_us"]
@@ -143,7 +143,7 @@ def main() -> int:
             p999_cell = f"{j['p99.9']:.1f}{sp}"
             print(f"{r['label']:4} {j['p50']:9.1f} {j['p99']:9.1f} {p999_cell:>16} "
                   f"{j['p99.9_naive']:10.1f} {j['max']:10.1f} "
-                  f"{r['missed_deadlines']:7d}   {r['config']}")
+                  f"{r['missed_deadlines']:7d} {r['dropped_samples']:6d}   {r['config']}")
             if base is None:
                 base = j["p99.9"]
         if base and len(rows) > 1 and rows[-1]["jitter_us"]["p99.9"] > 0:
