@@ -1,5 +1,5 @@
 # 0006: timing loop honesty
-Date: 2026-08-15
+Date: 2026-08-14
 PR: #5 (merge e584dc6)
 Agent: Claude Code (Sonnet 5 implementer, directed by Fable 5)
 Produced: made L0 the genuinely drifting naive loop the docs describe; pinned timer slack to 1 ns so the SCHED_FIFO level measures policy rather than slack removal; strict exit codes (0 ok, 1 usage, 2 mitigation failed, 3 interrupted, 4 write failed); summary.json now records applied config and an environment block; argument parsing rejects garbage instead of silently running a wrong configuration.
