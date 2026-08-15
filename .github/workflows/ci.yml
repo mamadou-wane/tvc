@@ -1,0 +1,22 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  functional:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build dev image
+        run: docker build -t tvc-dev docker/
+      # Functional gate only. Hosted runners are Azure VMs; jitter numbers
+      # from them are meaningless (see docs/plan.md, measurement rules).
+      # The jitter gate runs on the ProBook as make bench-gate in v0.1.
+      - name: Functional gate
+        run: >
+          docker run --rm -v "$PWD":/w -w /w
+          --cap-add=IPC_LOCK --ulimit memlock=-1:-1
+          tvc-dev bash tests/ci.sh
