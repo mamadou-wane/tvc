@@ -107,6 +107,15 @@ kernel ships free in the archive, version-matched to generic
 qualification). The campaign's kernel comparison axis reruns the sweep on
 it with everything else held constant.
 
+**Allow real-time priority without root.** In /etc/security/limits.conf:
+
+    @realtime  -  rtprio   99
+    @realtime  -  memlock  unlimited
+
+then `sudo groupadd realtime && sudo usermod -aG realtime $USER` and log
+back in. Running under sudo works too, but changes the environment being
+measured.
+
 **Move interrupts away.** Stop irqbalance if it is running; write masks
 excluding the isolated pair to /proc/irq/*/smp_affinity. Some kernel-
 managed IRQs refuse the write; that is expected. Verify with
