@@ -30,6 +30,7 @@
 #include <ctime>
 #include <string>
 #include <sys/prctl.h>
+#include <sys/stat.h>
 #include <sys/utsname.h>
 #include <thread>
 #include <vector>
@@ -86,7 +87,7 @@ struct Plant {
 // ---------------------------------------------------------------------------
 struct Config {
     std::string label      = "run";
-    std::string outdir     = ".";
+    std::string outdir     = "results";
     double      rate_hz    = 500.0;
     std::int64_t cycles    = 300000;      // 10 minutes at 500 Hz
     std::int64_t warmup    = 5000;
@@ -103,7 +104,7 @@ void usage() {
 "tvc_harness — control-cycle timing measurement\n"
 "\n"
 "  --label=NAME        run label, used for output filenames  (default: run)\n"
-"  --out=DIR           output directory                      (default: .)\n"
+"  --out=DIR           output directory, created if missing  (default: results)\n"
 "  --rate=HZ           control rate                          (default: 500)\n"
 "  --cycles=N          cycles to record                      (default: 300000)\n"
 "  --warmup=N          cycles discarded before recording     (default: 5000)\n"
@@ -361,6 +362,8 @@ int main(int argc, char** argv) {
         ", \"timer_slack_ns\": " + std::to_string(slack) + " }";
 
     const std::string cfgstr = config_string(cfg);
+    // Best effort, single level: a missing parent still fails the writes below.
+    ::mkdir(cfg.outdir.c_str(), 0755);
     bool wrote_ok = stats.write_csv(cfg.outdir, cfg.label);
     wrote_ok = stats.write_json(cfg.outdir + "/" + cfg.label + ".summary.json",
                                 cfg.label, cfgstr, applied_json, env_json) && wrote_ok;
