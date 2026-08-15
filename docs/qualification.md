@@ -76,12 +76,47 @@ Core 3 (CPUs 6 and 7): both siblings isolated, loop pinned to CPU 7,
 CPU 6 left idle. Core 0 avoided because it carries default housekeeping
 and IRQ load. Recipe and rationale: methodology.md, host preparation.
 
+## Isolation verified after reboot
+
+```
+$ cat /sys/devices/system/cpu/isolated
+6-7
+
+$ cat /proc/cmdline
+BOOT_IMAGE=/boot/vmlinuz-7.0.0-29-generic root=UUID=... ro quiet splash
+isolcpus=6,7 nohz_full=6,7 rcu_nocbs=6,7 crashkernel=...
+```
+
+## Firmware stall qualification
+
+One hour of hwlatdetect at idle, 10 us threshold, all CPUs sampled,
+captured 2026-08-15:
+
+```
+$ sudo hwlatdetect --duration=3600 --threshold=10
+test finished
+Max Latency: 129us
+Samples recorded: 2
+Samples exceeding threshold: 2
+ts: 1786805006.080003491, inner:0, outer:11, cpu:0
+ts: 1786807428.990884859, inner:129, outer:92, cpu:3
+```
+
+Verdict: qualified. Two events in an hour, neither on the isolated pair.
+At that rate a ten-minute campaign run expects roughly 0.3 events; one
+sample in 300,000 sits at p99.9997, so a stall of this size can appear in
+a run's max or p99.99 and cannot move the p99.9 headline. The 129 us
+event is the number to publish next to any run whose max looks
+inexplicable.
+
+Note on SMI counters: the turbostat SMI column reads an Intel-only MSR
+and does not exist on this AMD part. hwlatdetect is the firmware-stall
+instrument for this machine; rerun it if the max of a campaign run ever
+exceeds the qualified 129 us.
+
 ## Pending measurements
 
-- One hour of hwlatdetect at idle (firmware stall qualification).
-- SMI counter via turbostat, logged per benchmark run.
 - Per-run environment discipline: AC status, EPP setting, governor, and
   package temperature recorded alongside each summary.
-- Confirmation after reboot that the isolated pair shows in
-  /sys/devices/system/cpu/isolated and the tick actually stops
+- Optional: confirm the tick stops on the isolated pair under load
   (timer:tick_stop tracepoint).
