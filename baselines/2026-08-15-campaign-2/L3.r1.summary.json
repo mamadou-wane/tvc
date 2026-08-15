@@ -1,0 +1,18 @@
+{
+  "label": "L3.r1",
+  "config": "abs-deadline mlock fifo:80 naive-log",
+  "applied": { "mlock": true, "fifo": true, "cpu": true },
+  "env": { "kernel": "7.0.0-29-generic", "machine": "x86_64", "cpu_end": 2, "timer_slack_ns": 0, "ac_online": true, "governor": "powersave", "epp": "balance_performance", "pkg_temp_c": 67 },
+  "period_us": 2000.000,
+  "cycles": 300000,
+  "cycles_requested": 300000,
+  "missed_deadlines": 0,
+  "early_wakeups": 0,
+  "jitter_us": {
+    "min": 2.504, "mean": 47.616, "p50": 32.255,
+    "p99": 97.535, "p99.9": 555.007, "p99.99": 921.599, "max": 1023.999,
+    "p99.9_naive": 489.215
+  },
+  "dropped_samples": 0,
+  "exec_us": { "p50": 4.419, "p99.9": 6.923, "max": 24.031 }
+}
