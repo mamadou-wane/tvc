@@ -64,6 +64,22 @@ def row_ok(summary):
     return row_problem(summary) is None
 
 
+def binary_is_stale(bin_path, source_paths):
+    """True when the binary predates any source it was built from."""
+    import os
+    try:
+        bin_mtime = os.path.getmtime(bin_path)
+    except OSError:
+        return False
+    newest = 0.0
+    for p in source_paths:
+        try:
+            newest = max(newest, os.path.getmtime(p))
+        except OSError:
+            continue
+    return newest > bin_mtime
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--bin", default="build/tvc_harness")
@@ -77,6 +93,8 @@ def main() -> int:
                     help="run just these levels")
     ap.add_argument("--repeat", type=int, default=1,
                     help="runs per level; table reports median and spread")
+    ap.add_argument("--allow-stale", action="store_true",
+                    help="run even if the binary predates its sources")
     args = ap.parse_args()
 
     binary = pathlib.Path(args.bin)
@@ -84,6 +102,21 @@ def main() -> int:
         print(f"no binary at {binary} — build first:", file=sys.stderr)
         print("  cmake -S . -B build && cmake --build build -j", file=sys.stderr)
         return 1
+
+    repo_root = pathlib.Path(__file__).resolve().parents[1]
+    sources = sorted(
+        list(repo_root.glob("src/*.cpp"))
+        + list(repo_root.glob("src/*.hpp"))
+        + [repo_root / "CMakeLists.txt"]
+    )
+    if binary_is_stale(binary, sources):
+        if args.allow_stale:
+            print(f"warning: {binary} is older than the sources; running anyway "
+                  "(--allow-stale)", file=sys.stderr)
+        else:
+            print("binary is older than the sources; rebuild first: "
+                  "cmake --build build -j", file=sys.stderr)
+            return 1
 
     outdir = pathlib.Path(args.out)
     outdir.mkdir(parents=True, exist_ok=True)
@@ -125,7 +158,7 @@ def main() -> int:
         pattern = f"{label}.summary.json" if args.repeat == 1 else f"{label}.r*.summary.json"
         summaries = [json.loads(p.read_text()) for p in sorted(outdir.glob(pattern))]
         good = [s for s in summaries if row_ok(s)]
-        excluded += [s["label"] for s in summaries if not row_ok(s)]
+        excluded += [(s["label"], row_problem(s)) for s in summaries if not row_ok(s)]
         if not good:
             continue
         p999s = [s["jitter_us"]["p99.9"] for s in good]
@@ -136,8 +169,9 @@ def main() -> int:
         base["p999_spread"] = (min(p999s), max(p999s)) if len(p999s) > 1 else None
         rows.append(base)
     if excluded:
-        print(f"\nexcluded (mitigation not applied): {', '.join(excluded)}",
-              file=sys.stderr)
+        print(file=sys.stderr)
+        for label, reason in excluded:
+            print(f"excluded {label}: {reason}", file=sys.stderr)
 
     if rows:
         w = shutil.get_terminal_size((100, 20)).columns
