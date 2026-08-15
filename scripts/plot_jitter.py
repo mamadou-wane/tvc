@@ -53,6 +53,14 @@ def read_cdf(path):
     return xs, ys
 
 
+def y_floor(counts, default=5e-6):
+    """Lower y limit: half the reciprocal of the largest series, so the last
+    real point stays on the axis."""
+    if not counts:
+        return default
+    return 0.5 / max(counts)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--results", default="results")
@@ -73,6 +81,7 @@ def main() -> int:
     fig.patch.set_facecolor("white")
 
     lo, hi = 1e9, 0.0
+    counts = []
     for i, path in enumerate(files):
         label = path.name.split(".")[0]
         xs, ys = read_cdf(path)
@@ -85,6 +94,7 @@ def main() -> int:
             d = json.loads(meta.read_text())
             p999 = d["jitter_us"]["p99.9_naive" if args.naive else "p99.9"]
             legend = f"{label}  ·  p99.9 {p999:,.0f} µs  ·  {d['config']}"
+            counts.append(d.get("cycles", 0))
         else:
             legend = label
 
@@ -105,8 +115,10 @@ def main() -> int:
 
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlim(lo * 0.8, hi * 1.4)
-    ax.set_ylim(5e-6, 1.4)
+    if hi <= 0:
+        return print(f"no plottable data in {rdir}") or 1
+    ax.set_xlim(max(lo * 0.8, 0.05), hi * 1.4)
+    ax.set_ylim(y_floor(counts), 1.4)
     ax.xaxis.set_major_locator(LogLocator(base=10))
 
     ax.set_xlabel("wakeup jitter, microseconds", fontsize=10, color=INK)
