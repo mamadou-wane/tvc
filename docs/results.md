@@ -165,7 +165,7 @@ on every CPU (cpupower idle-set -D 0) before running. The idle driver
 on this machine advertises C2 at 18 us exit latency and C3 at 350 us;
 with all states disabled, the tail that sat near 100 us at p99 and
 88 us at p99.9 in v0.1 collapses to 8 to 14 us. The v0.1 headline was a
-C-state exit number, not a scheduling number. Even L0's drift shrank
+measurement of C-state exit latency. Even L0's drift shrank
 9x, because the sleep_for overshoot that compounds it is itself mostly
 C-state exit.
 
@@ -220,8 +220,8 @@ osnoise tracer now has a question sharpened from two directions. The
 recordings already contribute: each carries a per-cycle tick stamp, and
 decoding the 35.4 us repeat's recording places its 383 cycles above
 20 us across the full ten minutes (ticks 87 to 300,940), so that run's
-elevated tail was a sustained state for the whole window, not a
-transient burst. Whatever visited the machine stayed for the run.
+elevated tail was a sustained state across the whole window. Whatever
+visited the machine stayed for the run.
 
 ### Incidents, recorded
 

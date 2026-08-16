@@ -137,9 +137,8 @@ CPUidle driver: acpi_idle
 POLL (DISABLED) ... C1 (DISABLED) Latency: 1 ... C2 (DISABLED) Latency: 18 ... C3 (DISABLED) Latency: 350
 ```
 
-Disabling every idle state on every CPU, not only the isolated pair, is
-what moved L5 p99.9 from 88.4 to 7.5 us; the mechanism and the audit gap
-are in results.md. Known defect in the 2026-08-16 setup: the IRQ
+Disabling every idle state on every CPU is what moved L5 p99.9 from
+88.4 to 7.5 us; the mechanism and the audit gap are in results.md. Known defect in the 2026-08-16 setup: the IRQ
 affinity mask written was ffff3f, which carries bits for CPUs 16 to 23
 on this 16-CPU machine; the kernel rejected it with EOVERFLOW, so IRQ
 affinity was not applied for that campaign. The correct exclude-6,7
