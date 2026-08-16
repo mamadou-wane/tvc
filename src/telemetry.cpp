@@ -54,4 +54,59 @@ std::size_t encode_frame(std::uint8_t type, std::uint32_t seq,
     return kFrameOverhead + len;
 }
 
+DecodeCounters decode_stream(const unsigned char* data, std::size_t len,
+                             std::vector<DecodedFrame>& out) noexcept {
+    DecodeCounters ctr{};
+    bool locked = true;
+    bool have_expected = false;
+    std::uint32_t expected = 0;
+    std::size_t consumed = 0;
+    std::size_t pos = 0;
+    while (pos + 2 <= len) {
+        if (!(data[pos] == 0x90 && data[pos + 1] == 0xEB)) { ++pos; continue; }
+        if (pos + kFrameOverhead - 4 > len) break;    // header cut off
+        const std::uint8_t ver = data[pos + 2];
+        const std::uint8_t type = data[pos + 3];
+        const std::size_t plen = data[pos + 4] |
+                                 static_cast<std::size_t>(data[pos + 5]) << 8;
+        const auto fail = [&](bool is_version, bool is_crc) {
+            if (is_version) ++ctr.version_mismatch;
+            if (is_crc) ++ctr.crc_errors;
+            if (locked) { ++ctr.resyncs; locked = false; }
+            ++pos;
+        };
+        if (ver != kVersion) { fail(true, false); continue; }
+        if (!(type >= 1 && type <= 3) || plen > kMaxPayload) {
+            fail(false, false); continue;
+        }
+        const std::size_t end = pos + kFrameOverhead + plen;
+        if (end > len) break;                          // frame extends past buffer
+        const std::uint32_t crc =
+            static_cast<std::uint32_t>(data[end - 4]) |
+            static_cast<std::uint32_t>(data[end - 3]) << 8 |
+            static_cast<std::uint32_t>(data[end - 2]) << 16 |
+            static_cast<std::uint32_t>(data[end - 1]) << 24;
+        if (crc != crc32c(data + pos + 2, 8 + plen)) { fail(false, true); continue; }
+        const std::uint32_t seq =
+            static_cast<std::uint32_t>(data[pos + 6]) |
+            static_cast<std::uint32_t>(data[pos + 7]) << 8 |
+            static_cast<std::uint32_t>(data[pos + 8]) << 16 |
+            static_cast<std::uint32_t>(data[pos + 9]) << 24;
+        out.push_back({type, seq, pos + 10, plen});
+        ++ctr.frames_ok;
+        consumed += kFrameOverhead + plen;
+        if (have_expected) {
+            const std::uint32_t gap = seq - expected;   // u32 wrap is the mod
+            if (gap >= 1 && gap < 0x80000000u) ctr.lost += gap;
+            else if (gap >= 0x80000000u) ++ctr.seq_discontinuities;
+        }
+        expected = seq + 1;
+        have_expected = true;
+        locked = true;
+        pos = end;
+    }
+    ctr.skipped_bytes = len - consumed;
+    return ctr;
+}
+
 }  // namespace telem

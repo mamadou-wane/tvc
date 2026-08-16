@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <vector>
 
 namespace telem {
 
@@ -40,5 +41,28 @@ std::uint32_t crc32c(const void* data, std::size_t len) noexcept;
 std::size_t encode_frame(std::uint8_t type, std::uint32_t seq,
                          const void* payload, std::size_t len,
                          unsigned char* out) noexcept;
+
+// Decode counters and decoded frame information.
+struct DecodeCounters {
+    std::uint64_t frames_ok;
+    std::uint64_t crc_errors;
+    std::uint64_t version_mismatch;
+    std::uint64_t resyncs;
+    std::uint64_t seq_discontinuities;
+    std::uint64_t lost;
+    std::uint64_t skipped_bytes;
+};
+
+struct DecodedFrame {
+    std::uint8_t type;
+    std::uint32_t seq;
+    std::size_t payload_off;
+    std::size_t payload_len;
+};
+
+// Stream decoder: parses frames from data buffer, appends DecodedFrame
+// entries to out (with offsets into the caller's buffer), returns counters.
+DecodeCounters decode_stream(const unsigned char* data, std::size_t len,
+                             std::vector<DecodedFrame>& out) noexcept;
 
 }  // namespace telem
