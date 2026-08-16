@@ -46,6 +46,14 @@ int main() {
         producer_done.store(true, std::memory_order_release);
     });
 
+    // Deterministic initial stall: the consumer must not touch the ring
+    // for long enough that the producer fills all kSlots and hits the
+    // full-ring drop branch (the cached-tail acquire refresh in try_push)
+    // at least once, in every tree including TSan, where instrumentation
+    // slows the producer enough that the randomized stalls below cannot
+    // be relied on to force it.
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
     std::uint64_t popped = 0, last_tick = 0;
     bool first = true;
     std::mt19937 rng(42);
@@ -69,6 +77,7 @@ int main() {
     producer.join();
     CHECK(popped == pushed);
     CHECK(pushed + ring.drops() == kAttempts);
+    CHECK(ring.drops() > 0);   // the stall above must have forced the drop branch
     std::printf("ring_stress: ok (%llu pushed, %llu dropped)\n",
                 static_cast<unsigned long long>(pushed),
                 static_cast<unsigned long long>(ring.drops()));
