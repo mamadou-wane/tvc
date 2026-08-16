@@ -67,7 +67,8 @@ public:
     bool write_json(const std::string& path, const std::string& label,
                     const std::string& config, const std::string& applied_json,
                     const std::string& env_json,
-                    std::int64_t cycles_requested) const;
+                    std::int64_t cycles_requested,
+                    const std::string& telemetry_json) const;
 
 private:
     hdr_histogram* jitter_raw_   = nullptr;

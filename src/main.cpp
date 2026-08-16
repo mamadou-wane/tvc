@@ -17,6 +17,7 @@
 #include "alloc_guard.hpp"
 #include "loop_stats.hpp"
 #include "rt_setup.hpp"
+#include "telemetry.hpp"
 
 #include <atomic>
 #include <cctype>
@@ -29,6 +30,7 @@
 #include <cstring>
 #include <ctime>
 #include <glob.h>
+#include <memory>
 #include <string>
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -98,6 +100,7 @@ struct Config {
     int         cpu          = -1;
     bool        naive_log    = true;      // the allocating telemetry path
     guard::Mode alloc_guard  = guard::Mode::Off;
+    bool        telemetry    = false;
 };
 
 void usage() {
@@ -117,6 +120,7 @@ void usage() {
 "  --cpu=N             pin to CPU N\n"
 "  --no-naive-log      remove the allocating telemetry path from the cycle\n"
 "  --alloc-guard=MODE  off | count | abort                   (default: off)\n"
+"  --telemetry         framed telemetry through the SPSC ring to <label>.telemetry.tvcrec\n"
 "\n"
 "exit codes: 0 ok, 1 usage, 2 mitigation failed, 3 interrupted, 4 write failed\n"
 "label charset: [A-Za-z0-9._-]\n");
@@ -185,6 +189,7 @@ bool parse(int argc, char** argv, Config& c) {
             else if (!std::strcmp(v, "abort")) c.alloc_guard = guard::Mode::Abort;
             else { std::fprintf(stderr, "bad --alloc-guard=%s\n", v); return false; }
         }
+        else if (!std::strcmp(a, "--telemetry")) c.telemetry = true;
         else { std::fprintf(stderr, "unknown argument: %s\n\n", a); usage(); return false; }
     }
     if (!label_ok(c.label)) { std::fputs("bad --label: must match [A-Za-z0-9._-]\n", stderr); return false; }
@@ -261,6 +266,7 @@ std::string config_string(const Config& c) {
     if (c.fifo_prio > 0) s += "fifo:" + std::to_string(c.fifo_prio) + " ";
     if (c.cpu >= 0)      s += "cpu:" + std::to_string(c.cpu) + " ";
     s += c.naive_log ? "naive-log " : "no-alloc ";
+    if (c.telemetry)     s += "telemetry ";
     if (!s.empty() && s.back() == ' ') s.pop_back();
     return s;
 }
@@ -282,6 +288,39 @@ int main(int argc, char** argv) {
 
     std::printf("tvc_harness  label=%s  %.0f Hz (%.3f ms cycle)  %" PRId64 " cycles\n",
                 cfg.label.c_str(), cfg.rate_hz, period_ns / 1e6, cfg.cycles);
+
+    // ---- telemetry sink, before rt setup: the drain thread inherits
+    // SCHED_OTHER and the default affinity mask (isolcpus keeps it off
+    // the isolated core) ----
+    bool ok_telem = !cfg.telemetry;
+    std::unique_ptr<telem::SpscRing> ring;
+    std::unique_ptr<telem::Drain> drain;
+    if (cfg.telemetry) {
+        ::mkdir(cfg.outdir.c_str(), 0755);
+        const std::string tpath =
+            cfg.outdir + "/" + cfg.label + ".telemetry.tvcrec";
+        std::FILE* tf = std::fopen(tpath.c_str(), "wb");
+        if (tf) {
+            unsigned char hdr[32];
+            timespec rt{};
+            // One-shot wall anchor for the header, off the hot path; the
+            // control path itself never reads CLOCK_REALTIME.
+            ::clock_gettime(CLOCK_REALTIME, &rt);
+            telem::encode_recording_header(
+                now_ns(), rt.tv_sec * kNsPerSec + rt.tv_nsec, hdr);
+            ok_telem = std::fwrite(hdr, 1, sizeof hdr, tf) == sizeof hdr;
+            if (!ok_telem) std::fclose(tf);
+        }
+        if (tf && ok_telem) {
+            ring = std::make_unique<telem::SpscRing>();
+            drain = std::make_unique<telem::Drain>(*ring);
+            drain->start(tf);
+        } else {
+            ok_telem = false;
+        }
+        std::printf("  telemetry  %-4s %s\n", ok_telem ? "ok" : "FAIL",
+                    tpath.c_str());
+    }
 
     bool ok_mlock = !cfg.mlock, ok_cpu = cfg.cpu < 0, ok_fifo = cfg.fifo_prio <= 0;
 
@@ -308,7 +347,8 @@ int main(int argc, char** argv) {
     const std::string applied_json =
         std::string("{ \"mlock\": ") + b(!cfg.mlock || ok_mlock) +
         ", \"fifo\": " + b(!(cfg.fifo_prio > 0) || ok_fifo) +
-        ", \"cpu\": " + b(cfg.cpu < 0 || ok_cpu) + " }";
+        ", \"cpu\": " + b(cfg.cpu < 0 || ok_cpu) +
+        ", \"telemetry\": " + b(!cfg.telemetry || ok_telem) + " }";
 
     // ---- everything that allocates happens here, before the loop ----
     stats::LoopStats stats(period_ns);
@@ -370,6 +410,19 @@ int main(int argc, char** argv) {
 
         const std::int64_t done = now_ns();
 
+        if (ring) {
+            guard::Cycle telem_cycle;   // the push must stay allocation-free
+            telem::Record rec;
+            rec.tick        = static_cast<std::uint64_t>(n);
+            rec.deadline_ns = deadline;
+            rec.woke_ns     = woke;
+            rec.done_ns     = done;
+            rec.theta       = plant.theta;
+            rec.cmd         = plant.last_cmd;
+            rec.drops       = ring->drops();
+            ring->try_push(rec);
+        }
+
         if (n >= cfg.warmup) {
             stats.record(woke - deadline, naive_jitter, done - woke);
             // A cycle whose successor's deadline is already behind us was not
@@ -380,6 +433,7 @@ int main(int argc, char** argv) {
     }
 
     guard::set_mode(guard::Mode::Off);
+    if (drain) drain->stop();
 
     // ---- report ----
     const auto s = stats.summary();
@@ -426,12 +480,20 @@ int main(int argc, char** argv) {
         ", \"pkg_temp_c\": " + std::to_string(read_pkg_temp_c()) + " }";
 
     const std::string cfgstr = config_string(cfg);
+
+    std::string telemetry_json;
+    if (drain)
+        telemetry_json =
+            "{ \"records\": " + std::to_string(drain->records_written()) +
+            ", \"dropped\": " + std::to_string(ring->drops()) +
+            ", \"bytes\": " + std::to_string(32 + drain->bytes_written()) + " }";
+
     // Best effort, single level: a missing parent still fails the writes below.
     ::mkdir(cfg.outdir.c_str(), 0755);
     bool wrote_ok = stats.write_csv(cfg.outdir, cfg.label);
     wrote_ok = stats.write_json(cfg.outdir + "/" + cfg.label + ".summary.json",
                                 cfg.label, cfgstr, applied_json, env_json,
-                                cfg.cycles) && wrote_ok;
+                                cfg.cycles, telemetry_json) && wrote_ok;
     if (wrote_ok)
         std::printf("\n  wrote %s/%s.{jitter,jitter_naive,exec}.csv and .summary.json\n",
                     cfg.outdir.c_str(), cfg.label.c_str());
@@ -440,8 +502,9 @@ int main(int argc, char** argv) {
 
     const bool mitigation_failed =
         (cfg.mlock && !ok_mlock) || (cfg.fifo_prio > 0 && !ok_fifo) ||
-        (cfg.cpu >= 0 && !ok_cpu);
-    if (!wrote_ok) return 4;
+        (cfg.cpu >= 0 && !ok_cpu) || (cfg.telemetry && !ok_telem);
+    const bool telem_failed = drain && drain->write_failed();
+    if (!wrote_ok || telem_failed) return 4;
     if (g_stop.load()) return 3;
     if (mitigation_failed) return 2;
     return 0;
