@@ -1,0 +1,18 @@
+{
+  "label": "L0.r1",
+  "config": "sleep_for naive-log",
+  "applied": { "mlock": true, "fifo": true, "cpu": true },
+  "env": { "kernel": "7.0.0-29-realtime", "machine": "x86_64", "cpu_end": 8, "timer_slack_ns": 1, "ac_online": true, "governor": "powersave", "epp": "balance_performance", "pkg_temp_c": 68 },
+  "period_us": 2000.000,
+  "cycles": 300000,
+  "cycles_requested": 300000,
+  "missed_deadlines": 300000,
+  "early_wakeups": 0,
+  "jitter_us": {
+    "min": 800865.860, "mean": 9001335.115, "p50": 8917090.303,
+    "p99": 17045651.455, "p99.9": 17171480.575, "p99.99": 17179869.183, "max": 17179869.183,
+    "p99.9_naive": 998.911
+  },
+  "dropped_samples": 209606,
+  "exec_us": { "p50": 4.339, "p99.9": 43.167, "max": 585.215 }
+}
