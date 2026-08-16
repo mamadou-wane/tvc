@@ -80,6 +80,49 @@ likely interrupts still reaching the isolated pair. Characterizing them
 with the osnoise tracer is the next measurement. Until then the honest
 claim stops at p99.9.
 
+## Kernel comparison: generic vs PREEMPT_RT
+
+From 26.04 the PREEMPT_RT kernel ships free in the archive, version-matched
+to generic. Same machine, same discipline, same binary; the kernel is the
+only variable. Full RT data: baselines/2026-08-15-rt-campaign.
+
+![Wakeup jitter CCDF on the PREEMPT_RT kernel](jitter-rt.svg)
+
+Medians of three repeats, microseconds; (spread) on p99.9; worst max across
+repeats.
+
+| Level | Kernel | p50 | p99.9 (spread) | p99.99 | Worst max |
+|---|---|---|---|---|---|
+| L1 | generic | 35.4 | 565 (494-583) | 946 | 1,108 |
+| L1 | PREEMPT_RT | 112.8 | 1,010 (990-1038) | 1,048 | 2,193 |
+| L4 | generic | 12.8 | 157 (88-200) | 586 | 993 |
+| L4 | PREEMPT_RT | 3.5 | 154 (91-190) | 619 | 968 |
+| L5 | generic | 12.8 | 88.4 (88-89) | 492 | 994 |
+| L5 | PREEMPT_RT | 3.5 | 90.5 (90-152) | 539 | 987 |
+
+Three findings. First, PREEMPT_RT cut the pinned loop's median wakeup
+latency 3.7x (12.8 to 3.5 us): its wakeup path for a FIFO task is simply
+leaner. Second, at p99.9 the kernels tie within spread (88.4 vs 90.5), so
+for this isolated, disciplined, pinned workload the generic kernel already
+delivers the RT kernel's tail. Third, the population beyond p99.99
+survived both kernels unchanged, which narrows its suspect list: threading
+every IRQ handler changed nothing, so those events are likely
+non-preemptible work such as IPIs, TLB shootdowns, or the residual tick.
+The osnoise tracer is the next step and now has a sharper question.
+
+The cost side is equally clear: unpinned SCHED_OTHER runs roughly doubled
+(L1 p50 35 to 113 us, p99.9 565 to 1,010) and L1 dropped one deadline in
+900,000 cycles. PREEMPT_RT buys determinism for RT threads and charges
+everything else for it. The conclusion for this project: PREEMPT_RT is the
+tool when isolation is unavailable; with isolation and power discipline,
+the generic kernel holds the same p99.9. The baselines and the regression
+gate stay on the generic kernel, the configuration of record.
+
+One pattern held across every campaign on both kernels: the first repeat
+of each pinned level carries the widest tail (L5 first repeats of 237, and
+152 us against later repeats near 88). Recorded as an open observation for
+the osnoise pass.
+
 ## Regression gate
 
 scripts/bench_gate.py compares a fresh campaign directory against these

@@ -114,6 +114,15 @@ and does not exist on this AMD part. hwlatdetect is the firmware-stall
 instrument for this machine; rerun it if the max of a campaign run ever
 exceeds the qualified 129 us.
 
+## Realtime kernel
+
+linux-image-realtime 7.0.0-29 (version-matched to generic) was booted
+one-shot via grub-reboot for the comparison campaign on 2026-08-15, with
+the runtime discipline re-applied after boot; every summary in
+baselines/2026-08-15-rt-campaign records kernel 7.0.0-29-realtime with
+performance governor and EPP on AC. The machine returns to the generic
+kernel, the configuration of record, on the next reboot.
+
 ## Pending measurements
 
 - Per-run environment discipline: AC status, EPP setting, governor, and
