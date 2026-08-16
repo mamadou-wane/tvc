@@ -11,7 +11,7 @@ class PlanLevels(unittest.TestCase):
     def test_full_chain_with_cpu(self):
         runnable, stopped = sweep.plan_levels(sweep.LEVELS, cpu=3)
         self.assertEqual([l[0] for l in runnable],
-                         ["L0", "L1", "L2", "L3", "L4", "L5"])
+                         ["L0", "L1", "L2", "L3", "L4", "L5", "L6"])
         self.assertIsNone(stopped)
 
 class RowOk(unittest.TestCase):
