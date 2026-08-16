@@ -196,3 +196,46 @@ class ReadRecording(unittest.TestCase):
             header, records, ctr = wire.read_recording(p)
             self.assertEqual(records, [])
             self.assertEqual(ctr["frames_ok"], 1)
+
+
+import json
+
+GOLDEN = pathlib.Path(__file__).resolve().parents[2] / "tests" / "golden"
+
+
+class GoldenCorpus(unittest.TestCase):
+    def setUp(self):
+        self.manifest = json.loads((GOLDEN / "manifest.json").read_text())
+
+    def test_schema_hash_recorded(self):
+        self.assertEqual(self.manifest["schema_hash"], "0xA871CD84")
+
+    def test_counters_match_manifest(self):
+        for entry in self.manifest["files"]:
+            data = (GOLDEN / entry["file"]).read_bytes()
+            body = data[wire.HEADER.size:] if entry["file"].endswith(".tvcrec") else data
+            _, ctr = wire.decode_stream(body)
+            self.assertEqual(ctr, entry["expect"], entry["file"])
+
+    def test_roundtrip_files_reencode_byte_exact(self):
+        for entry in self.manifest["files"]:
+            if not entry["roundtrip"]:
+                continue
+            data = (GOLDEN / entry["file"]).read_bytes()
+            frames, _ = wire.decode_stream(data)
+            re = b"".join(wire.encode_frame(t, s, p) for t, s, p in frames)
+            self.assertEqual(re, data, entry["file"])
+
+    def test_generate_is_byte_stable(self):
+        import tempfile
+        sys.path.insert(0, str(GOLDEN))
+        import generate
+        with tempfile.TemporaryDirectory() as d:
+            generate.main(d)
+            regenerated = sorted(p.name for p in pathlib.Path(d).iterdir())
+            for name in regenerated:
+                self.assertEqual((pathlib.Path(d) / name).read_bytes(),
+                                 (GOLDEN / name).read_bytes(), name)
+            checked_in = sorted(p.name for p in GOLDEN.iterdir()
+                                if p.name not in ("generate.py", "__pycache__"))
+            self.assertEqual(regenerated, checked_in)
