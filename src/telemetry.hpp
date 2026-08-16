@@ -35,4 +35,10 @@ inline constexpr const char*   kSchema =
 // google-crc32c computes. Byte-wise table; drain-side only.
 std::uint32_t crc32c(const void* data, std::size_t len) noexcept;
 
+// Frame encoder: writes kFrameOverhead + len bytes into out and returns that
+// count. Caller guarantees len <= kMaxPayload and a large-enough buffer.
+std::size_t encode_frame(std::uint8_t type, std::uint32_t seq,
+                         const void* payload, std::size_t len,
+                         unsigned char* out) noexcept;
+
 }  // namespace telem
