@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <thread>
 #include <vector>
 
 #define CHECK(cond) do { if (!(cond)) { \
@@ -202,6 +203,30 @@ void test_drain_output_decodes() {
     std::remove(path);
 }
 
+void test_drain_stop_after_concurrent_push() {
+    telem::SpscRing ring;
+    const char* path = "build/drain_race_test.bin";
+    std::FILE* f = std::fopen(path, "wb+");
+    CHECK(f != nullptr);
+    telem::Drain drain(ring);
+    drain.start(f);
+    std::uint64_t pushed = 0;
+    std::thread producer([&] {
+        for (std::uint64_t i = 0; i < 50000; ++i) {
+            if (ring.try_push({i, 1, 2, 3, 0.0, 0.0, 0})) ++pushed;
+        }
+    });
+    producer.join();
+    drain.stop();
+    CHECK(!drain.write_failed());
+    CHECK(drain.records_written() == pushed);
+    auto data = slurp(path);
+    std::vector<telem::DecodedFrame> frames;
+    const auto ctr = telem::decode_stream(data.data(), data.size(), frames);
+    CHECK(ctr.frames_ok == pushed);
+    std::remove(path);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -215,6 +240,7 @@ int main(int argc, char** argv) {
     test_header_layout();
     test_drain_counters();
     test_drain_output_decodes();
+    test_drain_stop_after_concurrent_push();
     std::puts("wire_tests: ok");
     return 0;
 }

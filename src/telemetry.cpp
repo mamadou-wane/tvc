@@ -142,6 +142,7 @@ void Drain::stop() {
 void Drain::run() {
     Record batch[512];
     unsigned char frame[kFrameOverhead + sizeof(Record)];
+    bool stop_seen = false;
     for (;;) {
         const std::size_t n = ring_.pop_batch(batch, 512);
         for (std::size_t i = 0; i < n; ++i) {
@@ -152,7 +153,13 @@ void Drain::run() {
             else { ++records_; bytes_ += len; }
         }
         if (n == 0) {
-            if (stop_.load(std::memory_order_acquire)) break;
+            if (stop_seen) break;
+            if (stop_.load(std::memory_order_acquire)) {
+                // One more pop is guaranteed to see the final push:
+                // final_push -> stop_.store -> this load -> next pop.
+                stop_seen = true;
+                continue;
+            }
             const timespec ts{0, 1000000};   // 1 ms poll; no futex from the producer
             ::clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, nullptr);
         }
