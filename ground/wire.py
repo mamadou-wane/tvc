@@ -36,3 +36,12 @@ Record = collections.namedtuple(
 
 def crc32c(data: bytes) -> int:
     return google_crc32c.value(data)
+
+
+def encode_frame(ftype: int, seq: int, payload: bytes) -> bytes:
+    if ftype not in TYPES:
+        raise ValueError(f"bad frame type {ftype}")
+    if len(payload) > MAX_PAYLOAD:
+        raise ValueError(f"payload {len(payload)} exceeds {MAX_PAYLOAD}")
+    head = FRAME_HEAD.pack(SYNC, VERSION, ftype, len(payload), seq % 2**32)
+    return head + payload + CRC.pack(crc32c(head[2:] + payload))

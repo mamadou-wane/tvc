@@ -20,3 +20,31 @@ class Crc32c(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EncodeFrame(unittest.TestCase):
+    def test_layout(self):
+        f = wire.encode_frame(1, 7, b"ab")
+        self.assertEqual(len(f), 16)                  # 14 overhead + 2
+        self.assertEqual(f[0:2], b"\x90\xeb")         # sync on the wire
+        self.assertEqual(f[2], 1)                     # version
+        self.assertEqual(f[3], 1)                     # type
+        self.assertEqual(f[4:6], (2).to_bytes(2, "little"))
+        self.assertEqual(f[6:10], (7).to_bytes(4, "little"))
+        self.assertEqual(f[10:12], b"ab")
+        crc = int.from_bytes(f[12:16], "little")
+        self.assertEqual(crc, wire.crc32c(f[2:12]))   # everything after sync
+
+    def test_seq_wraps(self):
+        f = wire.encode_frame(1, 2**32 + 5, b"")
+        self.assertEqual(f[6:10], (5).to_bytes(4, "little"))
+
+    def test_rejects_oversize_payload(self):
+        wire.encode_frame(1, 0, bytes(498))           # boundary ok
+        with self.assertRaises(ValueError):
+            wire.encode_frame(1, 0, bytes(499))
+
+    def test_rejects_bad_type(self):
+        for t in (0, 4, 255):
+            with self.assertRaises(ValueError):
+                wire.encode_frame(t, 0, b"")
