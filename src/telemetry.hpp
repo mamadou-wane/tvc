@@ -1,6 +1,8 @@
 // src/telemetry.hpp — v0.2a telemetry: record, wire codec, SPSC ring, drain.
 // Spec: docs/superpowers/specs/2026-08-16-telemetry-v02a-design.md.
 #pragma once
+#include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -64,5 +66,43 @@ struct DecodedFrame {
 // entries to out (with offsets into the caller's buffer), returns counters.
 DecodeCounters decode_stream(const unsigned char* data, std::size_t len,
                              std::vector<DecodedFrame>& out) noexcept;
+
+// Single-producer single-consumer ring. Producer is the control thread:
+// try_push is allocation-free, syscall-free, lock-free, and wait-free.
+// Drop-newest on full; the producer-owned drop counter is published
+// in-stream via Record::drops.
+class SpscRing {
+public:
+    static constexpr std::size_t kSlots = 4096;   // power of two, ~8 s at 500 Hz
+
+    bool try_push(const Record& r) noexcept {
+        const std::uint64_t head = head_.load(std::memory_order_relaxed);
+        if (head - cached_tail_ == kSlots) {
+            cached_tail_ = tail_.load(std::memory_order_acquire);
+            if (head - cached_tail_ == kSlots) { ++drops_; return false; }
+        }
+        slots_[head & (kSlots - 1)] = r;
+        head_.store(head + 1, std::memory_order_release);
+        return true;
+    }
+
+    std::size_t pop_batch(Record* out, std::size_t max) noexcept {
+        const std::uint64_t head = head_.load(std::memory_order_acquire);
+        std::uint64_t tail = tail_.load(std::memory_order_relaxed);
+        std::size_t n = 0;
+        while (tail != head && n < max) out[n++] = slots_[tail++ & (kSlots - 1)];
+        tail_.store(tail, std::memory_order_release);
+        return n;
+    }
+
+    std::uint64_t drops() const noexcept { return drops_; }
+
+private:
+    std::array<Record, kSlots> slots_{};
+    alignas(64) std::atomic<std::uint64_t> head_{0};
+    alignas(64) std::atomic<std::uint64_t> tail_{0};
+    alignas(64) std::uint64_t cached_tail_ = 0;   // producer-owned
+    std::uint64_t drops_ = 0;                     // producer-owned
+};
 
 }  // namespace telem

@@ -60,3 +60,8 @@ target_compile_options(tvc_harness PRIVATE -Wall -Wextra -Wpedantic)
 add_executable(wire_tests tests/cpp/wire_tests.cpp src/telemetry.cpp)
 target_compile_definitions(wire_tests PRIVATE _GNU_SOURCE)
 target_compile_options(wire_tests PRIVATE -Wall -Wextra -Wpedantic)
+
+add_executable(ring_stress tests/cpp/ring_stress.cpp src/telemetry.cpp)
+target_compile_definitions(ring_stress PRIVATE _GNU_SOURCE)
+target_compile_options(ring_stress PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(ring_stress PRIVATE Threads::Threads)

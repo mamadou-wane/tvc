@@ -1,5 +1,6 @@
 build/
 build-asan/
+build-tsan/
 results/
 __pycache__/
 .DS_Store
