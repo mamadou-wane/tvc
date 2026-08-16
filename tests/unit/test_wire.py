@@ -48,3 +48,79 @@ class EncodeFrame(unittest.TestCase):
         for t in (0, 4, 255):
             with self.assertRaises(ValueError):
                 wire.encode_frame(t, 0, b"")
+
+
+def counters(**overrides):
+    base = dict.fromkeys(
+        ("frames_ok", "crc_errors", "version_mismatch", "resyncs",
+         "seq_discontinuities", "lost", "skipped_bytes"), 0)
+    base.update(overrides)
+    return base
+
+
+class DecodeStream(unittest.TestCase):
+    def test_round_trip(self):
+        data = (wire.encode_frame(1, 0, b"hello") +
+                wire.encode_frame(2, 1, b"") +
+                wire.encode_frame(3, 2, bytes(498)))
+        frames, ctr = wire.decode_stream(data)
+        self.assertEqual(frames, [(1, 0, b"hello"), (2, 1, b""),
+                                  (3, 2, bytes(498))])
+        self.assertEqual(ctr, counters(frames_ok=3))
+
+    def test_empty_buffer(self):
+        self.assertEqual(wire.decode_stream(b""), ([], counters()))
+
+    def test_truncation_at_every_boundary(self):
+        f = wire.encode_frame(1, 0, b"abc")           # 17 bytes
+        for cut in range(len(f)):
+            frames, ctr = wire.decode_stream(f[:cut])
+            self.assertEqual(frames, [], f"cut={cut}")
+            self.assertEqual(ctr["frames_ok"], 0, f"cut={cut}")
+            self.assertEqual(ctr["skipped_bytes"], cut, f"cut={cut}")
+
+    def test_corruption_sweep(self):
+        f = wire.encode_frame(1, 9, b"abc")
+        for i in range(len(f)):
+            bad = f[:i] + bytes([f[i] ^ 0xFF]) + f[i + 1:]
+            frames, ctr = wire.decode_stream(bad)
+            self.assertEqual(frames, [], f"flip at {i}")
+            self.assertEqual(ctr["skipped_bytes"], len(f), f"flip at {i}")
+
+    def test_version_mismatch_counts_and_resyncs(self):
+        f = bytearray(wire.encode_frame(1, 0, b"x"))
+        f[2] = 2                                      # future version
+        frames, ctr = wire.decode_stream(bytes(f))
+        self.assertEqual(frames, [])
+        self.assertEqual(ctr["version_mismatch"], 1)
+        self.assertEqual(ctr["resyncs"], 1)
+
+    def test_gap_counts_lost(self):
+        data = wire.encode_frame(1, 5, b"") + wire.encode_frame(1, 8, b"")
+        _, ctr = wire.decode_stream(data)
+        self.assertEqual(ctr["lost"], 2)
+        self.assertEqual(ctr["seq_discontinuities"], 0)
+
+    def test_wrap_is_gapless(self):
+        data = (wire.encode_frame(1, 0xFFFFFFFF, b"") +
+                wire.encode_frame(1, 0, b""))
+        _, ctr = wire.decode_stream(data)
+        self.assertEqual(ctr["lost"], 0)
+        self.assertEqual(ctr["seq_discontinuities"], 0)
+
+    def test_backward_seq_is_discontinuity(self):
+        data = wire.encode_frame(1, 100, b"") + wire.encode_frame(1, 50, b"")
+        _, ctr = wire.decode_stream(data)
+        self.assertEqual(ctr["lost"], 0)
+        self.assertEqual(ctr["seq_discontinuities"], 1)
+
+    def test_corrupt_frame_between_good_ones(self):
+        good = [wire.encode_frame(1, n, bytes([n])) for n in range(3)]
+        mid = bytearray(good[1])
+        mid[-1] ^= 0xFF
+        frames, ctr = wire.decode_stream(good[0] + bytes(mid) + good[2])
+        self.assertEqual([f[1] for f in frames], [0, 2])
+        self.assertEqual(ctr["crc_errors"], 1)
+        self.assertEqual(ctr["resyncs"], 1)
+        self.assertEqual(ctr["lost"], 1)              # seq 1 not consumed
+        self.assertEqual(ctr["skipped_bytes"], len(good[1]))

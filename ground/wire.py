@@ -45,3 +45,63 @@ def encode_frame(ftype: int, seq: int, payload: bytes) -> bytes:
         raise ValueError(f"payload {len(payload)} exceeds {MAX_PAYLOAD}")
     head = FRAME_HEAD.pack(SYNC, VERSION, ftype, len(payload), seq % 2**32)
     return head + payload + CRC.pack(crc32c(head[2:] + payload))
+
+
+def decode_stream(data: bytes):
+    """Decode a complete buffer per the spec's decoder rules.
+    Returns (frames, counters): frames is [(ftype, seq, payload)]."""
+    ctr = dict.fromkeys(
+        ("frames_ok", "crc_errors", "version_mismatch", "resyncs",
+         "seq_discontinuities", "lost", "skipped_bytes"), 0)
+    frames = []
+    expected = None
+    consumed = 0
+    locked = True      # at buffer start and after each valid frame
+    pos = 0
+    while True:
+        sync_at = data.find(b"\x90\xeb", pos)
+        if sync_at < 0:
+            break
+        pos = sync_at
+        if pos + FRAME_HEAD.size > len(data):
+            break      # header cut off: end of input, tail stays skipped
+        _, ver, ftype, length, seq = FRAME_HEAD.unpack_from(data, pos)
+        if ver != VERSION:
+            ctr["version_mismatch"] += 1
+            if locked:
+                ctr["resyncs"] += 1
+                locked = False
+            pos += 1
+            continue
+        if ftype not in TYPES or length > MAX_PAYLOAD:
+            if locked:
+                ctr["resyncs"] += 1
+                locked = False
+            pos += 1
+            continue
+        end = pos + FRAME_HEAD.size + length + CRC.size
+        if end > len(data):
+            break      # frame extends past buffer: stop, no resync
+        (crc,) = CRC.unpack_from(data, end - CRC.size)
+        if crc != crc32c(data[pos + 2:end - CRC.size]):
+            ctr["crc_errors"] += 1
+            if locked:
+                ctr["resyncs"] += 1
+                locked = False
+            pos += 1
+            continue
+        payload = data[pos + FRAME_HEAD.size:end - CRC.size]
+        frames.append((ftype, seq, payload))
+        ctr["frames_ok"] += 1
+        consumed += end - pos
+        if expected is not None:
+            gap = (seq - expected) % 2**32
+            if 1 <= gap < 2**31:
+                ctr["lost"] += gap
+            elif gap >= 2**31:
+                ctr["seq_discontinuities"] += 1
+        expected = (seq + 1) % 2**32
+        locked = True
+        pos = end
+    ctr["skipped_bytes"] = len(data) - consumed
+    return frames, ctr
