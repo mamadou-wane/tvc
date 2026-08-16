@@ -30,6 +30,7 @@ LEVELS = [
     ("L3", "+ SCHED_FIFO priority 80", ["--fifo=80"]),
     ("L4", "+ pinned to an isolated core", ["--cpu={cpu}"]),
     ("L5", "+ allocation-free hot path", ["--no-naive-log", "--alloc-guard=abort"]),
+    ("L6", "+ telemetry ring + drain thread", ["--telemetry"]),
 ]
 
 

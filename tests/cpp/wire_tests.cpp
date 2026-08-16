@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <thread>
 #include <vector>
 
 #define CHECK(cond) do { if (!(cond)) { \
@@ -150,6 +151,82 @@ void test_golden_corpus(const std::string& dir) {
     }
 }
 
+void test_header_layout() {
+    unsigned char h[32];
+    CHECK(telem::encode_recording_header(1000, 2000, h) == 32);
+    CHECK(std::memcmp(h, "TVCRECRD", 8) == 0);
+    CHECK(h[8] == 1 && h[9] == 0);                    // version LE
+    CHECK(h[10] == 0 && h[11] == 0);                  // reserved
+    const std::uint32_t sh = static_cast<std::uint32_t>(h[12]) |
+        static_cast<std::uint32_t>(h[13]) << 8 |
+        static_cast<std::uint32_t>(h[14]) << 16 |
+        static_cast<std::uint32_t>(h[15]) << 24;
+    CHECK(sh == telem::kSchemaHash);
+    CHECK(h[16] == 0xE8 && h[17] == 0x03);            // 1000 LE
+}
+
+void test_drain_counters() {
+    telem::SpscRing ring;
+    for (std::uint64_t i = 0; i < 100; ++i) {
+        telem::Record r{i, 1, 2, 3, 0.5, -0.5, 0};
+        CHECK(ring.try_push(r));
+    }
+    std::FILE* f = std::tmpfile();
+    CHECK(f != nullptr);
+    telem::Drain drain(ring);
+    drain.start(f);
+    drain.stop();        // drains until empty, then flushes and closes f
+    CHECK(!drain.write_failed());
+    CHECK(drain.records_written() == 100);
+    CHECK(drain.bytes_written() == 100 * 70);
+}
+
+void test_drain_output_decodes() {
+    telem::SpscRing ring;
+    for (std::uint64_t i = 0; i < 5; ++i)
+        CHECK(ring.try_push({i, 1, 2, 3, 0.0, 0.0, 0}));
+    const char* path = "build/drain_test.bin";
+    std::FILE* f = std::fopen(path, "wb+");
+    CHECK(f != nullptr);
+    telem::Drain drain(ring);
+    drain.start(f);
+    drain.stop();
+    auto data = slurp(path);
+    CHECK(data.size() == 5 * 70);
+    std::vector<telem::DecodedFrame> frames;
+    const auto ctr = telem::decode_stream(data.data(), data.size(), frames);
+    CHECK(ctr.frames_ok == 5 && ctr.lost == 0 && ctr.skipped_bytes == 0);
+    for (std::size_t i = 0; i < 5; ++i) {
+        CHECK(frames[i].seq == i);                    // seq assigned by drain
+        CHECK(frames[i].type == telem::kTypeTelemetry);
+    }
+    std::remove(path);
+}
+
+void test_drain_stop_after_concurrent_push() {
+    telem::SpscRing ring;
+    const char* path = "build/drain_race_test.bin";
+    std::FILE* f = std::fopen(path, "wb+");
+    CHECK(f != nullptr);
+    telem::Drain drain(ring);
+    drain.start(f);
+    std::uint64_t pushed = 0;
+    std::thread producer([&] {
+        for (std::uint64_t i = 0; i < 50000; ++i) {
+            if (ring.try_push({i, 1, 2, 3, 0.0, 0.0, 0})) ++pushed;
+        }
+    });
+    producer.join();
+    drain.stop();
+    CHECK(!drain.write_failed());
+    CHECK(drain.records_written() == pushed);
+    auto data = slurp(path);
+    std::vector<telem::DecodedFrame> frames;
+    const auto ctr = telem::decode_stream(data.data(), data.size(), frames);
+    CHECK(ctr.frames_ok == pushed);
+    std::remove(path);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -160,6 +237,10 @@ int main(int argc, char** argv) {
     test_gap_rules();
     test_truncation_and_corruption();
     test_golden_corpus(corpus_dir);
+    test_header_layout();
+    test_drain_counters();
+    test_drain_output_decodes();
+    test_drain_stop_after_concurrent_push();
     std::puts("wire_tests: ok");
     return 0;
 }

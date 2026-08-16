@@ -102,7 +102,8 @@ bool LoopStats::write_csv(const std::string& dir, const std::string& label) cons
 bool LoopStats::write_json(const std::string& path, const std::string& label,
                            const std::string& config, const std::string& applied_json,
                            const std::string& env_json,
-                           std::int64_t cycles_requested) const {
+                           std::int64_t cycles_requested,
+                           const std::string& telemetry_json) const {
     FILE* f = std::fopen(path.c_str(), "w");
     if (!f) return false;
     const Summary s = summary();
@@ -124,14 +125,16 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         "    \"p99.9_naive\": %.3f\n"
         "  },\n"
         "  \"dropped_samples\": %" PRId64 ",\n"
-        "  \"exec_us\": { \"p50\": %.3f, \"p99.9\": %.3f, \"max\": %.3f }\n"
-        "}\n",
+        "  \"exec_us\": { \"p50\": %.3f, \"p99.9\": %.3f, \"max\": %.3f }",
         label.c_str(), config.c_str(), applied_json.c_str(), env_json.c_str(), us(period_ns_),
         s.count, cycles_requested, s.missed, s.early,
         us(s.min_ns), us(static_cast<std::int64_t>(s.mean_ns)), us(s.p50_ns),
         us(s.p99_ns), us(s.p999_ns), us(s.p9999_ns), us(s.max_ns),
         us(s.naive_p999_ns), s.dropped,
         us(s.exec_p50_ns), us(s.exec_p999_ns), us(s.exec_max_ns));
+    if (!telemetry_json.empty())
+        std::fprintf(f, ",\n  \"telemetry\": %s", telemetry_json.c_str());
+    std::fputs("\n}\n", f);
     std::fclose(f);
     return true;
 }
