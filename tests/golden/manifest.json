@@ -1,0 +1,103 @@
+{
+  "files": [
+    {
+      "description": "record frame with its final CRC byte flipped",
+      "expect": {
+        "crc_errors": 1,
+        "frames_ok": 0,
+        "lost": 0,
+        "resyncs": 1,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 70,
+        "version_mismatch": 0
+      },
+      "file": "frame_badcrc.bin",
+      "roundtrip": false
+    },
+    {
+      "description": "type-2 frame with empty payload",
+      "expect": {
+        "crc_errors": 0,
+        "frames_ok": 1,
+        "lost": 0,
+        "resyncs": 0,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 0,
+        "version_mismatch": 0
+      },
+      "file": "frame_empty.bin",
+      "roundtrip": true
+    },
+    {
+      "description": "type-3 frame with the 498-byte max payload",
+      "expect": {
+        "crc_errors": 0,
+        "frames_ok": 1,
+        "lost": 0,
+        "resyncs": 0,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 0,
+        "version_mismatch": 0
+      },
+      "file": "frame_max.bin",
+      "roundtrip": true
+    },
+    {
+      "description": "canonical type-1 record frame",
+      "expect": {
+        "crc_errors": 0,
+        "frames_ok": 1,
+        "lost": 0,
+        "resyncs": 0,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 0,
+        "version_mismatch": 0
+      },
+      "file": "frame_record.bin",
+      "roundtrip": true
+    },
+    {
+      "description": "record frame cut after 30 bytes",
+      "expect": {
+        "crc_errors": 0,
+        "frames_ok": 0,
+        "lost": 0,
+        "resyncs": 0,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 30,
+        "version_mismatch": 0
+      },
+      "file": "frame_truncated.bin",
+      "roundtrip": false
+    },
+    {
+      "description": "two record frames across the u32 seq wrap",
+      "expect": {
+        "crc_errors": 0,
+        "frames_ok": 2,
+        "lost": 0,
+        "resyncs": 0,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 0,
+        "version_mismatch": 0
+      },
+      "file": "frames_seqwrap.bin",
+      "roundtrip": true
+    },
+    {
+      "description": "header + six record frames, seq-2 frame corrupted, proving resync",
+      "expect": {
+        "crc_errors": 1,
+        "frames_ok": 5,
+        "lost": 1,
+        "resyncs": 1,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 70,
+        "version_mismatch": 0
+      },
+      "file": "recording_mini.tvcrec",
+      "roundtrip": false
+    }
+  ],
+  "schema_hash": "0xA871CD84"
+}
