@@ -330,12 +330,18 @@ equal to cycles, gapless seq, zero CRC errors, zero drops, and a
 summary.json telemetry block that matches the file. A telemetry-off
 run asserts no recording appears.
 
-Toolchain: docker/Dockerfile adds python3-pip via apt and then
-`pip3 install --break-system-packages google-crc32c` (ubuntu:24.04's
-system Python is PEP 668 externally managed, so plain pip3 fails the
-image build; the apt package python3-crc32c is a different module and
-is not a substitute). The native unit-test lane on macOS installs the
-same wheel with a normal pip install.
+Toolchain: docker/Dockerfile moves its base to ubuntu:26.04, matching
+the ProBook (Ubuntu 26.04 LTS, Python 3.14, and the g++ the published
+numbers are built with), and adds python3-pip via apt plus
+`pip3 install --break-system-packages google-crc32c`. The system
+Python is PEP 668 externally managed on both 24.04 and 26.04, so plain
+pip3 fails the image build, and the apt package python3-crc32c is a
+different module, not a substitute. Verified in a live ubuntu:26.04
+container: google-crc32c 1.8.0 installs as a prebuilt cp314 wheel,
+loads its C implementation, and reproduces the check value and
+schema_hash 0xA871CD84. The native lanes install the same wheel: the
+ProBook via the same --break-system-packages route, macOS via a normal
+pip install.
 
 ## Campaign
 
@@ -368,8 +374,9 @@ followed by an ai-log entry (next number 0022):
 1. This spec plus the AGENTS.md invariant amendment. Claude Code.
 2. Codex's first PR per ADR-000: ground/wire.py + __init__.py,
    tests/unit/test_wire.py, tests/golden/ with generate.py, Dockerfile
-   pip + google-crc32c. Claude Code reviews by running the tests.
-   Prerequisite: Codex CLI verified on this machine (ai-log 0007).
+   base bump to ubuntu:26.04 plus pip + google-crc32c. Claude Code
+   reviews by running the tests. Prerequisite: Codex CLI verified on
+   this machine (ai-log 0007).
 3. src/telemetry.{hpp,cpp} (record, CRC, encoder, ring), tests/cpp/
    both targets, CMake wiring, ci.sh TSan tree. Claude Code. Consumes
    the corpus from PR 2.
