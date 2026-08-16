@@ -5,6 +5,8 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <thread>
 #include <type_traits>
 #include <vector>
 
@@ -103,6 +105,37 @@ private:
     alignas(64) std::atomic<std::uint64_t> tail_{0};
     alignas(64) std::uint64_t cached_tail_ = 0;   // producer-owned
     std::uint64_t drops_ = 0;                     // producer-owned
+};
+
+// Writes the 32-byte recording header into out and returns 32.
+std::size_t encode_recording_header(std::int64_t mono_ns,
+                                    std::int64_t epoch_ns,
+                                    unsigned char* out) noexcept;
+
+// Consumer side of the ring. Runs SCHED_OTHER off the isolated core (it
+// inherits scheduling from whoever calls start(); call before rt setup).
+// The alloc guard's flag is thread_local, so this thread may allocate.
+class Drain {
+public:
+    explicit Drain(SpscRing& ring) : ring_(ring) {}
+    void start(std::FILE* f);
+    void stop();
+    bool write_failed() const noexcept {
+        return write_failed_.load(std::memory_order_relaxed);
+    }
+    std::uint64_t records_written() const noexcept { return records_; }
+    std::uint64_t bytes_written() const noexcept { return bytes_; }
+
+private:
+    void run();
+    SpscRing& ring_;
+    std::FILE* file_ = nullptr;
+    std::thread thread_;
+    std::atomic<bool> stop_{false};
+    std::atomic<bool> write_failed_{false};
+    std::uint64_t records_ = 0;   // thread-owned; read after stop()
+    std::uint64_t bytes_ = 0;
+    std::uint32_t seq_ = 0;
 };
 
 }  // namespace telem

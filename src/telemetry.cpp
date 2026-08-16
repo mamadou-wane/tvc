@@ -2,6 +2,8 @@
 
 #include <array>
 #include <cstring>
+#include <ctime>
+#include <cstdio>
 
 namespace telem {
 namespace {
@@ -107,6 +109,57 @@ DecodeCounters decode_stream(const unsigned char* data, std::size_t len,
     }
     ctr.skipped_bytes = len - consumed;
     return ctr;
+}
+
+namespace {
+inline void put64(unsigned char* p, std::uint64_t v) noexcept {
+    for (int i = 0; i < 8; ++i) p[i] = static_cast<unsigned char>(v >> (8 * i));
+}
+}  // namespace
+
+std::size_t encode_recording_header(std::int64_t mono_ns,
+                                    std::int64_t epoch_ns,
+                                    unsigned char* out) noexcept {
+    std::memcpy(out, "TVCRECRD", 8);
+    put16(out + 8, 1);
+    put16(out + 10, 0);
+    put32(out + 12, kSchemaHash);
+    put64(out + 16, static_cast<std::uint64_t>(mono_ns));
+    put64(out + 24, static_cast<std::uint64_t>(epoch_ns));
+    return 32;
+}
+
+void Drain::start(std::FILE* f) {
+    file_ = f;
+    thread_ = std::thread([this] { run(); });
+}
+
+void Drain::stop() {
+    stop_.store(true, std::memory_order_release);
+    thread_.join();
+}
+
+void Drain::run() {
+    Record batch[512];
+    unsigned char frame[kFrameOverhead + sizeof(Record)];
+    for (;;) {
+        const std::size_t n = ring_.pop_batch(batch, 512);
+        for (std::size_t i = 0; i < n; ++i) {
+            const std::size_t len = encode_frame(
+                kTypeTelemetry, seq_++, &batch[i], sizeof(Record), frame);
+            if (std::fwrite(frame, 1, len, file_) != len)
+                write_failed_.store(true, std::memory_order_relaxed);
+            else { ++records_; bytes_ += len; }
+        }
+        if (n == 0) {
+            if (stop_.load(std::memory_order_acquire)) break;
+            const timespec ts{0, 1000000};   // 1 ms poll; no futex from the producer
+            ::clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, nullptr);
+        }
+    }
+    if (std::fflush(file_) != 0)
+        write_failed_.store(true, std::memory_order_relaxed);
+    std::fclose(file_);
 }
 
 }  // namespace telem
