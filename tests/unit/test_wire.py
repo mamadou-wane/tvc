@@ -124,3 +124,75 @@ class DecodeStream(unittest.TestCase):
         self.assertEqual(ctr["resyncs"], 1)
         self.assertEqual(ctr["lost"], 1)              # seq 1 not consumed
         self.assertEqual(ctr["skipped_bytes"], len(good[1]))
+
+
+class Records(unittest.TestCase):
+    def test_pack_unpack_round_trip(self):
+        rec = wire.Record(tick=42, deadline_ns=10**9, woke_ns=10**9 + 12_800,
+                          done_ns=10**9 + 31_500, theta=0.125, cmd=-0.5,
+                          drops=3)
+        packed = wire.pack_record(rec)
+        self.assertEqual(len(packed), 56)
+        self.assertEqual(wire.unpack_record(packed), rec)
+
+    def test_negative_jitter_survives(self):
+        rec = wire.Record(0, 100, 90, 120, 0.0, 0.0, 0)   # woke before deadline
+        self.assertEqual(wire.unpack_record(wire.pack_record(rec)).woke_ns, 90)
+
+
+class ReadRecording(unittest.TestCase):
+    def make(self, tmp, header=None, frames=b""):
+        if header is None:
+            header = wire.HEADER.pack(wire.MAGIC, wire.VERSION, 0,
+                                      wire.SCHEMA_HASH, 1, 2)
+        p = pathlib.Path(tmp) / "r.tvcrec"
+        p.write_bytes(header + frames)
+        return p
+
+    def test_reads_header_and_records(self):
+        import tempfile
+        rec = wire.Record(0, 10, 20, 30, 1.0, -1.0, 0)
+        with tempfile.TemporaryDirectory() as d:
+            p = self.make(d, frames=wire.encode_frame(1, 0, wire.pack_record(rec)))
+            header, records, ctr = wire.read_recording(p)
+            self.assertEqual(header["start_monotonic_ns"], 1)
+            self.assertEqual(header["start_epoch_ns"], 2)
+            self.assertTrue(header["schema_known"])
+            self.assertEqual(records, [rec])
+            self.assertEqual(ctr["frames_ok"], 1)
+
+    def test_rejects_bad_magic(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = self.make(d, header=wire.HEADER.pack(b"NOTMAGIC", 1, 0, 0, 0, 0))
+            with self.assertRaises(ValueError):
+                wire.read_recording(p)
+
+    def test_rejects_bad_version(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = self.make(d, header=wire.HEADER.pack(wire.MAGIC, 9, 0, 0, 0, 0))
+            with self.assertRaises(ValueError):
+                wire.read_recording(p)
+
+    def test_unknown_schema_reported_not_refused(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = self.make(d, header=wire.HEADER.pack(wire.MAGIC, 1, 0, 0xDEAD, 0, 0))
+            header, records, ctr = wire.read_recording(p)
+            self.assertFalse(header["schema_known"])
+
+    def test_wrong_size_type1_payload_raises(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = self.make(d, frames=wire.encode_frame(1, 0, b"short"))
+            with self.assertRaises(ValueError):
+                wire.read_recording(p)
+
+    def test_non_record_types_skipped(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = self.make(d, frames=wire.encode_frame(2, 0, b"cmd"))
+            header, records, ctr = wire.read_recording(p)
+            self.assertEqual(records, [])
+            self.assertEqual(ctr["frames_ok"], 1)

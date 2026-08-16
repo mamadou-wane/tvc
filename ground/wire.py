@@ -105,3 +105,53 @@ def decode_stream(data: bytes):
         pos = end
     ctr["skipped_bytes"] = len(data) - consumed
     return frames, ctr
+
+
+def pack_record(rec) -> bytes:
+    return RECORD.pack(*rec)
+
+
+def unpack_record(payload: bytes) -> Record:
+    return Record(*RECORD.unpack(payload))
+
+
+def read_recording(path):
+    with open(path, "rb") as f:
+        data = f.read()
+    if len(data) < HEADER.size:
+        raise ValueError("recording shorter than its header")
+    magic, ver, _reserved, schema_hash, mono, epoch = HEADER.unpack_from(data)
+    if magic != MAGIC:
+        raise ValueError(f"bad magic {magic!r}")
+    if ver != VERSION:
+        raise ValueError(f"unsupported recording version {ver}")
+    header = {"magic": magic, "version": ver, "schema_hash": schema_hash,
+              "start_monotonic_ns": mono, "start_epoch_ns": epoch,
+              "schema_known": schema_hash == SCHEMA_HASH}
+    frames, ctr = decode_stream(data[HEADER.size:])
+    records = []
+    for ftype, _seq, payload in frames:
+        if ftype != TYPE_TELEMETRY:
+            continue
+        if len(payload) != RECORD.size:
+            raise ValueError(
+                f"type-1 frame with {len(payload)}-byte payload: encoder bug")
+        records.append(unpack_record(payload))
+    return header, records, ctr
+
+
+def main(argv):
+    if len(argv) != 2:
+        print("usage: python3 -m ground.wire <recording.tvcrec>",
+              file=sys.stderr)
+        return 1
+    header, records, ctr = read_recording(argv[1])
+    print(f"records={len(records)}")
+    for key in sorted(ctr):
+        print(f"{key}={ctr[key]}")
+    print(f"schema_known={header['schema_known']}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
