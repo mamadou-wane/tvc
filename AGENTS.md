@@ -23,8 +23,9 @@ Container output is functional only; never quote timing numbers from it.
 
 - No allocation, locks, blocking syscalls, or formatted I/O inside the
   control cycle. The alloc guard enforces the allocator part at runtime.
-- CLOCK_MONOTONIC only. Never CLOCK_REALTIME, never
-  std::chrono::high_resolution_clock.
+- All timing math and the control path use CLOCK_MONOTONIC only.
+  Never std::chrono::high_resolution_clock. One CLOCK_REALTIME read
+  is allowed off the hot path to date a recording file header.
 - Deadlines derive from a single origin (origin + n * period), never from
   now + period.
 - Measurement semantics: the harness is coordinated-omission-free by
