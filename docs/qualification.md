@@ -123,9 +123,33 @@ baselines/2026-08-15-rt-campaign records kernel 7.0.0-29-realtime with
 performance governor and EPP on AC. The machine returns to the generic
 kernel, the configuration of record, on the next reboot.
 
+## Power discipline (captured 2026-08-16, v0.2a campaign)
+
+Applied at runtime before the campaign; resets on reboot and must be
+reapplied before any gated run.
+
+```
+$ sudo cpupower frequency-set -g performance
+$ echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference
+$ sudo cpupower idle-set -D 0
+$ cpupower idle-info
+CPUidle driver: acpi_idle
+POLL (DISABLED) ... C1 (DISABLED) Latency: 1 ... C2 (DISABLED) Latency: 18 ... C3 (DISABLED) Latency: 350
+```
+
+Disabling every idle state on every CPU is what moved L5 p99.9 from
+88.4 to 7.5 us; the mechanism and the audit gap are in results.md. Known defect in the 2026-08-16 setup: the IRQ
+affinity mask written was ffff3f, which carries bits for CPUs 16 to 23
+on this 16-CPU machine; the kernel rejected it with EOVERFLOW, so IRQ
+affinity was not applied for that campaign. The correct exclude-6,7
+mask is ff3f.
+
 ## Pending measurements
 
 - Per-run environment discipline: AC status, EPP setting, governor, and
   package temperature recorded alongside each summary.
+- Per-CPU cpuidle state captured in each summary's environment block:
+  the v0.2a campaign showed a 12x p99.9 shift invisible to the current
+  fields.
 - Optional: confirm the tick stops on the isolated pair under load
   (timer:tick_stop tracepoint).

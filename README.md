@@ -4,17 +4,23 @@ A hard real-time control and telemetry stack: a 500 Hz C++20 control loop on
 Linux, measured as a latency distribution, with a Python ground station,
 simulation, and fault injection to follow.
 
-![Wakeup jitter CCDF across mitigation levels](docs/jitter.svg)
+![Wakeup jitter CCDF with the telemetry level](docs/jitter-telemetry.svg)
 
-**p99.9 wakeup jitter: 88.4 microseconds at 500 Hz**, reproducible to
-within one microsecond across three independent 300,000-cycle runs, on a
-stock Ubuntu generic kernel. The naive baseline drifts 17 seconds off
-schedule in the same ten minutes and cannot see it in its own measurement.
-Six mitigations, applied one at a time, each measured in isolation:
+**p99.9 wakeup jitter: 7.5 microseconds at 500 Hz** on a stock Ubuntu
+generic kernel, with per-core isolation and every C-state disabled, and
+**per-cycle telemetry enabled at no measured cost** (pooled p99.9 within
+48 nanoseconds of the quiet configuration over 2.4 million cycles per
+arm, zero ring drops). The 88.4 us v0.1 number was the same stack under
+a discipline that left C-states enabled: one power-management knob, a
+12x difference. The naive baseline drifts whole seconds off schedule
+and cannot see it in its own measurement. Seven mitigations, applied
+one at a time, each measured in isolation:
 [docs/results.md](docs/results.md).
 
-Status: v0.1 measurement campaign complete on the qualified platform.
-Next: the writeup polish and the telemetry stack (v0.2a).
+Status: v0.2a complete: wire codec in both languages against a pinned
+golden corpus, SPSC ring with a TSan-verified drop path, drain thread,
+and the campaign above. Next: osnoise tracing of the far tail and the
+v0.2b ground station.
 
 ## Layout
 

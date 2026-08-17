@@ -11,11 +11,13 @@ and the figure regenerates from the committed CSVs:
 
 ## Headline
 
-p99.9 wakeup jitter of 88.4 microseconds at 500 Hz, reproducible to within
-one microsecond across three independent runs (88 to 89 us), on a stock
-Ubuntu generic kernel with per-core isolation and power discipline. The
-naive baseline drifts whole seconds off schedule and cannot see that in its
-own measurement.
+p99.9 wakeup jitter of 7.5 microseconds at 500 Hz on a stock Ubuntu
+generic kernel, with per-core isolation and every C-state disabled (the
+v0.2a campaign below). Under the original discipline, which left
+C-states enabled, the same stack measured 88.4 us: one power-management
+knob carried a 12x difference that the recorded environment fields could
+not see. The naive baseline drifts whole seconds off schedule and cannot
+see that in its own measurement.
 
 ## The table
 
@@ -123,10 +125,128 @@ of each pinned level carries the widest tail (L5 first repeats of 237, and
 152 us against later repeats near 88). Recorded as an open observation for
 the osnoise pass.
 
+v0.2a caveat: this comparison ran with C-states enabled, and the v0.2a
+campaign below showed C-state exits set the 88 us p99.9 floor on this
+machine. Both kernels were paying the same power-management cost, so the
+tie says the kernels tie under that discipline. Whether they still tie
+with C-states disabled is an open question for a rematch.
+
+## v0.2a: telemetry at no measured cost, and the C-state floor
+
+v0.2a added the telemetry path: a 56-byte record per cycle through a
+single-producer single-consumer ring, drained by a SCHED_OTHER thread
+off the isolated core into a CRC-checked recording file (spec:
+superpowers/specs/2026-08-16-telemetry-v02a-design.md). The acceptance
+question: does enabling it move the jitter CDF? Campaign of 2026-08-16,
+seven levels, three repeats of 300,000 cycles, same protocol as v0.1;
+L6 is L5 plus --telemetry. Data:
+baselines/2026-08-16-telemetry-campaign and
+baselines/2026-08-16-l5l6-repeats.
+
+    python3 scripts/plot_jitter.py --results baselines/2026-08-16-telemetry-campaign
+
+![Wakeup jitter CCDF with the telemetry level](jitter-telemetry.svg)
+
+| Level | Adds | p99.9 median (spread) | Worst max |
+|---|---|---|---|
+| L0 | nothing: sleep_for(period), allocating log | 1,876,951 (1.88M-1.94M) | 1,946,157 |
+| L1 | absolute deadlines | 9.6 (9.6-9.8) | 222 |
+| L2 | mlockall + prefaulted stack and heap | 10.0 (9.7-12.8) | 107 |
+| L3 | SCHED_FIFO 80 | 13.5 (9.4-13.5) | 713 |
+| L4 | pinned to the isolated core | 13.9 (7.6-14.4) | 535 |
+| L5 | allocation-free hot path | 7.5 (7.4-7.5) | 471 |
+| L6 | telemetry ring + drain thread | 9.6 (7.2-10.4) | 408 |
+
+### The C-state floor
+
+These numbers sit 12x below the v0.1 table, and the code did not
+change. The discipline did: this campaign disabled every cpuidle state
+on every CPU (cpupower idle-set -D 0) before running. The idle driver
+on this machine advertises C2 at 18 us exit latency and C3 at 350 us;
+with all states disabled, the tail that sat near 100 us at p99 and
+88 us at p99.9 in v0.1 collapses to 8 to 14 us. The v0.1 headline was a
+measurement of C-state exit latency. Even L0's drift shrank
+9x, because the sleep_for overshoot that compounds it is itself mostly
+C-state exit.
+
+The provenance system could not see this. Each summary records
+governor, EPP, AC state, and package temperature, and every one of
+those fields is identical between the 88.4 us runs and the 7.5 us runs.
+cpuidle state joins the environment capture as a follow-up; until it
+does, the number to trust is the one whose discipline was captured as
+command output in qualification.md.
+
+### Telemetry cost: three repeats said yes, eight said no
+
+The planned check (L6 p99.9 median within 10 percent of L5, three
+repeats each) failed: 9.6 vs 7.5 us, +28 percent. Five more repeats of
+each level under the same discipline
+(baselines/2026-08-16-l5l6-repeats) reversed the sign: L5 median 9.7,
+L6 median 8.4. Runs of both configurations intermittently carry a
+run-scale mode, a few hundred cycles landing in the 10 to 35 us band;
+one L5 repeat put its whole p99 at 13.6 us with no telemetry in the
+build, and one L6 repeat put p99.9 at 35.4 us with a normal p99. That
+mode owns the tail at this floor, and which arm it visits is luck.
+
+Pooled over all eight runs per arm, 2.4 million cycles each:
+
+| | L5 | L6 |
+|---|---|---|
+| pooled p99.9 | 13.72 us | 13.67 us |
+| cycles above 10 us | 5,381 | 4,021 |
+| cycles above 50 us | 132 | 105 |
+| cycles above 200 us | 53 | 44 |
+
+The CDF is unchanged within run-to-run variation: 48 nanoseconds of
+difference at pooled p99.9, and no threshold where the telemetry arm
+systematically exceeds the quiet one. A rank test across the sixteen
+per-run p99.9 values agrees (Mann-Whitney U, p = 0.44). The 3-repeat
+median check was the wrong instrument at this floor; the v0.2b check
+will interleave the two arms within one campaign and judge pooled
+exceedance counts, so run-scale environment noise cancels instead of
+deciding the verdict.
+
+The recording side held its contract in every run: 305,000 records per
+run, zero ring drops across all eight telemetry runs, every recording
+decoding CRC-clean at the byte-exact expected size.
+
+### What is left in the tail, revisited
+
+The 300 to 700 us events beyond p99.99 survived C-state disabling in
+both arms, which removes deep idle exits from their suspect list; they
+had already survived PREEMPT_RT (above). What remains is
+non-preemptible work: IPIs, TLB shootdowns, or the residual tick. The
+osnoise tracer now has a question sharpened from two directions. The
+recordings already contribute: each carries a per-cycle tick stamp, and
+decoding the 35.4 us repeat's recording places its 383 cycles above
+20 us across the full ten minutes (ticks 87 to 300,940), so that run's
+elevated tail was a sustained state across the whole window. Whatever
+visited the machine stayed for the run.
+
+### Incidents, recorded
+
+Two discipline mistakes from this campaign, kept because the next
+campaign inherits them. First, the initial launch wrapped sweep.py in
+taskset -c 7, which would have pinned the unpinned levels to the
+isolated core and confined the drain thread's inherited affinity mask
+to it; caught from the console output before any data was used, and
+rerun without it. A sweep preflight that compares the inherited mask
+against /sys/devices/system/cpu/isolated is the guard to add. Second,
+the IRQ affinity mask written during setup (ffff3f) carries bits for
+CPUs 16 to 23 on a 16-CPU machine; the kernel rejected it with
+EOVERFLOW and the per-IRQ loop suppressed the errors, so IRQ affinity
+was likely never applied. The correct exclude-6,7 mask is ff3f. The
+numbers above were measured without it.
+
 ## Regression gate
 
-scripts/bench_gate.py compares a fresh campaign directory against these
-baselines and fails when the L5 p99.9 median regresses beyond tolerance:
+scripts/bench_gate.py compares a fresh campaign directory against the
+committed baselines (as of v0.2a: baselines/2026-08-16-telemetry-campaign,
+L5 p99.9 median 7.5 us) and fails when the L5 p99.9 median regresses
+beyond tolerance. The default tolerance is 100 percent at this floor,
+because identical-config medians ranged 7.4 to 14 us across eight runs;
+the gate still polices discipline, since a run taken with C-states
+enabled measures near 88 us and fails far past any tolerance:
 
     python3 scripts/bench_gate.py --results results/<new-dir>
 

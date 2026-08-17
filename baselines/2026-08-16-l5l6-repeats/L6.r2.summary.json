@@ -1,0 +1,19 @@
+{
+  "label": "L6.r2",
+  "config": "abs-deadline mlock fifo:80 cpu:7 no-alloc telemetry",
+  "applied": { "mlock": true, "fifo": true, "cpu": true, "telemetry": true },
+  "env": { "kernel": "7.0.0-29-generic", "machine": "x86_64", "cpu_end": 7, "timer_slack_ns": 0, "ac_online": true, "governor": "performance", "epp": "performance", "pkg_temp_c": 69 },
+  "period_us": 2000.000,
+  "cycles": 300000,
+  "cycles_requested": 300000,
+  "missed_deadlines": 0,
+  "early_wakeups": 0,
+  "jitter_us": {
+    "min": 2.740, "mean": 3.701, "p50": 3.613,
+    "p99": 5.323, "p99.9": 35.423, "p99.99": 43.423, "max": 370.943,
+    "p99.9_naive": 3.765
+  },
+  "dropped_samples": 0,
+  "exec_us": { "p50": 0.040, "p99.9": 0.380, "max": 3.779 },
+  "telemetry": { "records": 305000, "dropped": 0, "bytes": 21350032 }
+}
