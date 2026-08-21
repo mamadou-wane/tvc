@@ -11,6 +11,43 @@ class StrictExits(unittest.TestCase):
         p = subprocess.run([BIN, "--label=a/b"], capture_output=True, text=True)
         self.assertEqual(p.returncode, 1)
 
+    def test_fifo_overflow_rejected(self):
+        # Bounded cycles/warmup: an undetected overflow wraps into a legal
+        # value and the harness would otherwise run to completion.
+        with tempfile.TemporaryDirectory() as d:
+            p = subprocess.run(
+                [BIN, "--label=f", f"--out={d}", "--rate=1000",
+                 "--cycles=200", "--warmup=10", "--fifo=4294967296"],
+                capture_output=True, text=True)
+            self.assertEqual(p.returncode, 1)
+            self.assertIn("--fifo must be", p.stderr)
+
+    def test_cpu_overflow_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = subprocess.run(
+                [BIN, "--label=c", f"--out={d}", "--rate=1000",
+                 "--cycles=200", "--warmup=10", "--cpu=4294967295"],
+                capture_output=True, text=True)
+            self.assertEqual(p.returncode, 1)
+            self.assertIn("--cpu must be", p.stderr)
+
+    def test_fifo_above_range_rejected(self):
+        p = subprocess.run([BIN, "--fifo=100"], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 1)
+
+    def test_cpu_below_range_rejected(self):
+        p = subprocess.run([BIN, "--cpu=-2"], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 1)
+
+    def test_help_exits_0(self):
+        p = subprocess.run([BIN, "--help"], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0)
+        self.assertIn("tvc_harness", p.stdout)
+
+    def test_help_short_flag_exits_0(self):
+        p = subprocess.run([BIN, "-h"], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0)
+
     def test_failed_mitigation_exits_2_and_is_recorded(self):
         # Unprivileged container process: SCHED_FIFO must fail.
         with tempfile.TemporaryDirectory() as d:
