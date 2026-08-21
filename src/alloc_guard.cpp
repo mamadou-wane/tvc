@@ -1,4 +1,4 @@
-// alloc_guard.cpp — global operator new/delete replacement.
+// alloc_guard.cpp: global operator new/delete replacement.
 //
 // Everything here has to be safe to call before main() and from inside the
 // allocator path itself, so: no iostreams, no std::string, no locks, and the

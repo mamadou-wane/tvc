@@ -1,4 +1,4 @@
-// tests/cpp/wire_tests.cpp — codec unit tests. Plain main() + CHECK.
+// tests/cpp/wire_tests.cpp: codec unit tests. Plain main() + CHECK.
 #include "../../src/telemetry.hpp"
 
 #include <cstdio>

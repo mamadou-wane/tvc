@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-plot_jitter.py — draw the figure the project is judged on.
+plot_jitter.py: draw the figure the project is judged on.
 
 Produces a complementary CDF: x is wakeup jitter, y is the fraction of cycles
 worse than that value, on a log scale so the tail occupies real estate
@@ -86,7 +86,7 @@ def main() -> int:
     series = "jitter_naive" if args.naive else "jitter"
     files = sorted(rdir.glob(f"*.{series}.csv"))
     if not files:
-        return print(f"no *.{series}.csv in {rdir} — run scripts/sweep.py first") or 1
+        return print(f"no *.{series}.csv in {rdir}: run scripts/sweep.py first") or 1
 
     fig, ax = plt.subplots(figsize=(10, 5.6))
     fig.patch.set_facecolor("white")

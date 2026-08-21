@@ -21,6 +21,7 @@ them from 91.4% to 82.8%.
 
 ## Consequences
 
-Claude review time becomes the bottleneck on Codex-authored work. Codex
-gets no automated reviewer for its reviews of nothing; the human review
-is the only gate on Claude-authored C++, so those PRs stay small.
+Claude review time becomes the bottleneck on Codex-authored work. Because
+the reverse review direction is unused, Claude-authored C++ gets no
+automated reviewer; the human review is the only gate, so those PRs stay
+small.

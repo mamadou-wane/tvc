@@ -1,4 +1,4 @@
-// alloc_guard.hpp — detect heap activity inside the control cycle.
+// alloc_guard.hpp: detect heap activity inside the control cycle.
 //
 // The hot path of a real-time loop must not touch the allocator. glibc malloc
 // takes an arena lock, may fall into mmap/brk, and can page-fault; any of these
@@ -18,7 +18,7 @@ namespace guard {
 
 enum class Mode : int {
     Off   = 0,  // no bookkeeping at all
-    Count = 1,  // tally violations, report at exit — use this to hunt
+    Count = 1,  // tally violations, report at exit (use this to hunt)
     Abort = 2,  // die at the first one, with a backtrace-able core
 };
 

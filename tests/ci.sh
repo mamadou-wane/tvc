@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Functional gate. Runs inside the tvc-dev container. Never a timing source.
 set -euo pipefail
+# Style gate: no em dashes in code or console output.
+if grep -rn $'\xe2\x80\x94' src scripts tests \
+    --include='*.cpp' --include='*.hpp' --include='*.py' --include='*.sh'; then
+  echo "ci.sh: em dashes found in the files above"; exit 1
+fi
 cmake -S . -B build && cmake --build build -j
 ./build/wire_tests
 ./build/ring_stress
