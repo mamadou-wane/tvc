@@ -65,6 +65,28 @@ def row_ok(summary):
     return row_problem(summary) is None
 
 
+def aggregate_row(label, good):
+    """One table row from the good repeats of a level: percentiles take
+    the median across repeats, counters sum, max is the worst repeat."""
+    import statistics
+    row = dict(good[0])
+    row["label"] = label
+    row["jitter_us"] = dict(good[0]["jitter_us"])
+    percentile_keys = ["p50", "p99", "p99.9", "p99.9_naive", "p99.99"]
+    for key in percentile_keys:
+        row["jitter_us"][key] = statistics.median(
+            summary["jitter_us"][key] for summary in good)
+    row["jitter_us"]["max"] = max(
+        summary["jitter_us"]["max"] for summary in good)
+    row["dropped_samples"] = sum(summary["dropped_samples"] for summary in good)
+    row["missed_deadlines"] = sum(summary["missed_deadlines"] for summary in good)
+    p999s = [summary["jitter_us"]["p99.9"] for summary in good]
+    p9999s = [summary["jitter_us"]["p99.99"] for summary in good]
+    row["p999_spread"] = (min(p999s), max(p999s)) if len(good) > 1 else None
+    row["p9999_spread"] = (min(p9999s), max(p9999s)) if len(good) > 1 else None
+    return row
+
+
 def binary_is_stale(bin_path, source_paths):
     """True when the binary predates any source it was built from."""
     import os
@@ -79,6 +101,54 @@ def binary_is_stale(bin_path, source_paths):
         except OSError:
             continue
     return newest > bin_mtime
+
+
+def parse_cpu_list(text):
+    """sysfs CPU-list syntax ('6-7', '0,2-5,8', '') to a set of ints;
+    blank input is the empty set."""
+    cpus = set()
+    for part in text.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            lo, hi = (int(value) for value in part.split("-", 1))
+            cpus.update(range(lo, hi + 1))
+        else:
+            cpus.add(int(part))
+    return cpus
+
+
+def read_online_isolated(sysfs="/sys/devices/system/cpu"):
+    """(online, isolated) CPU sets. Missing or unreadable files fall
+    back to range(os.cpu_count()) for online and the empty set for
+    isolated, so containers and non-Linux sandboxes keep working."""
+    import os
+    try:
+        with open(os.path.join(sysfs, "online")) as f:
+            online = parse_cpu_list(f.read())
+    except OSError:
+        online = set(range(os.cpu_count() or 1))
+    try:
+        with open(os.path.join(sysfs, "isolated")) as f:
+            isolated = parse_cpu_list(f.read())
+    except OSError:
+        isolated = set()
+    return online, isolated
+
+
+def affinity_problem(affinity, online, isolated):
+    """None when the inherited mask is unrestricted, else a short
+    reason string, in the style of row_problem."""
+    missing = online - affinity
+    if not missing:
+        return None
+    reason = (f"inherited CPU affinity {sorted(affinity)} is missing online CPUs "
+              f"{sorted(missing)} (launched under taskset or in a cpuset?)")
+    if not (affinity - isolated):
+        reason += ("; every allowed CPU is isolated, so unpinned levels and the "
+                   "telemetry drain thread would run on the measurement core")
+    return reason
 
 
 def main() -> int:
@@ -96,6 +166,9 @@ def main() -> int:
                     help="runs per level; table reports median and spread")
     ap.add_argument("--allow-stale", action="store_true",
                     help="run even if the binary predates its sources")
+    ap.add_argument("--allow-restricted-affinity", action="store_true",
+                    help="run even if the inherited CPU mask is restricted "
+                         "(taskset, cpuset)")
     args = ap.parse_args()
 
     binary = pathlib.Path(args.bin)
@@ -118,6 +191,24 @@ def main() -> int:
             print("binary is older than the sources; rebuild first: "
                   "cmake --build build -j", file=sys.stderr)
             return 1
+
+    import os
+    if hasattr(os, "sched_getaffinity"):
+        affinity = set(os.sched_getaffinity(0))
+        online, isolated = read_online_isolated()
+        problem = affinity_problem(affinity, online, isolated)
+        if problem:
+            if args.allow_restricted_affinity:
+                print(f"warning: {problem}; running anyway "
+                      "(--allow-restricted-affinity)", file=sys.stderr)
+            else:
+                print(problem, file=sys.stderr)
+                print("re-launch with a full CPU mask or pass "
+                      "--allow-restricted-affinity", file=sys.stderr)
+                return 1
+        if args.cpu is not None and isolated and args.cpu not in isolated:
+            print(f"note: --cpu {args.cpu} is not in the isolated set "
+                  f"{sorted(isolated)}", file=sys.stderr)
 
     outdir = pathlib.Path(args.out)
     outdir.mkdir(parents=True, exist_ok=True)
@@ -153,7 +244,6 @@ def main() -> int:
         ran.append(label)
 
     # ---- comparison table ----
-    import statistics
     rows, excluded = [], []
     for label in ran:
         pattern = f"{label}.summary.json" if args.repeat == 1 else f"{label}.r*.summary.json"
@@ -162,13 +252,7 @@ def main() -> int:
         excluded += [(s["label"], row_problem(s)) for s in summaries if not row_ok(s)]
         if not good:
             continue
-        p999s = [s["jitter_us"]["p99.9"] for s in good]
-        base = dict(good[0])
-        base["label"] = label
-        base["jitter_us"] = dict(good[0]["jitter_us"])
-        base["jitter_us"]["p99.9"] = statistics.median(p999s)
-        base["p999_spread"] = (min(p999s), max(p999s)) if len(p999s) > 1 else None
-        rows.append(base)
+        rows.append(aggregate_row(label, good))
     if excluded:
         print(file=sys.stderr)
         for label, reason in excluded:
@@ -196,6 +280,12 @@ def main() -> int:
             factor = base / rows[-1]["jitter_us"]["p99.9"]
             print(f"\np99.9 improved {factor:.1f}x from {rows[0]['label']} "
                   f"to {rows[-1]['label']}.")
+        spreads = [(r["label"], r["jitter_us"]["p99.99"], r["p9999_spread"])
+                   for r in rows if r.get("p9999_spread")]
+        if spreads:
+            print("\np99.99 median (min-max) across repeats:")
+            for label, med, (lo, hi) in spreads:
+                print(f"  {label:4} {med:10.1f} ({lo:.1f}-{hi:.1f})")
         print(f"\nPlot it:  ./scripts/plot_jitter.py --results {outdir}")
     return 1 if excluded else 0
 
