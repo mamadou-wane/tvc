@@ -433,6 +433,7 @@ int main(int argc, char** argv) {
         }
 
         if (n >= cfg.warmup) {
+            guard::Cycle stats_cycle;   // record() must stay allocation-free
             stats.record(woke - deadline, naive_jitter, done - woke);
             // A cycle whose successor's deadline is already behind us was not
             // merely late, it was skipped.
