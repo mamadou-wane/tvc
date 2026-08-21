@@ -69,7 +69,7 @@ class StrictExits(unittest.TestCase):
             self.assertIsInstance(cpuidle["states"], list)
             for state in cpuidle["states"]:
                 self.assertEqual(set(state.keys()),
-                                  {"name", "latency_us", "disabled"})
+                                 {"name", "latency_us", "disabled"})
                 self.assertIsInstance(state["name"], str)
                 self.assertIsInstance(state["latency_us"], int)
                 self.assertIsInstance(state["disabled"], int)

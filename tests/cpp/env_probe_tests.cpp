@@ -51,9 +51,9 @@ void write_latency(const std::string& root, int cpu, int state, long latency) {
                 std::to_string(state) + "/latency", std::to_string(latency));
 }
 
-// Full state entry: disable + name + latency, for the common case.
+// Full state entry: disable + name + latency.
 void write_state(const std::string& root, int cpu, int state,
-                  const std::string& name, long latency, const std::string& disable) {
+                 const std::string& name, long latency, const std::string& disable) {
     write_name(root, cpu, state, name);
     write_latency(root, cpu, state, latency);
     write_disable(root, cpu, state, disable);
