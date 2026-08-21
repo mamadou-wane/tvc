@@ -59,8 +59,21 @@ class StrictExits(unittest.TestCase):
             s = json.loads((pathlib.Path(d) / "s.summary.json").read_text())
             self.assertFalse(s["applied"]["fifo"])
             self.assertIn("kernel", s["env"])
-            for key in ("ac_online", "governor", "epp", "pkg_temp_c"):
+            for key in ("ac_online", "governor", "epp", "pkg_temp_c", "cpuidle"):
                 self.assertIn(key, s["env"])
+            cpuidle = s["env"]["cpuidle"]
+            self.assertEqual(set(cpuidle.keys()), {"driver", "cpus", "states"})
+            self.assertIsInstance(cpuidle["driver"], str)
+            self.assertIsInstance(cpuidle["cpus"], int)
+            self.assertGreaterEqual(cpuidle["cpus"], 0)
+            self.assertIsInstance(cpuidle["states"], list)
+            for state in cpuidle["states"]:
+                self.assertEqual(set(state.keys()),
+                                  {"name", "latency_us", "disabled"})
+                self.assertIsInstance(state["name"], str)
+                self.assertIsInstance(state["latency_us"], int)
+                self.assertIsInstance(state["disabled"], int)
+                self.assertGreaterEqual(state["disabled"], 0)
 
     def test_unwritable_out_exits_4(self):
         # Two missing levels: the harness creates one directory level at most,

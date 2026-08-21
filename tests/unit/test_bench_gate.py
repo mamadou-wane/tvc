@@ -5,7 +5,10 @@ import bench_gate
 
 GOOD = {"applied": {"mlock": True, "fifo": True, "cpu": True},
         "cycles": 100, "cycles_requested": 100,
-        "jitter_us": {"p99.9": 88.4}}
+        "jitter_us": {"p99.9": 88.4},
+        "env": {"cpuidle": {"driver": "acpi_idle", "cpus": 2,
+                             "states": [{"name": "C1", "latency_us": 1,
+                                         "disabled": 2}]}}}
 
 
 class Gate(unittest.TestCase):

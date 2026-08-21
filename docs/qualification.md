@@ -148,8 +148,5 @@ mask is ff3f.
 
 - Per-run environment discipline: AC status, EPP setting, governor, and
   package temperature recorded alongside each summary.
-- Per-CPU cpuidle state captured in each summary's environment block:
-  the v0.2a campaign showed a 12x p99.9 shift invisible to the current
-  fields.
 - Optional: confirm the tick stops on the isolated pair under load
   (timer:tick_stop tracepoint).
