@@ -27,6 +27,10 @@ std::string errno_str(const char* what) {
     __asm__ __volatile__("" ::"r"(p) : "memory");
 }
 
+}  // namespace
+
+namespace rt { namespace detail {
+
 std::size_t stack_budget(std::size_t requested) {
     rlimit rl{};
     if (::getrlimit(RLIMIT_STACK, &rl) != 0 || rl.rlim_cur == RLIM_INFINITY)
@@ -36,7 +40,7 @@ std::size_t stack_budget(std::size_t requested) {
     return requested < cap ? requested : cap;
 }
 
-}  // namespace
+}}  // namespace rt::detail
 
 namespace rt {
 
@@ -46,7 +50,7 @@ Result lock_memory(std::size_t stack_bytes, std::size_t heap_bytes) {
         r.detail = errno_str("mlockall");
         return r;
     }
-    const std::size_t budget = stack_budget(stack_bytes);
+    const std::size_t budget = detail::stack_budget(stack_bytes);
     prefault_stack(budget);
 
     // Keep freed memory in the arena instead of returning it to the kernel,

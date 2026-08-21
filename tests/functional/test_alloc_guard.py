@@ -22,5 +22,11 @@ class AllocGuard(unittest.TestCase):
             self.assertEqual(p.returncode, 0)
             self.assertIn("hot path is clean", p.stdout)
 
+    def test_clean_path_with_telemetry_is_clean(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = run("--alloc-guard=count", "--no-naive-log", "--telemetry", cwd=d)
+            self.assertEqual(p.returncode, 0)
+            self.assertIn("hot path is clean", p.stdout)
+
 if __name__ == "__main__":
     unittest.main()

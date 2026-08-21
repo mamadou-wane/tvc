@@ -30,6 +30,7 @@
 #include <cstring>
 #include <ctime>
 #include <glob.h>
+#include <limits>
 #include <memory>
 #include <string>
 #include <sys/prctl.h>
@@ -154,53 +155,57 @@ bool label_ok(const std::string& s) {
     return true;
 }
 
-bool parse(int argc, char** argv, Config& c) {
+enum class ParseResult { Ok, Help, Error };
+
+ParseResult parse(int argc, char** argv, Config& c) {
     for (int i = 1; i < argc; ++i) {
         const char* a = argv[i];
         const char* v = nullptr;
-        if (!std::strcmp(a, "--help") || !std::strcmp(a, "-h")) { usage(); return false; }
+        if (!std::strcmp(a, "--help") || !std::strcmp(a, "-h")) { usage(); return ParseResult::Help; }
         else if (starts_with(a, "--label=",  &v)) c.label   = v;
         else if (starts_with(a, "--out=",    &v)) c.outdir  = v;
         else if (starts_with(a, "--rate=",   &v)) {
-            if (!to_double(v, c.rate_hz)) { std::fprintf(stderr, "bad value: %s\n", a); return false; }
+            if (!to_double(v, c.rate_hz)) { std::fprintf(stderr, "bad value: %s\n", a); return ParseResult::Error; }
         }
         else if (starts_with(a, "--cycles=", &v)) {
-            if (!to_i64(v, c.cycles)) { std::fprintf(stderr, "bad value: %s\n", a); return false; }
+            if (!to_i64(v, c.cycles)) { std::fprintf(stderr, "bad value: %s\n", a); return ParseResult::Error; }
         }
         else if (starts_with(a, "--warmup=", &v)) {
-            if (!to_i64(v, c.warmup)) { std::fprintf(stderr, "bad value: %s\n", a); return false; }
+            if (!to_i64(v, c.warmup)) { std::fprintf(stderr, "bad value: %s\n", a); return ParseResult::Error; }
         }
         else if (!std::strcmp(a, "--abs-deadline")) c.abs_deadline = true;
         else if (!std::strcmp(a, "--mlock"))       c.mlock        = true;
         else if (!std::strcmp(a, "--no-naive-log")) c.naive_log   = false;
         else if (starts_with(a, "--fifo=", &v)) {
             std::int64_t fifo = 0;
-            if (!to_i64(v, fifo)) { std::fprintf(stderr, "bad value: %s\n", a); return false; }
+            if (!to_i64(v, fifo)) { std::fprintf(stderr, "bad value: %s\n", a); return ParseResult::Error; }
+            if (fifo < 0 || fifo > 99) {
+                std::fputs("--fifo must be 0 or in [1, 99]\n", stderr); return ParseResult::Error;
+            }
             c.fifo_prio = static_cast<int>(fifo);
         }
         else if (starts_with(a, "--cpu=",  &v)) {
             std::int64_t cpu = 0;
-            if (!to_i64(v, cpu)) { std::fprintf(stderr, "bad value: %s\n", a); return false; }
+            if (!to_i64(v, cpu)) { std::fprintf(stderr, "bad value: %s\n", a); return ParseResult::Error; }
+            if (cpu < -1 || cpu > std::numeric_limits<int>::max()) {
+                std::fputs("--cpu must be in [-1, INT_MAX]\n", stderr); return ParseResult::Error;
+            }
             c.cpu = static_cast<int>(cpu);
         }
         else if (starts_with(a, "--alloc-guard=", &v)) {
             if      (!std::strcmp(v, "off"))   c.alloc_guard = guard::Mode::Off;
             else if (!std::strcmp(v, "count")) c.alloc_guard = guard::Mode::Count;
             else if (!std::strcmp(v, "abort")) c.alloc_guard = guard::Mode::Abort;
-            else { std::fprintf(stderr, "bad --alloc-guard=%s\n", v); return false; }
+            else { std::fprintf(stderr, "bad --alloc-guard=%s\n", v); return ParseResult::Error; }
         }
         else if (!std::strcmp(a, "--telemetry")) c.telemetry = true;
-        else { std::fprintf(stderr, "unknown argument: %s\n\n", a); usage(); return false; }
+        else { std::fprintf(stderr, "unknown argument: %s\n\n", a); usage(); return ParseResult::Error; }
     }
-    if (!label_ok(c.label)) { std::fputs("bad --label: must match [A-Za-z0-9._-]\n", stderr); return false; }
-    if (c.rate_hz <= 0) { std::fputs("--rate must be positive\n", stderr); return false; }
-    if (c.cycles <= 0) { std::fputs("--cycles must be positive\n", stderr); return false; }
-    if (c.warmup < 0) { std::fputs("--warmup must be >= 0\n", stderr); return false; }
-    if (!(c.fifo_prio == 0 || (c.fifo_prio >= 1 && c.fifo_prio <= 99))) {
-        std::fputs("--fifo must be 0 or in [1, 99]\n", stderr); return false;
-    }
-    if (c.cpu < -1) { std::fputs("--cpu must be >= -1\n", stderr); return false; }
-    return true;
+    if (!label_ok(c.label)) { std::fputs("bad --label: must match [A-Za-z0-9._-]\n", stderr); return ParseResult::Error; }
+    if (c.rate_hz <= 0) { std::fputs("--rate must be positive\n", stderr); return ParseResult::Error; }
+    if (c.cycles <= 0) { std::fputs("--cycles must be positive\n", stderr); return ParseResult::Error; }
+    if (c.warmup < 0) { std::fputs("--warmup must be >= 0\n", stderr); return ParseResult::Error; }
+    return ParseResult::Ok;
 }
 
 // ---------------------------------------------------------------------------
@@ -275,7 +280,11 @@ std::string config_string(const Config& c) {
 
 int main(int argc, char** argv) {
     Config cfg;
-    if (!parse(argc, argv, cfg)) return 1;
+    switch (parse(argc, argv, cfg)) {
+        case ParseResult::Error: return 1;
+        case ParseResult::Help:  return 0;
+        case ParseResult::Ok:    break;
+    }
 
     std::signal(SIGINT,  on_signal);
     std::signal(SIGTERM, on_signal);
@@ -424,6 +433,7 @@ int main(int argc, char** argv) {
         }
 
         if (n >= cfg.warmup) {
+            guard::Cycle stats_cycle;   // record() must stay allocation-free
             stats.record(woke - deadline, naive_jitter, done - woke);
             // A cycle whose successor's deadline is already behind us was not
             // merely late, it was skipped.
