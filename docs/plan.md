@@ -27,8 +27,9 @@ claimed only in lockstep mode; input-log replay is claimed everywhere.
 
 ## Measurement rules
 
-Bare metal only for numbers. AC power, masked power daemon, pinned EPP,
-SMI counter logged. Every summary.json carries applied config and
-environment. The corrected draft documents' remaining content (project
+Bare metal only for numbers. AC power, masked power daemon, pinned EPP;
+firmware stalls checked with hwlatdetect, since the SMI counter is an
+Intel-only MSR this machine lacks (see qualification.md). Every
+summary.json carries applied config and environment. The corrected draft documents' remaining content (project
 overview) moves into the repo with v0.2b, when the system it describes
 exists.

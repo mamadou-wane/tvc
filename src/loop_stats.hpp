@@ -1,4 +1,4 @@
-// loop_stats.hpp — the measurement itself.
+// loop_stats.hpp: the measurement itself.
 //
 // Two quantities, kept strictly apart:
 //
@@ -41,8 +41,8 @@ struct Summary {
 
 class LoopStats {
 public:
-    // period_ns is the expected sampling interval: deadlines derive from it,
-    // and note_missed() uses it as the missed-cycle threshold.
+    // period_ns is recorded for the summary JSON (period_us). Deadline math
+    // and the missed-cycle threshold live in the harness loop.
     explicit LoopStats(std::int64_t period_ns);
     ~LoopStats();
     LoopStats(const LoopStats&)            = delete;

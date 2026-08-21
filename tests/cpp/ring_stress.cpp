@@ -1,4 +1,4 @@
-// tests/cpp/ring_stress.cpp — SPSC correctness under two real threads.
+// tests/cpp/ring_stress.cpp: SPSC correctness under two real threads.
 // Runs in the normal, ASan, and TSan trees; TSan is the reason it exists.
 #include "../../src/telemetry.hpp"
 

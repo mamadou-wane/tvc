@@ -1,4 +1,4 @@
-// rt_setup.hpp — the four privileges a real-time loop asks the kernel for.
+// rt_setup.hpp: the four privileges a real-time loop asks the kernel for.
 //
 // Each is independent and independently reportable, because the whole point of
 // the campaign is knowing what each one is worth on its own. None of them are

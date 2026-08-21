@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# tests/golden/generate.py — regenerate the golden corpus. Byte-stable:
+# tests/golden/generate.py: regenerate the golden corpus. Byte-stable:
 # every input is a fixed constant, so the output never changes.
 import json
 import pathlib

@@ -1,4 +1,4 @@
-// main.cpp — the control-cycle timing harness.
+// main.cpp: the control-cycle timing harness.
 //
 // Every mitigation is a flag, off by default. That is deliberate: the default
 // build is the naive loop, and the campaign consists of turning them on one at
@@ -105,7 +105,7 @@ struct Config {
 
 void usage() {
     std::puts(
-"tvc_harness — control-cycle timing measurement\n"
+"tvc_harness: control-cycle timing measurement\n"
 "\n"
 "  --label=NAME        run label, used for output filenames  (default: run)\n"
 "  --out=DIR           output directory, created if missing  (default: results)\n"
@@ -339,7 +339,7 @@ int main(int argc, char** argv) {
         const auto r = rt::set_fifo_priority(cfg.fifo_prio);
         ok_fifo = r.ok;
         std::printf("  scheduler  %-4s %s\n", r.ok ? "ok" : "FAIL", r.detail.c_str());
-        if (!r.ok) std::puts("             (needs CAP_SYS_NICE — try sudo, or raise RLIMIT_RTPRIO)");
+        if (!r.ok) std::puts("             (needs CAP_SYS_NICE: try sudo, or raise RLIMIT_RTPRIO)");
     }
     std::printf("  running as %s\n", rt::describe_current().c_str());
 
@@ -397,8 +397,8 @@ int main(int argc, char** argv) {
 
             if (cfg.naive_log) {
                 // What a first-draft telemetry path looks like: format a line
-                // into a fresh std::string every cycle. Two allocations and a
-                // free, inside the deadline.
+                // into a fresh std::string every cycle. Two allocations and
+                // two frees, inside the deadline.
                 std::string line = "t=" + std::to_string(n) +
                                    " theta=" + std::to_string(plant.theta) +
                                    " cmd="   + std::to_string(plant.last_cmd);

@@ -1,4 +1,4 @@
-// src/telemetry.hpp — v0.2a telemetry: record, wire codec, SPSC ring, drain.
+// src/telemetry.hpp: v0.2a telemetry (record, wire codec, SPSC ring, drain).
 // Spec: docs/superpowers/specs/2026-08-16-telemetry-v02a-design.md.
 #pragma once
 #include <array>

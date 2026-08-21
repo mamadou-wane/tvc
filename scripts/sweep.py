@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-sweep.py — run the determinism campaign.
+sweep.py: run the determinism campaign.
 
 Each level adds exactly one mitigation to the one before it, so the difference
 between two adjacent runs is attributable to a single change. That property is
@@ -10,9 +10,9 @@ the entire value of the exercise; resist the urge to batch them.
     ./scripts/sweep.py --cpu 3 --cycles 600000     # 20 min per level at 500 Hz
     ./scripts/sweep.py --only L0 L1                # re-run two levels
 
-Levels above L2 need privileges. Without them the run still completes and the
-harness reports the failure, which is a legitimate data point but not the one
-you want in the writeup — check the FAIL lines before trusting a plot.
+Levels above L2 need privileges. Without them the harness exits nonzero, the
+sweep stops at that level, and any summary whose requested config was not
+applied is excluded from the table automatically.
 """
 
 import argparse
@@ -100,7 +100,7 @@ def main() -> int:
 
     binary = pathlib.Path(args.bin)
     if not binary.exists():
-        print(f"no binary at {binary} — build first:", file=sys.stderr)
+        print(f"no binary at {binary}, build first:", file=sys.stderr)
         print("  cmake -S . -B build && cmake --build build -j", file=sys.stderr)
         return 1
 
@@ -177,7 +177,7 @@ def main() -> int:
     if rows:
         w = shutil.get_terminal_size((100, 20)).columns
         print("\n" + "=" * min(w, 96))
-        print("CAMPAIGN SUMMARY — wakeup jitter, microseconds")
+        print("CAMPAIGN SUMMARY: wakeup jitter, microseconds")
         print("=" * min(w, 96))
         print(f"{'':4} {'p50':>9} {'p99':>9} {'p99.9':>16} {'p99.9 nv':>10} "
               f"{'max':>10} {'missed':>7} {'drop':>6}   config")
