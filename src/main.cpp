@@ -188,7 +188,7 @@ ParseResult parse(int argc, char** argv, Config& c) {
             std::int64_t cpu = 0;
             if (!to_i64(v, cpu)) { std::fprintf(stderr, "bad value: %s\n", a); return ParseResult::Error; }
             if (cpu < -1 || cpu > std::numeric_limits<int>::max()) {
-                std::fputs("--cpu must be >= -1\n", stderr); return ParseResult::Error;
+                std::fputs("--cpu must be in [-1, INT_MAX]\n", stderr); return ParseResult::Error;
             }
             c.cpu = static_cast<int>(cpu);
         }
