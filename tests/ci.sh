@@ -8,6 +8,7 @@ if grep -rn $'\xe2\x80\x94' src scripts tests \
 fi
 cmake -S . -B build && cmake --build build -j
 ./build/wire_tests
+./build/rt_setup_tests
 ./build/ring_stress
 if [ -d tests/unit ]; then python3 -m unittest discover -s tests/unit -v; fi
 if [ -d tests/functional ]; then
@@ -20,6 +21,7 @@ if [ -d tests/functional ]; then
   TVC_ASAN=1 TVC_BIN="$PWD/build-asan/tvc_harness" python3 -m unittest discover -s tests/functional -v
 fi
 ./build-asan/wire_tests
+./build-asan/rt_setup_tests
 ./build-asan/ring_stress
 cmake -S . -B build-tsan -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DCMAKE_CXX_FLAGS="-fsanitize=thread"

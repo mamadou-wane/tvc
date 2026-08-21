@@ -62,6 +62,11 @@ target_compile_definitions(wire_tests PRIVATE _GNU_SOURCE)
 target_compile_options(wire_tests PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(wire_tests PRIVATE Threads::Threads)
 
+add_executable(rt_setup_tests tests/cpp/rt_setup_tests.cpp src/rt_setup.cpp)
+target_compile_definitions(rt_setup_tests PRIVATE _GNU_SOURCE)
+target_compile_options(rt_setup_tests PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(rt_setup_tests PRIVATE Threads::Threads)
+
 add_executable(ring_stress tests/cpp/ring_stress.cpp src/telemetry.cpp)
 target_compile_definitions(ring_stress PRIVATE _GNU_SOURCE)
 target_compile_options(ring_stress PRIVATE -Wall -Wextra -Wpedantic)
