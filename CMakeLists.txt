@@ -36,6 +36,7 @@ FetchContent_MakeAvailable(hdr_histogram)
 add_executable(tvc_harness
   src/main.cpp
   src/alloc_guard.cpp
+  src/env_probe.cpp
   src/rt_setup.cpp
   src/loop_stats.cpp
   src/telemetry.cpp
@@ -66,6 +67,11 @@ add_executable(rt_setup_tests tests/cpp/rt_setup_tests.cpp src/rt_setup.cpp)
 target_compile_definitions(rt_setup_tests PRIVATE _GNU_SOURCE)
 target_compile_options(rt_setup_tests PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(rt_setup_tests PRIVATE Threads::Threads)
+
+add_executable(env_probe_tests tests/cpp/env_probe_tests.cpp src/env_probe.cpp)
+target_compile_definitions(env_probe_tests PRIVATE _GNU_SOURCE)
+target_compile_options(env_probe_tests PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(env_probe_tests PRIVATE Threads::Threads)
 
 add_executable(ring_stress tests/cpp/ring_stress.cpp src/telemetry.cpp)
 target_compile_definitions(ring_stress PRIVATE _GNU_SOURCE)

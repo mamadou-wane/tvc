@@ -172,9 +172,10 @@ C-state exit.
 The provenance system could not see this. Each summary records
 governor, EPP, AC state, and package temperature, and every one of
 those fields is identical between the 88.4 us runs and the 7.5 us runs.
-cpuidle state joins the environment capture as a follow-up; until it
-does, the number to trust is the one whose discipline was captured as
-command output in qualification.md.
+Each summary's env block now carries per-state cpuidle disable counts
+across all CPUs. The 2026-08-16 baselines predate the field, so for
+them the discipline of record stays the command output captured in
+qualification.md.
 
 ### Telemetry cost: three repeats said yes, eight said no
 
@@ -257,6 +258,7 @@ judges a timing number; that boundary is the point of the split.
 
 Machine, kernel, topology, isolation, and firmware qualification:
 qualification.md. Each summary records its applied config and environment
-(governor, EPP, AC state, package temperature) so a run taken under lapsed
-discipline identifies itself. Methodology, including why this harness is
-coordinated-omission-free by construction: methodology.md.
+(governor, EPP, AC state, package temperature, cpuidle disable counts) so
+a run taken under lapsed discipline identifies itself. Methodology,
+including why this harness is coordinated-omission-free by construction:
+methodology.md.

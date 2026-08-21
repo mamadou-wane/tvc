@@ -15,6 +15,7 @@
 // libstdc++ it is an alias for system_clock, which is the realtime clock).
 
 #include "alloc_guard.hpp"
+#include "env_probe.hpp"
 #include "loop_stats.hpp"
 #include "rt_setup.hpp"
 #include "telemetry.hpp"
@@ -209,24 +210,8 @@ ParseResult parse(int argc, char** argv, Config& c) {
 }
 
 // ---------------------------------------------------------------------------
-// Environment discipline fields, read post-loop only: never on the record
-// path. Every one of these is best-effort and absent in the CI container, so
-// each falls back to a sentinel rather than failing the run.
-std::string read_sysfs_line(const std::string& path) {
-    FILE* f = std::fopen(path.c_str(), "r");
-    if (!f) return "";
-    char buf[256];
-    std::string line;
-    if (std::fgets(buf, sizeof(buf), f)) line = buf;
-    std::fclose(f);
-    while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
-    return line;
-}
-
-std::string sysfs_or_unknown(const std::string& path) {
-    const std::string v = read_sysfs_line(path);
-    return v.empty() ? "unknown" : v;
-}
+// ac_online_json and read_pkg_temp_c stay best-effort too: sentinel on
+// absence, never fails the run (full rule in env_probe.hpp).
 
 // JSON literal: true, false, or "unknown". First power_supply/*/online that
 // reads 1 or 0 wins.
@@ -235,7 +220,7 @@ std::string ac_online_json() {
     std::string token = "\"unknown\"";
     if (glob("/sys/class/power_supply/*/online", GLOB_NOSORT, nullptr, &g) == 0) {
         for (std::size_t i = 0; i < g.gl_pathc; ++i) {
-            const std::string v = read_sysfs_line(g.gl_pathv[i]);
+            const std::string v = env_probe::read_sysfs_line(g.gl_pathv[i]);
             if (v == "1") { token = "true"; break; }
             if (v == "0") { token = "false"; break; }
         }
@@ -252,10 +237,10 @@ int read_pkg_temp_c() {
     if (glob("/sys/class/hwmon/hwmon*/name", GLOB_NOSORT, nullptr, &g) == 0) {
         for (std::size_t i = 0; i < g.gl_pathc; ++i) {
             const std::string name_path = g.gl_pathv[i];
-            if (read_sysfs_line(name_path) != "k10temp") continue;
+            if (env_probe::read_sysfs_line(name_path) != "k10temp") continue;
             const std::string dir = name_path.substr(0, name_path.size() - std::strlen("name"));
             std::int64_t milli = 0;
-            if (to_i64(read_sysfs_line(dir + "temp1_input").c_str(), milli))
+            if (to_i64(env_probe::read_sysfs_line(dir + "temp1_input").c_str(), milli))
                 result = static_cast<int>(milli / 1000);
             break;
         }
@@ -485,9 +470,10 @@ int main(int argc, char** argv) {
         "\", \"cpu_end\": " + std::to_string(cpu_end) +
         ", \"timer_slack_ns\": " + std::to_string(slack) +
         ", \"ac_online\": " + ac_online_json() +
-        ", \"governor\": \"" + sysfs_or_unknown(cpufreq_dir + "scaling_governor") + "\"" +
-        ", \"epp\": \"" + sysfs_or_unknown(cpufreq_dir + "energy_performance_preference") + "\"" +
-        ", \"pkg_temp_c\": " + std::to_string(read_pkg_temp_c()) + " }";
+        ", \"governor\": \"" + env_probe::sysfs_or_unknown(cpufreq_dir + "scaling_governor") + "\"" +
+        ", \"epp\": \"" + env_probe::sysfs_or_unknown(cpufreq_dir + "energy_performance_preference") + "\"" +
+        ", \"pkg_temp_c\": " + std::to_string(read_pkg_temp_c()) +
+        ", \"cpuidle\": " + env_probe::cpuidle_json() + " }";
 
     const std::string cfgstr = config_string(cfg);
 
