@@ -95,6 +95,16 @@ BOOT_IMAGE=/boot/vmlinuz-7.0.0-29-generic root=UUID=... ro quiet splash
 isolcpus=6,7 nohz_full=6,7 rcu_nocbs=6,7 crashkernel=...
 ```
 
+Since 2026-08-29 (7.0.0-30-generic, the flag list carries the domain
+flag explicitly; see IRQ affinity below):
+
+```
+$ tr ' ' '\n' < /proc/cmdline | grep -E '^(isolcpus|nohz_full|rcu_nocbs)='
+isolcpus=domain,managed_irq,6,7
+nohz_full=6,7
+rcu_nocbs=6,7
+```
+
 ## Firmware stall qualification
 
 One hour of hwlatdetect at idle, 10 us threshold, all CPUs sampled,
@@ -152,11 +162,11 @@ on this 16-CPU machine; the kernel rejected it with EOVERFLOW, so IRQ
 affinity was not applied for that campaign. The correct exclude-6,7
 mask is ff3f.
 
-## Session discipline, 2026-08-29 (the pinned-timer discipline)
+## Discipline of record from 2026-08-29 (the pinned-timer discipline)
 
-Not yet the discipline of record; that is decided with the next full
-campaign (results.md, what this changes). The machine-wide idle-set
-above makes every idle CPU busy-poll on 7.0.0-30: turbostat read
+The configuration of record since the 2026-08-29 campaign (results.md,
+the pinned-timer campaign). The machine-wide idle-set above makes every
+idle CPU busy-poll on 7.0.0-30: turbostat read
 Busy% 100 on all cores at 4,211 MHz and 24.96 W package power, and
 k10temp read 92 C once during the session (captures in
 baselines/2026-08-29-timer-migration/session-observations.txt). What
@@ -223,10 +233,18 @@ irq 56  nvme0q4  effective_affinity 0080   (CPU 7)
 Neither fired during any traced run: each irq-delta.txt prints their
 rows, zero on both CPUs. Per-IRQ deltas on CPUs 6 and 7 over the
 ten-minute run: LOC 205 and 607,732, CAL 258 and 258, IWI, RES, and
-MCP in single digits, nothing else. Keeping managed IRQs off the pair
-needs isolcpus=domain,managed_irq,6,7 at the next reboot; the domain
-flag must be written explicitly, because a flag list replaces the
-implicit domain isolation of a bare CPU list and the pair would rejoin
+MCP in single digits, nothing else.
+
+isolcpus=domain,managed_irq,6,7 was booted the same day and left both
+queues where they were: managed_irq keeps isolated CPUs out of a
+managed mask only when that mask also holds housekeeping CPUs, and a
+one-queue-per-CPU device gives each queue a single-CPU mask. Over the
+3.6-hour campaign that followed, irq 55 and 56 delivered zero
+interrupts on CPUs 6 and 7 (irq-delta.txt in the campaign baselines);
+they fire only for I/O submitted from those CPUs, which the loop never
+does. The flag stays because it costs nothing, and the domain flag
+stays written explicitly with it: a flag list replaces the implicit
+domain isolation of a bare CPU list, and without it the pair rejoins
 the scheduler domains.
 
 ## Tick on the isolated pair (measured 2026-08-29)
@@ -242,7 +260,8 @@ far-tail candidate either way.
 
 ## Pending
 
-- isolcpus=domain,managed_irq,6,7 in GRUB_CMDLINE_LINUX_DEFAULT, a
-  reboot, and a re-check of the two NVMe queues above.
-- A full L0 to L6 campaign under the pinned-timer discipline to replace
-  the gate baselines.
+- The 12.7 us median on a polling core woken by its own timer
+  interrupt, against 3.6 us when a remote timer wakes the polling core
+  without one: the mechanism is not measured.
+- The PREEMPT_RT rematch with the timer pinned, where both kernels take
+  the wake locally.

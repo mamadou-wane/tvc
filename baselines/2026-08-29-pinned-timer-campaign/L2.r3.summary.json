@@ -1,0 +1,18 @@
+{
+  "label": "L2.r3",
+  "config": "abs-deadline mlock naive-log",
+  "applied": { "mlock": true, "fifo": true, "cpu": true, "telemetry": true },
+  "env": { "kernel": "7.0.0-30-generic", "machine": "x86_64", "cpu_end": 0, "timer_slack_ns": 1, "ac_online": true, "governor": "performance", "epp": "performance", "pkg_temp_c": 68, "cpuidle": { "driver": "acpi_idle", "cpus": 16, "states": [ { "name": "POLL", "latency_us": 0, "disabled": 2 }, { "name": "C1", "latency_us": 1, "disabled": 2 }, { "name": "C2", "latency_us": 18, "disabled": 2 }, { "name": "C3", "latency_us": 350, "disabled": 2 } ] }, "timer_migration": 0 },
+  "period_us": 2000.000,
+  "cycles": 300000,
+  "cycles_requested": 300000,
+  "missed_deadlines": 0,
+  "early_wakeups": 0,
+  "jitter_us": {
+    "min": 3.406, "mean": 28.495, "p50": 29.327,
+    "p99": 94.015, "p99.9": 408.063, "p99.99": 856.063, "max": 1057.791,
+    "p99.9_naive": 356.607
+  },
+  "dropped_samples": 0,
+  "exec_us": { "p50": 3.597, "p99.9": 5.751, "max": 86.143 }
+}

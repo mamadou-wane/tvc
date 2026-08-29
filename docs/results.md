@@ -1,9 +1,12 @@
 # Campaign results
 
 Six mitigation levels, three repeats of 300,000 cycles each (10 minutes per
-run at 500 Hz), on the qualified platform (qualification.md). Every number
-below traces to a committed summary in baselines/2026-08-15-campaign-2/,
-and the figure regenerates from the committed CSVs:
+run at 500 Hz), on the qualified platform (qualification.md). The
+campaigns appear in the order they happened; the configuration of record
+since 2026-08-29 is the pinned-timer campaign, its own section below.
+Every number in the v0.1 sections traces to a committed summary in
+baselines/2026-08-15-campaign-2/, and each figure regenerates from the
+committed CSVs:
 
     python3 scripts/plot_jitter.py --results baselines/2026-08-15-campaign-2
 
@@ -11,15 +14,18 @@ and the figure regenerates from the committed CSVs:
 
 ## Headline
 
-p99.9 wakeup jitter of 7.5 microseconds at 500 Hz on a stock Ubuntu
-generic kernel, with per-core isolation and every C-state disabled (the
-v0.2a campaign below). Under the original discipline, which left
-C-states enabled, the same stack measured 88.4 us: one power-management
-knob carried a 12x difference that the recorded environment fields could
-not see, and the knob acted at a distance: a migrated wakeup timer, not
-the isolated core (the far tail section below). The naive baseline
-drifts whole seconds off schedule and cannot see that in its own
-measurement.
+p99.9 wakeup jitter of 16.5 microseconds at 500 Hz, worst cycle 86 us
+over 2.7 million pinned cycles, on a stock Ubuntu generic kernel with
+one core isolated, its idle states off, and the loop's wakeup timer
+pinned to it (the pinned-timer campaign below). Two earlier numbers on
+the same code: 88.4 us with C-states left on (v0.1), 7.5 us with every
+core polling at 25 W (v0.2a). Both were set by the housekeeping cores:
+nohz_full had moved the loop's wakeup timer onto them, so their idle
+exits were the tail, including the 300 to 1,000 us events beyond p99.99
+that the 7.5 us configuration kept (the far tail section). Pinning the
+timer removes them with two cores awake and costs the median, 12.7 us
+against 3.6. The naive baseline drifts whole seconds off schedule and
+cannot see that in its own measurement.
 
 ## The table
 
@@ -385,11 +391,9 @@ against an L6 median of 5.3 on 7.0.0-29; kernel version, tracer, and
 mask were not separated. timer_migration is a machine-wide sysctl:
 with it at 0 every CPU keeps and services its own timers and idle
 consolidation stops for the whole machine; the cost of that on the
-housekeeping side was not measured. Which discipline is the
-configuration of record is a choice to make with the next campaign,
-L0 to L6 with repeats under timer_migration=0, which also replaces the
-gate baselines; until then the gate keeps the 2026-08-16 baselines and
-the README keeps the 7.5 us headline with its discipline stated.
+housekeeping side was not measured. The full campaign under
+timer_migration=0 ran the same afternoon (the next section) and made
+the pinned-timer discipline the configuration of record.
 
 Open after this session: timer_migration was not in the env block, the
 same provenance gap the cpuidle field closed; it is now the block's
@@ -400,15 +404,94 @@ queues have kernel-managed affinity on CPUs 6 and 7 (qualification.md),
 silent in every run here, and need isolcpus=domain,managed_irq,6,7 at
 the next reboot.
 
+## The pinned-timer campaign: configuration of record
+
+Campaign of 2026-08-29, 12:51 to 16:26, seven levels, three repeats of
+300,000 cycles, commit 0fafb7c, kernel 7.0.0-30-generic, discipline as
+qualification.md records it: performance governor and EPP, IRQ mask
+ff3f, idle states off on CPUs 6 and 7 only, timer_migration=0, booted
+with isolcpus=domain,managed_irq,6,7. Every summary's env block reads
+timer_migration 0 and eight disabled idle states. Package temperature
+67 to 69 C for the whole 3.6 hours (temp-during.txt). Data:
+baselines/2026-08-29-pinned-timer-campaign.
+
+    python3 scripts/plot_jitter.py --results baselines/2026-08-29-pinned-timer-campaign
+
+![Wakeup jitter CCDF under the pinned-timer discipline](jitter-pinned.svg)
+
+Wakeup jitter in microseconds, median of three repeats with (min-max)
+spread; the v0.2a column is that campaign's p99.9 median for the same
+level.
+
+| Level | Adds | p50 | p99 | p99.9 (spread) | p99.99 | Worst max | v0.2a p99.9 |
+|---|---|---|---|---|---|---|---|
+| L0 | nothing: sleep_for(period), allocating log | 7.5 s | 14.8 s | 14.9 s | 14.9 s | 15.0 s | 1.9 s |
+| L1 | absolute deadlines | 6.1 | 93.9 | 331 (323-402) | 782 | 1,077 | 9.6 |
+| L2 | mlockall + prefaulted stack and heap | 29.2 | 94.0 | 408 (94-408) | 828 | 1,080 | 10.0 |
+| L3 | SCHED_FIFO 80 | 27.2 | 91.5 | 401 (9-431) | 707 | 1,029 | 13.5 |
+| L4 | pinned to the isolated core | 12.7 | 13.6 | 16.4 (16.0-16.5) | 19.7 | 72 | 13.9 |
+| L5 | allocation-free hot path | 12.7 | 13.6 | 16.5 (16.4-16.8) | 19.5 | 86 | 7.5 |
+| L6 | telemetry ring + drain thread | 12.7 | 13.7 | 17.3 (16.7-17.6) | 20.0 | 83 | 9.6 |
+
+### The pinned levels
+
+Nine runs, 2.7 million cycles: p99.9 between 16.0 and 17.6 us, p99.99
+under 21, worst cycle 86 us, zero missed deadlines, zero ring drops.
+The sixteen pinned runs of v0.2a spread 7.2 to 35.4 at p99.9 with
+maxes of 27 to 524 us. The far tail is gone from the campaign, not
+from one run. Interrupts that reached CPU 7 in 3.6 hours: 9
+reschedule, 8 function-call, 36 irq-work, and the local timer; the two
+NVMe queues with managed affinity on the pair delivered none
+(irq-delta.txt).
+
+The telemetry arm reads 0.8 us above the quiet arm at p99.9 (17.3
+against 16.5, 5 percent), inside the 10 percent criterion the v0.2a
+plan set, and the first campaign in which the two arms separate at all
+(L5 repeats 16.4 to 16.8, L6 repeats 16.7 to 17.6).
+
+### The unpinned levels
+
+L1 to L3 got worse than v0.2a, and that is the discipline, not noise.
+An unpinned thread runs on a housekeeping CPU, and under this
+discipline those CPUs sleep, so the thread pays its own C-state exit on
+every wake: p99 near 94 us, the 85 us quantum from the far tail section
+measured from the other side. L0's drift went back to 15 seconds for
+the same reason (1.9 s under v0.2a, when every core was polling). The
+ladder's big step moves to L4, 400 to 16 us: on this machine, pinning
+to the disciplined core is the mitigation, and the levels before it
+only set up for it. L3.r1 at 8.6 us is the placement lottery from v0.1
+(12 to 555 us then), one repeat in three landing somewhere quiet.
+
+### What it costs
+
+Against v0.2a the record gives up the median (12.7 against 3.6 us at
+L5) and p99.9 (16.5 against 7.5) and buys p99.99 (19.5 against 23),
+the max (86 against 471), run-to-run reproducibility (spread 0.4
+against 0.1 us at L5, but 16.0 to 17.6 across all nine pinned runs
+against 7.2 to 35.4), and power (two cores polling instead of sixteen,
+67 to 69 C against 25 W and a 92 C excursion). The median gap is the
+wake path: a local hrtimer interrupt on the isolated core against a
+remote wake noticed by a polling core without one. Why the local path
+costs 12.7 us is not measured.
+
+The regression gate moves to this campaign: baseline L5 p99.9 16.5 us,
+tolerance 50 percent (limit 24.7). A run with timer migration on reads
+85 to 400 and fails; a run with the pair's idle states on pays CPU 7's
+own C-state exits and fails; the 7.5 us configuration passes, as it
+should, since it is a legitimate discipline with a stated cost.
+
 ## Regression gate
 
 scripts/bench_gate.py compares a fresh campaign directory against the
-committed baselines (as of v0.2a: baselines/2026-08-16-telemetry-campaign,
-L5 p99.9 median 7.5 us) and fails when the L5 p99.9 median regresses
-beyond tolerance. The default tolerance is 100 percent at this floor,
-because identical-config medians ranged 7.4 to 14 us across eight runs;
-the gate still polices discipline, since a run taken with C-states
-enabled measures near 88 us and fails far past any tolerance:
+committed baselines (as of 2026-08-29:
+baselines/2026-08-29-pinned-timer-campaign, L5 p99.9 median 16.5 us)
+and fails when the L5 p99.9 median regresses beyond tolerance. The
+default tolerance is 50 percent (limit 24.7 us): identical-config
+repeats spread 16.4 to 16.8, a run with timer migration on reads 85 to
+400 us, and a run with the pair's idle states enabled pays CPU 7's own
+C-state exits, so a lapse in either half of the discipline fails far
+past the limit. The v0.2a baselines stay committed under
+baselines/2026-08-16-telemetry-campaign for the comparison above:
 
     python3 scripts/bench_gate.py --results results/<new-dir>
 
