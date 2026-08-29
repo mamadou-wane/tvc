@@ -45,13 +45,3 @@ tests run anywhere Docker does:
     docker build -t tvc-dev docker/
     docker run --rm -v "$PWD":/w -w /w --cap-add=IPC_LOCK \
       --ulimit memlock=-1:-1 tvc-dev bash tests/ci.sh
-
-## Working with AI
-
-This project is deliberately built with AI agents as collaborators: Claude
-Code for real-time-sensitive C++ and review, OpenAI Codex for well-specified
-subtasks. Every merged PR carries an AI-assistance disclosure in its
-description and a matching entry in docs/ai-log/. Roles and review protocol
-are defined in docs/adr/000-agent-roles.md. All agent output is
-human-reviewed before merge, and agent proposals are accepted or rejected
-against measurements.

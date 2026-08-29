@@ -2,6 +2,9 @@
 
 Date: 2026-08-14
 Status: approved in discussion, pending review of this document
+Superseded 2026-08-29 on attribution: commit trailers are allowed, and
+AGENTS.md and CLAUDE.md are untracked. The rest stands as the record of
+the 2026-08-14 decisions.
 
 ## What this is
 
