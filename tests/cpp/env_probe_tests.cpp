@@ -1,4 +1,5 @@
-// tests/cpp/env_probe_tests.cpp: cpuidle_json tests. Plain main() + CHECK.
+// tests/cpp/env_probe_tests.cpp: cpuidle_json and timer_migration tests.
+// Plain main() + CHECK.
 #include "../../src/env_probe.hpp"
 
 #include <cstdio>
@@ -135,6 +136,23 @@ void test_driver_present_no_cpu_dirs() {
     CHECK(env_probe::cpuidle_json(root) == expected);
 }
 
+void test_timer_migration_reads_zero_or_one() {
+    const std::string root = make_root();
+    write_file(root + "timer_migration", "1\n");
+    CHECK(env_probe::timer_migration(root + "timer_migration") == 1);
+    write_file(root + "timer_migration", "0");
+    CHECK(env_probe::timer_migration(root + "timer_migration") == 0);
+}
+
+void test_timer_migration_sentinel() {
+    const std::string root = make_root();
+    CHECK(env_probe::timer_migration(root + "missing") == -1);   // container: no such file
+    write_file(root + "timer_migration", "on");
+    CHECK(env_probe::timer_migration(root + "timer_migration") == -1);
+    write_file(root + "timer_migration", "2");                   // sysctl only writes 0 or 1
+    CHECK(env_probe::timer_migration(root + "timer_migration") == -1);
+}
+
 }  // namespace
 
 int main() {
@@ -144,6 +162,8 @@ int main() {
     test_ragged_missing_state();
     test_missing_latency_file();
     test_driver_present_no_cpu_dirs();
+    test_timer_migration_reads_zero_or_one();
+    test_timer_migration_sentinel();
     std::puts("env_probe_tests: ok");
     return 0;
 }

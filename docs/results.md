@@ -391,12 +391,14 @@ L0 to L6 with repeats under timer_migration=0, which also replaces the
 gate baselines; until then the gate keeps the 2026-08-16 baselines and
 the README keeps the 7.5 us headline with its discipline stated.
 
-Open after this session: timer_migration is not in the env block, the
-same provenance gap the cpuidle field closed, and it should be; the
-20 to 35 us hrtimer expiry on CPU 7 is now the largest kernel-visible
-event on the core; two NVMe queues have kernel-managed affinity on
-CPUs 6 and 7 (qualification.md), silent in every run here, and need
-isolcpus=domain,managed_irq,6,7 at the next reboot.
+Open after this session: timer_migration was not in the env block, the
+same provenance gap the cpuidle field closed; it is now the block's
+last key (0 or 1, -1 where the sysctl is unreadable), so a run with a
+migrated timer identifies itself. The 20 to 35 us hrtimer expiry on
+CPU 7 is now the largest kernel-visible event on the core. Two NVMe
+queues have kernel-managed affinity on CPUs 6 and 7 (qualification.md),
+silent in every run here, and need isolcpus=domain,managed_irq,6,7 at
+the next reboot.
 
 ## Regression gate
 
@@ -417,7 +419,8 @@ judges a timing number; that boundary is the point of the split.
 
 Machine, kernel, topology, isolation, and firmware qualification:
 qualification.md. Each summary records its applied config and environment
-(governor, EPP, AC state, package temperature, cpuidle disable counts) so
-a run taken under lapsed discipline identifies itself. Methodology,
+(governor, EPP, AC state, package temperature, cpuidle disable counts,
+timer_migration) so a run taken under lapsed discipline identifies
+itself. Methodology,
 including why this harness is coordinated-omission-free by construction:
 methodology.md.

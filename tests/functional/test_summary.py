@@ -20,6 +20,10 @@ class SummaryOutputs(unittest.TestCase):
             self.assertIn("p99.9_naive", s["jitter_us"])
             self.assertNotIn("p99.9_corrected", s["jitter_us"])
             self.assertEqual(s["dropped_samples"], 0)
+            env = s["env"]
+            self.assertIn(env["timer_migration"], (-1, 0, 1))
+            # new env keys append, so older baselines stay a strict prefix
+            self.assertEqual(list(env)[-2:], ["cpuidle", "timer_migration"])
 
 if __name__ == "__main__":
     unittest.main()
