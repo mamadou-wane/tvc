@@ -1,0 +1,8 @@
+   irq     cpu6     cpu7  source
+    55        0        0  IR-PCI-MSIX-0000:03:00.0 3-edge nvme0q3
+    56        0        0  IR-PCI-MSIX-0000:03:00.0 4-edge nvme0q4
+   LOC       13    69490  Local timer interrupts
+   IWI        1        1  IRQ work interrupts
+   RES        0        1  Rescheduling interrupts
+   CAL      258      260  Function call interrupts
+   MCP        1        1  Machine check polls

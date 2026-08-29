@@ -1,0 +1,104 @@
+Console captures from the 2026-08-29 session that no summary or report
+carries. Copied verbatim from the SSH transcript, timestamps local.
+Everything a summary.json or a report file does carry is not repeated here.
+
+== Kernel and boot (before the reboot into generic)
+$ uname -r
+7.0.0-30-realtime
+$ dpkg -l "linux-image-*" | awk '/^ii/ {print $2, $3}'
+linux-image-7.0.0-30-generic 7.0.0-30.30
+linux-image-7.0.0-30-realtime 7.0.0-30.30.1
+linux-image-generic-hwe-26.04 7.0.0-30.30
+linux-image-realtime 7.0.0-30.30.1
+$ grep ^GRUB_DEFAULT /etc/default/grub
+GRUB_DEFAULT=0
+(grub.cfg submenu order: 7.0.0-30-realtime, then 7.0.0-30-generic)
+After: GRUB_DEFAULT="gnulinux-advanced-6a67cd94-303d-46b4-a661-afb3efe1816a>gnulinux-7.0.0-30-generic-advanced-6a67cd94-303d-46b4-a661-afb3efe1816a"
+
+== IRQ affinity write, mask ff3f (26 refusals)
+refused: irq 0   effective=0001  timer
+refused: irq 2   effective=0000
+refused: irq 26  effective=0000  ACPI:Event
+refused: irq 27  effective=0000  ACPI:Event
+refused: irq 28  effective=0000  ACPI:Event
+refused: irq 29  effective=0000  ACPI:Event
+refused: irq 30  effective=0000  ACPI:Event
+refused: irq 31  effective=0000  ACPI:Event
+refused: irq 47  effective=0000  power
+refused: irq 48  effective=0000  SYNA3120:00
+refused: irq 53  effective=0004  nvme0q1
+refused: irq 54  effective=0008  nvme0q2
+refused: irq 55  effective=0040  nvme0q3
+refused: irq 56  effective=0080  nvme0q4
+refused: irq 57  effective=0100  nvme0q5
+refused: irq 58  effective=0200  nvme0q6
+refused: irq 59  effective=0400  nvme0q7
+refused: irq 60  effective=0800  nvme0q8
+refused: irq 61  effective=1000  nvme0q9
+refused: irq 62  effective=2000  nvme0q10
+refused: irq 63  effective=4000  nvme0q11
+refused: irq 64  effective=8000  nvme0q12
+refused: irq 65  effective=0010  nvme0q13
+refused: irq 66  effective=0020  nvme0q14
+refused: irq 67  effective=0001  nvme0q15
+refused: irq 68  effective=0002  nvme0q16
+
+== Package temperature (k10temp), machine-wide idle-set -D 0
+before idle-set, end of cpuidle-before run:          40 C (env block)
+about one minute after idle-set, end of cpuidle-after: 83 C (env block)
+a few minutes later, idle, all 16 CPUs polling:      91 C, then 92 C
+after cpupower -c 0-5,8-15 idle-set -E:              82 C, 70 C after 25 s, 68 C after the cpuidle-pair run
+
+== turbostat, all 16 CPUs polling (cpupower idle-set -D 0), idle desktop
+$ sudo turbostat --quiet --show Core,Busy%,Bzy_MHz,CoreTmp,PkgWatt -i 1 -n 1
+Core    Busy%   Bzy_MHz PkgWatt
+-       100.00  4211    24.96
+0       100.00  4211    24.96
+0       100.00  4211
+1       100.00  4211
+1       100.00  4211
+(cpu0 /proc/stat over the same 2 s: idle 100%; the busy is the idle loop polling)
+
+== turbostat, only CPUs 6 and 7 polling
+$ sudo turbostat --quiet --show Core,CPU,Busy%,Bzy_MHz,PkgWatt -i 1 -n 1
+Core    CPU     Busy%   Bzy_MHz PkgWatt
+-       -       21.69   4436    0.00
+3       6       99.84   4564
+3       7       99.91   4568
+(PkgWatt read 0.00 on this single-interval sample; not usable)
+
+== /proc/timer_list during timerdiag-mig1 (L5, pair-only, timer_migration=1)
+Six samples 0.5 s apart, hrtimer_wakeup entries expiring within 2.5 ms.
+Three samples carried a qualifying entry; two others carried stale
+hrtimer_wakeup entries from other processes (negative expiry); one had none.
+  sample: hrtimer_wakeup on cpu 4, expires in 1218 us
+  sample: hrtimer_wakeup on cpu 4, expires in 2198 us
+  sample: hrtimer_wakeup on cpu 1, expires in -25131 us     (stale, other process)
+  sample: hrtimer_wakeup on cpu 7, expires in 1444 us
+  sample: hrtimer_wakeup on cpu 2, expires in -306637 us    (stale, other process)
+cpu7 cpuidle state0 (POLL) usage delta over the run: 499697
+
+== /proc/interrupts LOC on cpu7 during timerdiag-mig0 (L5, pair-only, timer_migration=0)
+LOC on cpu7 during mig0 run: 31893    (15,000 cycles plus 1,000 warmup: 2.0 per cycle)
+
+== /proc/timer_list cpu 7, read while idle after osnoise-A-pair
+cpu: 7
+ #0: <00000000a30e0cd2>, tick_nohz_handler, S:01
+  .expires_next   : 988219000000 nsecs
+  .hres_active    : 1
+  .nr_events      : 246465
+  .nr_retries     : 11923
+  .tick_stopped   : 1
+  .idle_calls     : 5332898
+  .idle_sleeps    : 5332898
+
+== osnoise-C-mig0 run.log (temperature at start and end)
+start 11:42:28  temp 68 C
+sweep exit 0  11:52:38
+end temp 69 C
+entries: 1217875
+overrun: 0
+commit overrun: 0
+
+== osnoise-A-pair, local_timer handler durations on cpu7 (69,498 events)
+p50 872 ns   p99 1302 ns   p99.9 2034 ns   max 40226 ns

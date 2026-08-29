@@ -1,0 +1,59 @@
+records=61000 warmup_skipped=1000 measured=60000 crc_errors=0 late>50us=8
+trace events=122345
+
+events by source: count, total ms, worst us
+  thread_noise swapper/7:0                        61002   940127.5 818375971.6
+  thread_noise tvc_harness:12687                  61002      210.2    12626.8
+  irq_noise call_function_single:251                232        0.2        2.1
+  irq_noise local_timer:236                          93        0.1        2.2
+  softirq_noise TIMER:1                              16        0.2       14.6
+
+20 longest noise events (idle time and the loop's own run time excluded):
+       14.6 us  start=924.099019  softirq_noise TIMER:1
+       14.1 us  start=940.099003  softirq_noise TIMER:1
+       13.9 us  start=820.099062  softirq_noise TIMER:1
+       13.9 us  start=932.099016  softirq_noise TIMER:1
+       13.9 us  start=844.099067  softirq_noise TIMER:1
+       13.9 us  start=828.099062  softirq_noise TIMER:1
+       13.8 us  start=908.099003  softirq_noise TIMER:1
+       13.8 us  start=876.099072  softirq_noise TIMER:1
+       13.7 us  start=900.099003  softirq_noise TIMER:1
+       13.6 us  start=868.099016  softirq_noise TIMER:1
+       13.5 us  start=892.099070  softirq_noise TIMER:1
+       13.5 us  start=884.099014  softirq_noise TIMER:1
+       13.4 us  start=916.099003  softirq_noise TIMER:1
+       13.4 us  start=836.099077  softirq_noise TIMER:1
+       13.4 us  start=852.099014  softirq_noise TIMER:1
+       13.4 us  start=860.099002  softirq_noise TIMER:1
+        2.2 us  start=818.768327  irq_noise local_timer:236
+        2.1 us  start=833.522332  irq_noise call_function_single:251
+        2.0 us  start=924.099000  irq_noise local_timer:236
+        1.9 us  start=818.582333  irq_noise local_timer:236
+
+per late cycle: noise events overlapping [deadline - period, wake]; 'covered' means noise duration in the window >= half the lateness
+
+tick 2615  late 232.5 us  deadline=823.812327  noise in window 0.0 us  not covered
+    (no noise event in window)
+
+tick 5184  late 55.1 us  deadline=828.950327  noise in window 0.0 us  not covered
+    (no noise event in window)
+
+tick 5504  late 210.9 us  deadline=829.590327  noise in window 0.0 us  not covered
+    (no noise event in window)
+
+tick 12703  late 201.0 us  deadline=843.988327  noise in window 0.0 us  not covered
+    (no noise event in window)
+
+tick 26804  late 70.1 us  deadline=872.190327  noise in window 0.0 us  not covered
+    (no noise event in window)
+
+tick 32804  late 116.7 us  deadline=884.190327  noise in window 0.0 us  not covered
+    (no noise event in window)
+
+tick 40003  late 119.8 us  deadline=898.588327  noise in window 0.0 us  not covered
+    (no noise event in window)
+
+tick 54698  late 106.1 us  deadline=927.978327  noise in window 0.0 us  not covered
+    (no noise event in window)
+
+late cycles: 8; covered by kernel-visible noise: 0; not covered: 8

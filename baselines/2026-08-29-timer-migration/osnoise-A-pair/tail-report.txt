@@ -1,0 +1,2488 @@
+records=16000 warmup_skipped=1000 measured=15000 crc_errors=0 late>50us=374
+trace events=101795
+
+events by source: count, total ms, worst us
+  irq_noise local_timer:236                       69498       50.1       40.2
+  thread_noise swapper/7:0                        16003    33152.0  1248991.2
+  thread_noise tvc_harness:12499                  16002       53.1    10386.8
+  softirq_noise TIMER:1                             249        1.0      132.1
+  softirq_noise RCU:9                                32        0.0        1.3
+  tick_stop                                           5        0.0        0.0
+  irq_noise call_function_single:251                  2        0.0        0.8
+  thread_noise kworker/7:1H:12433                     1        0.0       10.1
+  ipi_send_cpu                                        1        0.0        0.0
+  irq_noise reschedule:253                            1        0.0        0.1
+  irq_noise irq_work:246                              1        0.0        0.2
+
+non-noise events by detail:
+       3  tick_stop: success=0 dependency=RCU
+       2  tick_stop: success=1 dependency=NONE
+       1  ipi_send_cpu: cpu=7 callsite=irq_work_queue+0x2d/0x70 callback=nohz_full_kick_func+0x0/0x10
+
+20 longest noise events (idle time and the loop's own run time excluded):
+      132.1 us  start=634.571012  softirq_noise TIMER:1
+       54.2 us  start=651.489012  softirq_noise TIMER:1
+       53.9 us  start=659.476002  softirq_noise TIMER:1
+       53.8 us  start=636.436001  softirq_noise TIMER:1
+       53.6 us  start=657.018001  softirq_noise TIMER:1
+       52.8 us  start=654.870001  softirq_noise TIMER:1
+       40.2 us  start=633.951013  irq_noise local_timer:236
+       38.9 us  start=659.774001  softirq_noise TIMER:1
+       28.9 us  start=638.587012  softirq_noise TIMER:1
+       27.1 us  start=633.981012  softirq_noise TIMER:1
+       25.2 us  start=650.874002  softirq_noise TIMER:1
+       24.7 us  start=635.527012  softirq_noise TIMER:1
+       24.5 us  start=651.796003  softirq_noise TIMER:1
+       24.4 us  start=656.404002  softirq_noise TIMER:1
+       21.7 us  start=634.583000  irq_noise local_timer:236
+       19.0 us  start=632.062010  irq_noise local_timer:236
+       14.7 us  start=642.632001  softirq_noise TIMER:1
+       14.6 us  start=652.099011  softirq_noise TIMER:1
+       14.4 us  start=660.100002  softirq_noise TIMER:1
+       14.0 us  start=644.100002  softirq_noise TIMER:1
+
+per late cycle: noise events overlapping [deadline - period, wake]; 'covered' means noise duration in the window >= half the lateness
+
+tick 1015  late 84.7 us  deadline=634.133900  noise in window 4.1 us  not covered
+          1.4 us  start=634.133011  irq_noise local_timer:236
+          1.1 us  start=634.132000  irq_noise local_timer:236
+          1.1 us  start=634.131910  irq_noise local_timer:236
+          0.3 us  start=634.133000  irq_noise local_timer:236
+          0.3 us  start=634.131900  irq_noise local_timer:236
+
+tick 1095  late 53.5 us  deadline=634.293900  noise in window 3.6 us  not covered
+          1.1 us  start=634.291910  irq_noise local_timer:236
+          1.0 us  start=634.292000  irq_noise local_timer:236
+          0.9 us  start=634.293011  irq_noise local_timer:236
+          0.3 us  start=634.293000  irq_noise local_timer:236
+          0.3 us  start=634.291900  irq_noise local_timer:236
+
+tick 1122  late 59.2 us  deadline=634.347900  noise in window 3.6 us  not covered
+          1.0 us  start=634.345910  irq_noise local_timer:236
+          1.0 us  start=634.346000  irq_noise local_timer:236
+          1.0 us  start=634.347011  irq_noise local_timer:236
+          0.3 us  start=634.347000  irq_noise local_timer:236
+          0.3 us  start=634.345900  irq_noise local_timer:236
+
+tick 1149  late 64.2 us  deadline=634.401900  noise in window 3.6 us  not covered
+          1.1 us  start=634.399910  irq_noise local_timer:236
+          1.0 us  start=634.400000  irq_noise local_timer:236
+          0.9 us  start=634.401010  irq_noise local_timer:236
+          0.3 us  start=634.401000  irq_noise local_timer:236
+          0.3 us  start=634.399900  irq_noise local_timer:236
+
+tick 1176  late 69.7 us  deadline=634.455900  noise in window 3.5 us  not covered
+          1.1 us  start=634.453910  irq_noise local_timer:236
+          1.0 us  start=634.454000  irq_noise local_timer:236
+          0.9 us  start=634.455010  irq_noise local_timer:236
+          0.3 us  start=634.455000  irq_noise local_timer:236
+          0.3 us  start=634.453900  irq_noise local_timer:236
+
+tick 1203  late 75.0 us  deadline=634.509900  noise in window 3.5 us  not covered
+          1.1 us  start=634.507910  irq_noise local_timer:236
+          1.0 us  start=634.508000  irq_noise local_timer:236
+          0.9 us  start=634.509010  irq_noise local_timer:236
+          0.3 us  start=634.509000  irq_noise local_timer:236
+          0.3 us  start=634.507900  irq_noise local_timer:236
+
+tick 1230  late 80.2 us  deadline=634.563900  noise in window 3.4 us  not covered
+          1.1 us  start=634.561910  irq_noise local_timer:236
+          1.0 us  start=634.562000  irq_noise local_timer:236
+          0.8 us  start=634.563010  irq_noise local_timer:236
+          0.3 us  start=634.563000  irq_noise local_timer:236
+          0.3 us  start=634.561900  irq_noise local_timer:236
+
+tick 1257  late 85.0 us  deadline=634.617900  noise in window 3.4 us  not covered
+          1.1 us  start=634.615910  irq_noise local_timer:236
+          0.9 us  start=634.616000  irq_noise local_timer:236
+          0.9 us  start=634.617010  irq_noise local_timer:236
+          0.3 us  start=634.615900  irq_noise local_timer:236
+          0.3 us  start=634.617000  irq_noise local_timer:236
+
+tick 1284  late 85.2 us  deadline=634.671900  noise in window 3.4 us  not covered
+          1.1 us  start=634.669910  irq_noise local_timer:236
+          1.0 us  start=634.670000  irq_noise local_timer:236
+          0.9 us  start=634.671010  irq_noise local_timer:236
+          0.3 us  start=634.669900  irq_noise local_timer:236
+          0.3 us  start=634.671000  irq_noise local_timer:236
+
+tick 1297  late 84.6 us  deadline=634.697900  noise in window 3.4 us  not covered
+          1.0 us  start=634.695910  irq_noise local_timer:236
+          1.0 us  start=634.696000  irq_noise local_timer:236
+          0.9 us  start=634.697010  irq_noise local_timer:236
+          0.3 us  start=634.697000  irq_noise local_timer:236
+          0.3 us  start=634.695900  irq_noise local_timer:236
+
+tick 1311  late 84.4 us  deadline=634.725900  noise in window 3.6 us  not covered
+          1.1 us  start=634.723910  irq_noise local_timer:236
+          1.0 us  start=634.724000  irq_noise local_timer:236
+          0.9 us  start=634.725010  irq_noise local_timer:236
+          0.3 us  start=634.725000  irq_noise local_timer:236
+          0.3 us  start=634.723900  irq_noise local_timer:236
+
+tick 1324  late 84.3 us  deadline=634.751900  noise in window 3.4 us  not covered
+          1.1 us  start=634.749910  irq_noise local_timer:236
+          0.9 us  start=634.750000  irq_noise local_timer:236
+          0.8 us  start=634.751010  irq_noise local_timer:236
+          0.3 us  start=634.749900  irq_noise local_timer:236
+          0.3 us  start=634.751000  irq_noise local_timer:236
+
+tick 1338  late 84.4 us  deadline=634.779900  noise in window 3.5 us  not covered
+          1.0 us  start=634.777910  irq_noise local_timer:236
+          1.0 us  start=634.779010  irq_noise local_timer:236
+          0.9 us  start=634.778000  irq_noise local_timer:236
+          0.3 us  start=634.779000  irq_noise local_timer:236
+          0.3 us  start=634.777900  irq_noise local_timer:236
+
+tick 1351  late 84.5 us  deadline=634.805900  noise in window 3.3 us  not covered
+          1.1 us  start=634.803900  irq_noise local_timer:236
+          1.0 us  start=634.804000  irq_noise local_timer:236
+          0.9 us  start=634.805010  irq_noise local_timer:236
+          0.3 us  start=634.805000  irq_noise local_timer:236
+
+tick 1365  late 84.6 us  deadline=634.833900  noise in window 3.6 us  not covered
+          1.1 us  start=634.831910  irq_noise local_timer:236
+          0.9 us  start=634.832000  irq_noise local_timer:236
+          0.9 us  start=634.833010  irq_noise local_timer:236
+          0.4 us  start=634.833000  irq_noise local_timer:236
+          0.3 us  start=634.831900  irq_noise local_timer:236
+
+tick 1392  late 84.9 us  deadline=634.887900  noise in window 3.5 us  not covered
+          1.0 us  start=634.885910  irq_noise local_timer:236
+          1.0 us  start=634.886000  irq_noise local_timer:236
+          0.9 us  start=634.887010  irq_noise local_timer:236
+          0.3 us  start=634.885900  irq_noise local_timer:236
+          0.3 us  start=634.887000  irq_noise local_timer:236
+
+tick 1419  late 85.0 us  deadline=634.941900  noise in window 3.4 us  not covered
+          1.1 us  start=634.939910  irq_noise local_timer:236
+          1.0 us  start=634.940000  irq_noise local_timer:236
+          0.9 us  start=634.941010  irq_noise local_timer:236
+          0.3 us  start=634.939900  irq_noise local_timer:236
+          0.3 us  start=634.941000  irq_noise local_timer:236
+
+tick 1446  late 84.6 us  deadline=634.995900  noise in window 3.5 us  not covered
+          1.1 us  start=634.993910  irq_noise local_timer:236
+          1.0 us  start=634.994000  irq_noise local_timer:236
+          0.9 us  start=634.995010  irq_noise local_timer:236
+          0.3 us  start=634.995000  irq_noise local_timer:236
+          0.3 us  start=634.993900  irq_noise local_timer:236
+
+tick 1473  late 84.8 us  deadline=635.049900  noise in window 3.5 us  not covered
+          1.0 us  start=635.047910  irq_noise local_timer:236
+          1.0 us  start=635.048000  irq_noise local_timer:236
+          0.9 us  start=635.049011  irq_noise local_timer:236
+          0.3 us  start=635.049000  irq_noise local_timer:236
+          0.3 us  start=635.047900  irq_noise local_timer:236
+
+tick 1482  late 84.7 us  deadline=635.067900  noise in window 3.3 us  not covered
+          1.2 us  start=635.065900  irq_noise local_timer:236
+          1.0 us  start=635.066000  irq_noise local_timer:236
+          0.9 us  start=635.067010  irq_noise local_timer:236
+          0.3 us  start=635.067000  irq_noise local_timer:236
+
+tick 1540  late 85.1 us  deadline=635.183900  noise in window 3.6 us  not covered
+          1.1 us  start=635.181910  irq_noise local_timer:236
+          1.0 us  start=635.183010  irq_noise local_timer:236
+          1.0 us  start=635.182000  irq_noise local_timer:236
+          0.3 us  start=635.181900  irq_noise local_timer:236
+          0.3 us  start=635.183000  irq_noise local_timer:236
+
+tick 1755  late 84.9 us  deadline=635.613900  noise in window 3.2 us  not covered
+          1.1 us  start=635.611910  irq_noise local_timer:236
+          1.0 us  start=635.612000  irq_noise local_timer:236
+          0.9 us  start=635.613000  irq_noise local_timer:236
+          0.3 us  start=635.611900  irq_noise local_timer:236
+
+tick 1782  late 84.8 us  deadline=635.667900  noise in window 3.4 us  not covered
+          1.0 us  start=635.665910  irq_noise local_timer:236
+          1.0 us  start=635.666000  irq_noise local_timer:236
+          0.9 us  start=635.667010  irq_noise local_timer:236
+          0.3 us  start=635.667000  irq_noise local_timer:236
+          0.3 us  start=635.665900  irq_noise local_timer:236
+
+tick 1809  late 84.6 us  deadline=635.721900  noise in window 3.4 us  not covered
+          1.1 us  start=635.719910  irq_noise local_timer:236
+          1.0 us  start=635.720000  irq_noise local_timer:236
+          0.9 us  start=635.721010  irq_noise local_timer:236
+          0.3 us  start=635.719900  irq_noise local_timer:236
+          0.3 us  start=635.721000  irq_noise local_timer:236
+
+tick 1836  late 84.4 us  deadline=635.775900  noise in window 3.3 us  not covered
+          1.2 us  start=635.773900  irq_noise local_timer:236
+          1.0 us  start=635.774000  irq_noise local_timer:236
+          0.9 us  start=635.775010  irq_noise local_timer:236
+          0.3 us  start=635.775000  irq_noise local_timer:236
+
+tick 1890  late 85.1 us  deadline=635.883900  noise in window 3.4 us  not covered
+          1.1 us  start=635.881910  irq_noise local_timer:236
+          1.0 us  start=635.882000  irq_noise local_timer:236
+          0.9 us  start=635.883010  irq_noise local_timer:236
+          0.3 us  start=635.881900  irq_noise local_timer:236
+          0.3 us  start=635.883000  irq_noise local_timer:236
+
+tick 1917  late 84.9 us  deadline=635.937900  noise in window 3.5 us  not covered
+          1.1 us  start=635.935910  irq_noise local_timer:236
+          1.0 us  start=635.936000  irq_noise local_timer:236
+          0.9 us  start=635.937010  irq_noise local_timer:236
+          0.3 us  start=635.937000  irq_noise local_timer:236
+          0.3 us  start=635.935900  irq_noise local_timer:236
+
+tick 1971  late 84.9 us  deadline=636.045900  noise in window 3.6 us  not covered
+          1.1 us  start=636.043911  irq_noise local_timer:236
+          1.0 us  start=636.044000  irq_noise local_timer:236
+          0.9 us  start=636.045010  irq_noise local_timer:236
+          0.3 us  start=636.043900  irq_noise local_timer:236
+          0.3 us  start=636.045000  irq_noise local_timer:236
+
+tick 1998  late 85.4 us  deadline=636.099900  noise in window 3.4 us  not covered
+          1.1 us  start=636.097910  irq_noise local_timer:236
+          1.0 us  start=636.098000  irq_noise local_timer:236
+          0.8 us  start=636.099010  irq_noise local_timer:236
+          0.3 us  start=636.099000  irq_noise local_timer:236
+          0.3 us  start=636.097900  irq_noise local_timer:236
+
+tick 2025  late 84.5 us  deadline=636.153900  noise in window 3.4 us  not covered
+          1.0 us  start=636.151910  irq_noise local_timer:236
+          1.0 us  start=636.152000  irq_noise local_timer:236
+          0.9 us  start=636.153010  irq_noise local_timer:236
+          0.3 us  start=636.151900  irq_noise local_timer:236
+          0.3 us  start=636.153000  irq_noise local_timer:236
+
+tick 2052  late 84.6 us  deadline=636.207900  noise in window 3.4 us  not covered
+          1.3 us  start=636.205900  irq_noise local_timer:236
+          1.0 us  start=636.206000  irq_noise local_timer:236
+          0.9 us  start=636.207010  irq_noise local_timer:236
+          0.3 us  start=636.207000  irq_noise local_timer:236
+
+tick 2079  late 84.6 us  deadline=636.261900  noise in window 3.6 us  not covered
+          1.2 us  start=636.259910  irq_noise local_timer:236
+          1.0 us  start=636.260000  irq_noise local_timer:236
+          0.9 us  start=636.261010  irq_noise local_timer:236
+          0.3 us  start=636.261000  irq_noise local_timer:236
+          0.3 us  start=636.259900  irq_noise local_timer:236
+
+tick 2133  late 85.0 us  deadline=636.369900  noise in window 3.7 us  not covered
+          1.1 us  start=636.367910  irq_noise local_timer:236
+          1.0 us  start=636.368000  irq_noise local_timer:236
+          0.9 us  start=636.369010  irq_noise local_timer:236
+          0.3 us  start=636.367900  irq_noise local_timer:236
+          0.3 us  start=636.369000  irq_noise local_timer:236
+          0.2 us  start=636.369012  softirq_noise TIMER:1
+
+tick 2160  late 84.5 us  deadline=636.423900  noise in window 3.6 us  not covered
+          1.1 us  start=636.422000  irq_noise local_timer:236
+          1.0 us  start=636.421910  irq_noise local_timer:236
+          0.9 us  start=636.423010  irq_noise local_timer:236
+          0.3 us  start=636.423000  irq_noise local_timer:236
+          0.3 us  start=636.421900  irq_noise local_timer:236
+
+tick 2163  late 84.5 us  deadline=636.429900  noise in window 2.4 us  not covered
+          1.0 us  start=636.428010  irq_noise local_timer:236
+          0.9 us  start=636.429010  irq_noise local_timer:236
+          0.3 us  start=636.429000  irq_noise local_timer:236
+          0.3 us  start=636.428000  irq_noise local_timer:236
+
+tick 2187  late 85.0 us  deadline=636.477900  noise in window 3.3 us  not covered
+          1.2 us  start=636.475900  irq_noise local_timer:236
+          1.0 us  start=636.476000  irq_noise local_timer:236
+          0.9 us  start=636.477010  irq_noise local_timer:236
+          0.3 us  start=636.477000  irq_noise local_timer:236
+
+tick 2469  late 85.0 us  deadline=637.041900  noise in window 3.3 us  not covered
+          1.1 us  start=637.039910  irq_noise local_timer:236
+          1.0 us  start=637.041000  irq_noise local_timer:236
+          0.9 us  start=637.040000  irq_noise local_timer:236
+          0.3 us  start=637.039900  irq_noise local_timer:236
+
+tick 2496  late 84.6 us  deadline=637.095900  noise in window 3.4 us  not covered
+          1.1 us  start=637.093910  irq_noise local_timer:236
+          1.0 us  start=637.094000  irq_noise local_timer:236
+          0.8 us  start=637.095010  irq_noise local_timer:236
+          0.3 us  start=637.093900  irq_noise local_timer:236
+          0.3 us  start=637.095000  irq_noise local_timer:236
+
+tick 2550  late 84.9 us  deadline=637.203900  noise in window 3.6 us  not covered
+          1.1 us  start=637.201911  irq_noise local_timer:236
+          1.0 us  start=637.202001  irq_noise local_timer:236
+          0.8 us  start=637.203010  irq_noise local_timer:236
+          0.3 us  start=637.201900  irq_noise local_timer:236
+          0.3 us  start=637.203000  irq_noise local_timer:236
+
+tick 2604  late 84.8 us  deadline=637.311900  noise in window 3.6 us  not covered
+          1.1 us  start=637.310000  irq_noise local_timer:236
+          1.1 us  start=637.309910  irq_noise local_timer:236
+          0.9 us  start=637.311010  irq_noise local_timer:236
+          0.3 us  start=637.311000  irq_noise local_timer:236
+          0.3 us  start=637.309900  irq_noise local_timer:236
+
+tick 2631  late 84.9 us  deadline=637.365900  noise in window 3.4 us  not covered
+          1.1 us  start=637.363910  irq_noise local_timer:236
+          0.9 us  start=637.364000  irq_noise local_timer:236
+          0.9 us  start=637.365010  irq_noise local_timer:236
+          0.3 us  start=637.365000  irq_noise local_timer:236
+          0.3 us  start=637.363900  irq_noise local_timer:236
+
+tick 2766  late 84.9 us  deadline=637.635900  noise in window 3.4 us  not covered
+          1.1 us  start=637.633910  irq_noise local_timer:236
+          1.0 us  start=637.634000  irq_noise local_timer:236
+          0.9 us  start=637.635010  irq_noise local_timer:236
+          0.3 us  start=637.635000  irq_noise local_timer:236
+          0.3 us  start=637.633900  irq_noise local_timer:236
+
+tick 2793  late 84.9 us  deadline=637.689900  noise in window 3.5 us  not covered
+          1.1 us  start=637.687910  irq_noise local_timer:236
+          1.0 us  start=637.688000  irq_noise local_timer:236
+          0.9 us  start=637.689010  irq_noise local_timer:236
+          0.3 us  start=637.689000  irq_noise local_timer:236
+          0.3 us  start=637.687900  irq_noise local_timer:236
+
+tick 2820  late 84.4 us  deadline=637.743900  noise in window 3.4 us  not covered
+          1.1 us  start=637.741910  irq_noise local_timer:236
+          1.0 us  start=637.742000  irq_noise local_timer:236
+          0.9 us  start=637.743010  irq_noise local_timer:236
+          0.3 us  start=637.743000  irq_noise local_timer:236
+          0.3 us  start=637.741900  irq_noise local_timer:236
+
+tick 2901  late 84.5 us  deadline=637.905900  noise in window 3.6 us  not covered
+          1.1 us  start=637.903911  irq_noise local_timer:236
+          1.0 us  start=637.904000  irq_noise local_timer:236
+          0.9 us  start=637.905010  irq_noise local_timer:236
+          0.3 us  start=637.903900  irq_noise local_timer:236
+          0.3 us  start=637.905000  irq_noise local_timer:236
+
+tick 2931  late 84.8 us  deadline=637.965900  noise in window 3.4 us  not covered
+          1.1 us  start=637.963910  irq_noise local_timer:236
+          1.0 us  start=637.964000  irq_noise local_timer:236
+          0.9 us  start=637.965010  irq_noise local_timer:236
+          0.3 us  start=637.965000  irq_noise local_timer:236
+          0.3 us  start=637.963900  irq_noise local_timer:236
+
+tick 3035  late 55.0 us  deadline=638.173900  noise in window 3.2 us  not covered
+          1.1 us  start=638.171910  irq_noise local_timer:236
+          1.0 us  start=638.172000  irq_noise local_timer:236
+          1.0 us  start=638.173000  irq_noise local_timer:236
+          0.3 us  start=638.171900  irq_noise local_timer:236
+
+tick 3062  late 60.2 us  deadline=638.227900  noise in window 3.4 us  not covered
+          1.1 us  start=638.225910  irq_noise local_timer:236
+          0.9 us  start=638.226000  irq_noise local_timer:236
+          0.9 us  start=638.227010  irq_noise local_timer:236
+          0.3 us  start=638.225900  irq_noise local_timer:236
+          0.3 us  start=638.227000  irq_noise local_timer:236
+
+tick 3089  late 66.1 us  deadline=638.281900  noise in window 3.5 us  not covered
+          1.1 us  start=638.279910  irq_noise local_timer:236
+          0.9 us  start=638.280000  irq_noise local_timer:236
+          0.9 us  start=638.281010  irq_noise local_timer:236
+          0.3 us  start=638.279900  irq_noise local_timer:236
+          0.3 us  start=638.281000  irq_noise local_timer:236
+
+tick 3116  late 70.9 us  deadline=638.335900  noise in window 3.5 us  not covered
+          1.0 us  start=638.333910  irq_noise local_timer:236
+          1.0 us  start=638.334000  irq_noise local_timer:236
+          0.9 us  start=638.335010  irq_noise local_timer:236
+          0.3 us  start=638.335000  irq_noise local_timer:236
+          0.3 us  start=638.333900  irq_noise local_timer:236
+
+tick 3143  late 76.4 us  deadline=638.389900  noise in window 3.5 us  not covered
+          1.1 us  start=638.388000  irq_noise local_timer:236
+          1.0 us  start=638.387910  irq_noise local_timer:236
+          0.9 us  start=638.389010  irq_noise local_timer:236
+          0.3 us  start=638.389000  irq_noise local_timer:236
+          0.3 us  start=638.387900  irq_noise local_timer:236
+
+tick 3170  late 81.6 us  deadline=638.443900  noise in window 3.1 us  not covered
+          1.1 us  start=638.441910  irq_noise local_timer:236
+          0.9 us  start=638.442000  irq_noise local_timer:236
+          0.8 us  start=638.443000  irq_noise local_timer:236
+          0.3 us  start=638.441900  irq_noise local_timer:236
+
+tick 3197  late 84.9 us  deadline=638.497900  noise in window 3.4 us  not covered
+          1.1 us  start=638.495910  irq_noise local_timer:236
+          1.0 us  start=638.496000  irq_noise local_timer:236
+          0.9 us  start=638.497010  irq_noise local_timer:236
+          0.3 us  start=638.495900  irq_noise local_timer:236
+          0.3 us  start=638.497000  irq_noise local_timer:236
+
+tick 3210  late 84.5 us  deadline=638.523900  noise in window 3.5 us  not covered
+          1.1 us  start=638.521910  irq_noise local_timer:236
+          0.9 us  start=638.522000  irq_noise local_timer:236
+          0.9 us  start=638.523010  irq_noise local_timer:236
+          0.3 us  start=638.523000  irq_noise local_timer:236
+          0.3 us  start=638.521900  irq_noise local_timer:236
+
+tick 3224  late 84.5 us  deadline=638.551900  noise in window 3.6 us  not covered
+          1.1 us  start=638.549910  irq_noise local_timer:236
+          1.0 us  start=638.550001  irq_noise local_timer:236
+          0.9 us  start=638.551010  irq_noise local_timer:236
+          0.3 us  start=638.549900  irq_noise local_timer:236
+          0.3 us  start=638.551000  irq_noise local_timer:236
+
+tick 3240  late 84.1 us  deadline=638.583900  noise in window 3.4 us  not covered
+          1.1 us  start=638.581910  irq_noise local_timer:236
+          0.9 us  start=638.582000  irq_noise local_timer:236
+          0.8 us  start=638.583010  irq_noise local_timer:236
+          0.3 us  start=638.581900  irq_noise local_timer:236
+          0.3 us  start=638.583000  irq_noise local_timer:236
+
+tick 3251  late 84.9 us  deadline=638.605900  noise in window 3.5 us  not covered
+          1.1 us  start=638.603910  irq_noise local_timer:236
+          1.0 us  start=638.604000  irq_noise local_timer:236
+          0.9 us  start=638.605010  irq_noise local_timer:236
+          0.3 us  start=638.603900  irq_noise local_timer:236
+          0.3 us  start=638.605000  irq_noise local_timer:236
+
+tick 3264  late 84.7 us  deadline=638.631900  noise in window 3.4 us  not covered
+          1.1 us  start=638.629910  irq_noise local_timer:236
+          1.0 us  start=638.630000  irq_noise local_timer:236
+          0.9 us  start=638.631010  irq_noise local_timer:236
+          0.3 us  start=638.629900  irq_noise local_timer:236
+          0.3 us  start=638.631000  irq_noise local_timer:236
+
+tick 3278  late 84.8 us  deadline=638.659900  noise in window 3.5 us  not covered
+          1.1 us  start=638.657910  irq_noise local_timer:236
+          1.0 us  start=638.658000  irq_noise local_timer:236
+          0.9 us  start=638.659010  irq_noise local_timer:236
+          0.3 us  start=638.659000  irq_noise local_timer:236
+          0.3 us  start=638.657900  irq_noise local_timer:236
+
+tick 3305  late 85.1 us  deadline=638.713900  noise in window 3.3 us  not covered
+          1.1 us  start=638.712000  irq_noise local_timer:236
+          1.1 us  start=638.711900  irq_noise local_timer:236
+          0.9 us  start=638.713010  irq_noise local_timer:236
+          0.3 us  start=638.713000  irq_noise local_timer:236
+
+tick 3332  late 84.9 us  deadline=638.767900  noise in window 3.4 us  not covered
+          1.1 us  start=638.765910  irq_noise local_timer:236
+          1.0 us  start=638.766000  irq_noise local_timer:236
+          0.9 us  start=638.767010  irq_noise local_timer:236
+          0.3 us  start=638.767000  irq_noise local_timer:236
+          0.3 us  start=638.765900  irq_noise local_timer:236
+
+tick 3359  late 85.3 us  deadline=638.821900  noise in window 3.3 us  not covered
+          1.0 us  start=638.819910  irq_noise local_timer:236
+          1.0 us  start=638.821000  irq_noise local_timer:236
+          1.0 us  start=638.820000  irq_noise local_timer:236
+          0.3 us  start=638.819900  irq_noise local_timer:236
+
+tick 3386  late 84.7 us  deadline=638.875900  noise in window 3.8 us  not covered
+          1.3 us  start=638.875010  irq_noise local_timer:236
+          1.0 us  start=638.873910  irq_noise local_timer:236
+          0.9 us  start=638.874000  irq_noise local_timer:236
+          0.3 us  start=638.875000  irq_noise local_timer:236
+          0.3 us  start=638.873900  irq_noise local_timer:236
+
+tick 3668  late 84.9 us  deadline=639.439900  noise in window 3.6 us  not covered
+          1.1 us  start=639.438000  irq_noise local_timer:236
+          1.0 us  start=639.437910  irq_noise local_timer:236
+          0.9 us  start=639.439010  irq_noise local_timer:236
+          0.4 us  start=639.439000  irq_noise local_timer:236
+          0.3 us  start=639.437900  irq_noise local_timer:236
+
+tick 3671  late 84.6 us  deadline=639.445900  noise in window 3.4 us  not covered
+          1.0 us  start=639.443910  irq_noise local_timer:236
+          1.0 us  start=639.444000  irq_noise local_timer:236
+          0.9 us  start=639.445010  irq_noise local_timer:236
+          0.3 us  start=639.445000  irq_noise local_timer:236
+          0.3 us  start=639.443900  irq_noise local_timer:236
+
+tick 3695  late 84.5 us  deadline=639.493900  noise in window 3.4 us  not covered
+          1.1 us  start=639.491910  irq_noise local_timer:236
+          1.0 us  start=639.492000  irq_noise local_timer:236
+          0.8 us  start=639.493010  irq_noise local_timer:236
+          0.3 us  start=639.491900  irq_noise local_timer:236
+          0.3 us  start=639.493000  irq_noise local_timer:236
+
+tick 3698  late 89.8 us  deadline=639.499900  noise in window 4.0 us  not covered
+          1.3 us  start=639.499011  irq_noise local_timer:236
+          1.1 us  start=639.497910  irq_noise local_timer:236
+          1.0 us  start=639.498000  irq_noise local_timer:236
+          0.4 us  start=639.499000  irq_noise local_timer:236
+          0.3 us  start=639.497900  irq_noise local_timer:236
+
+tick 3722  late 84.7 us  deadline=639.547900  noise in window 3.4 us  not covered
+          1.1 us  start=639.545910  irq_noise local_timer:236
+          0.9 us  start=639.546000  irq_noise local_timer:236
+          0.9 us  start=639.547010  irq_noise local_timer:236
+          0.3 us  start=639.545900  irq_noise local_timer:236
+          0.3 us  start=639.547000  irq_noise local_timer:236
+
+tick 3749  late 84.4 us  deadline=639.601900  noise in window 3.4 us  not covered
+          1.1 us  start=639.599910  irq_noise local_timer:236
+          0.9 us  start=639.600000  irq_noise local_timer:236
+          0.9 us  start=639.601010  irq_noise local_timer:236
+          0.3 us  start=639.599900  irq_noise local_timer:236
+          0.3 us  start=639.601000  irq_noise local_timer:236
+
+tick 3752  late 84.7 us  deadline=639.607900  noise in window 3.4 us  not covered
+          1.0 us  start=639.605910  irq_noise local_timer:236
+          0.9 us  start=639.606000  irq_noise local_timer:236
+          0.9 us  start=639.607010  irq_noise local_timer:236
+          0.3 us  start=639.605900  irq_noise local_timer:236
+          0.3 us  start=639.607000  irq_noise local_timer:236
+
+tick 3776  late 84.9 us  deadline=639.655900  noise in window 3.4 us  not covered
+          1.0 us  start=639.653910  irq_noise local_timer:236
+          1.0 us  start=639.654000  irq_noise local_timer:236
+          0.9 us  start=639.655010  irq_noise local_timer:236
+          0.3 us  start=639.655000  irq_noise local_timer:236
+          0.3 us  start=639.653900  irq_noise local_timer:236
+
+tick 3803  late 84.7 us  deadline=639.709900  noise in window 3.4 us  not covered
+          1.1 us  start=639.707910  irq_noise local_timer:236
+          1.0 us  start=639.708000  irq_noise local_timer:236
+          0.8 us  start=639.709010  irq_noise local_timer:236
+          0.3 us  start=639.707900  irq_noise local_timer:236
+          0.3 us  start=639.709000  irq_noise local_timer:236
+
+tick 3830  late 84.4 us  deadline=639.763900  noise in window 3.5 us  not covered
+          1.0 us  start=639.761910  irq_noise local_timer:236
+          1.0 us  start=639.762000  irq_noise local_timer:236
+          1.0 us  start=639.763010  irq_noise local_timer:236
+          0.3 us  start=639.763000  irq_noise local_timer:236
+          0.3 us  start=639.761900  irq_noise local_timer:236
+
+tick 3857  late 84.6 us  deadline=639.817900  noise in window 3.4 us  not covered
+          1.1 us  start=639.815910  irq_noise local_timer:236
+          1.0 us  start=639.816000  irq_noise local_timer:236
+          0.9 us  start=639.817010  irq_noise local_timer:236
+          0.3 us  start=639.815900  irq_noise local_timer:236
+          0.3 us  start=639.817000  irq_noise local_timer:236
+
+tick 3884  late 84.8 us  deadline=639.871900  noise in window 3.4 us  not covered
+          1.0 us  start=639.869910  irq_noise local_timer:236
+          1.0 us  start=639.870000  irq_noise local_timer:236
+          0.9 us  start=639.871010  irq_noise local_timer:236
+          0.3 us  start=639.869900  irq_noise local_timer:236
+          0.3 us  start=639.871000  irq_noise local_timer:236
+
+tick 3932  late 84.6 us  deadline=639.967900  noise in window 3.4 us  not covered
+          1.1 us  start=639.965910  irq_noise local_timer:236
+          1.0 us  start=639.966000  irq_noise local_timer:236
+          0.9 us  start=639.967010  irq_noise local_timer:236
+          0.3 us  start=639.965900  irq_noise local_timer:236
+          0.3 us  start=639.967000  irq_noise local_timer:236
+
+tick 3965  late 84.8 us  deadline=640.033900  noise in window 3.4 us  not covered
+          1.1 us  start=640.031910  irq_noise local_timer:236
+          1.0 us  start=640.032000  irq_noise local_timer:236
+          0.9 us  start=640.033010  irq_noise local_timer:236
+          0.3 us  start=640.031900  irq_noise local_timer:236
+          0.3 us  start=640.033000  irq_noise local_timer:236
+
+tick 3992  late 84.3 us  deadline=640.087900  noise in window 3.5 us  not covered
+          1.1 us  start=640.085910  irq_noise local_timer:236
+          1.0 us  start=640.086000  irq_noise local_timer:236
+          0.9 us  start=640.087010  irq_noise local_timer:236
+          0.3 us  start=640.087000  irq_noise local_timer:236
+          0.3 us  start=640.085900  irq_noise local_timer:236
+
+tick 4019  late 85.2 us  deadline=640.141900  noise in window 3.2 us  not covered
+          1.1 us  start=640.139910  irq_noise local_timer:236
+          1.0 us  start=640.140000  irq_noise local_timer:236
+          0.9 us  start=640.141000  irq_noise local_timer:236
+          0.3 us  start=640.139900  irq_noise local_timer:236
+
+tick 4046  late 84.9 us  deadline=640.195900  noise in window 3.4 us  not covered
+          1.0 us  start=640.193910  irq_noise local_timer:236
+          1.0 us  start=640.194000  irq_noise local_timer:236
+          0.9 us  start=640.195010  irq_noise local_timer:236
+          0.3 us  start=640.195000  irq_noise local_timer:236
+          0.3 us  start=640.193900  irq_noise local_timer:236
+
+tick 4073  late 85.1 us  deadline=640.249900  noise in window 3.5 us  not covered
+          1.2 us  start=640.247910  irq_noise local_timer:236
+          1.0 us  start=640.248000  irq_noise local_timer:236
+          0.9 us  start=640.249010  irq_noise local_timer:236
+          0.3 us  start=640.247900  irq_noise local_timer:236
+          0.3 us  start=640.249000  irq_noise local_timer:236
+
+tick 4160  late 85.2 us  deadline=640.423900  noise in window 3.5 us  not covered
+          1.1 us  start=640.421910  irq_noise local_timer:236
+          1.0 us  start=640.422000  irq_noise local_timer:236
+          0.9 us  start=640.423010  irq_noise local_timer:236
+          0.3 us  start=640.423000  irq_noise local_timer:236
+          0.3 us  start=640.421900  irq_noise local_timer:236
+
+tick 4490  late 85.0 us  deadline=641.083900  noise in window 3.5 us  not covered
+          1.1 us  start=641.081910  irq_noise local_timer:236
+          1.0 us  start=641.082000  irq_noise local_timer:236
+          0.9 us  start=641.083010  irq_noise local_timer:236
+          0.3 us  start=641.083000  irq_noise local_timer:236
+          0.3 us  start=641.081900  irq_noise local_timer:236
+
+tick 4571  late 84.7 us  deadline=641.245900  noise in window 3.3 us  not covered
+          1.1 us  start=641.243900  irq_noise local_timer:236
+          1.0 us  start=641.244000  irq_noise local_timer:236
+          0.9 us  start=641.245010  irq_noise local_timer:236
+          0.3 us  start=641.245000  irq_noise local_timer:236
+
+tick 4598  late 84.8 us  deadline=641.299900  noise in window 3.4 us  not covered
+          1.1 us  start=641.297910  irq_noise local_timer:236
+          1.0 us  start=641.298000  irq_noise local_timer:236
+          0.8 us  start=641.299010  irq_noise local_timer:236
+          0.3 us  start=641.299000  irq_noise local_timer:236
+          0.3 us  start=641.297900  irq_noise local_timer:236
+
+tick 4679  late 84.7 us  deadline=641.461900  noise in window 3.6 us  not covered
+          1.1 us  start=641.459911  irq_noise local_timer:236
+          1.0 us  start=641.460001  irq_noise local_timer:236
+          0.9 us  start=641.461010  irq_noise local_timer:236
+          0.3 us  start=641.459900  irq_noise local_timer:236
+          0.3 us  start=641.461000  irq_noise local_timer:236
+
+tick 4760  late 84.6 us  deadline=641.623900  noise in window 3.4 us  not covered
+          1.1 us  start=641.621910  irq_noise local_timer:236
+          1.0 us  start=641.622000  irq_noise local_timer:236
+          0.9 us  start=641.623010  irq_noise local_timer:236
+          0.3 us  start=641.621900  irq_noise local_timer:236
+          0.3 us  start=641.623000  irq_noise local_timer:236
+
+tick 4787  late 84.6 us  deadline=641.677900  noise in window 3.6 us  not covered
+          1.1 us  start=641.675910  irq_noise local_timer:236
+          1.0 us  start=641.676001  irq_noise local_timer:236
+          0.9 us  start=641.677010  irq_noise local_timer:236
+          0.3 us  start=641.675900  irq_noise local_timer:236
+          0.3 us  start=641.677000  irq_noise local_timer:236
+
+tick 4874  late 84.9 us  deadline=641.851900  noise in window 3.4 us  not covered
+          1.1 us  start=641.849910  irq_noise local_timer:236
+          0.9 us  start=641.850000  irq_noise local_timer:236
+          0.8 us  start=641.851010  irq_noise local_timer:236
+          0.3 us  start=641.851000  irq_noise local_timer:236
+          0.3 us  start=641.849900  irq_noise local_timer:236
+
+tick 4948  late 50.9 us  deadline=641.999900  noise in window 3.4 us  not covered
+          1.0 us  start=641.997910  irq_noise local_timer:236
+          1.0 us  start=641.998000  irq_noise local_timer:236
+          0.9 us  start=641.999010  irq_noise local_timer:236
+          0.3 us  start=641.999000  irq_noise local_timer:236
+          0.3 us  start=641.997900  irq_noise local_timer:236
+
+tick 4975  late 56.6 us  deadline=642.053900  noise in window 3.3 us  not covered
+          1.2 us  start=642.051900  irq_noise local_timer:236
+          1.0 us  start=642.052000  irq_noise local_timer:236
+          0.9 us  start=642.053010  irq_noise local_timer:236
+          0.3 us  start=642.053000  irq_noise local_timer:236
+
+tick 5002  late 61.7 us  deadline=642.107900  noise in window 3.8 us  not covered
+          1.2 us  start=642.107010  irq_noise local_timer:236
+          1.2 us  start=642.105900  irq_noise local_timer:236
+          1.1 us  start=642.106000  irq_noise local_timer:236
+          0.3 us  start=642.107000  irq_noise local_timer:236
+
+tick 5029  late 67.0 us  deadline=642.161900  noise in window 3.2 us  not covered
+          1.1 us  start=642.159900  irq_noise local_timer:236
+          1.0 us  start=642.160000  irq_noise local_timer:236
+          0.9 us  start=642.161010  irq_noise local_timer:236
+          0.3 us  start=642.161000  irq_noise local_timer:236
+
+tick 5056  late 72.4 us  deadline=642.215900  noise in window 3.5 us  not covered
+          1.1 us  start=642.213910  irq_noise local_timer:236
+          1.0 us  start=642.214000  irq_noise local_timer:236
+          0.9 us  start=642.215010  irq_noise local_timer:236
+          0.3 us  start=642.215000  irq_noise local_timer:236
+          0.3 us  start=642.213900  irq_noise local_timer:236
+
+tick 5069  late 84.5 us  deadline=642.241900  noise in window 3.4 us  not covered
+          1.1 us  start=642.239910  irq_noise local_timer:236
+          0.9 us  start=642.240000  irq_noise local_timer:236
+          0.9 us  start=642.241010  irq_noise local_timer:236
+          0.3 us  start=642.239900  irq_noise local_timer:236
+          0.3 us  start=642.241000  irq_noise local_timer:236
+
+tick 5083  late 77.5 us  deadline=642.269900  noise in window 3.4 us  not covered
+          1.1 us  start=642.267910  irq_noise local_timer:236
+          1.0 us  start=642.268000  irq_noise local_timer:236
+          0.9 us  start=642.269010  irq_noise local_timer:236
+          0.3 us  start=642.269000  irq_noise local_timer:236
+          0.3 us  start=642.267900  irq_noise local_timer:236
+
+tick 5096  late 84.7 us  deadline=642.295900  noise in window 3.4 us  not covered
+          1.1 us  start=642.293910  irq_noise local_timer:236
+          1.0 us  start=642.294000  irq_noise local_timer:236
+          0.8 us  start=642.295010  irq_noise local_timer:236
+          0.3 us  start=642.293900  irq_noise local_timer:236
+          0.3 us  start=642.295000  irq_noise local_timer:236
+
+tick 5110  late 83.1 us  deadline=642.323900  noise in window 3.6 us  not covered
+          1.1 us  start=642.321910  irq_noise local_timer:236
+          1.0 us  start=642.323010  irq_noise local_timer:236
+          0.9 us  start=642.322000  irq_noise local_timer:236
+          0.3 us  start=642.323000  irq_noise local_timer:236
+          0.3 us  start=642.321900  irq_noise local_timer:236
+
+tick 5137  late 84.9 us  deadline=642.377900  noise in window 3.5 us  not covered
+          1.1 us  start=642.375910  irq_noise local_timer:236
+          1.0 us  start=642.376000  irq_noise local_timer:236
+          0.9 us  start=642.377010  irq_noise local_timer:236
+          0.3 us  start=642.377000  irq_noise local_timer:236
+          0.3 us  start=642.375900  irq_noise local_timer:236
+
+tick 5164  late 84.6 us  deadline=642.431900  noise in window 3.4 us  not covered
+          1.1 us  start=642.429910  irq_noise local_timer:236
+          1.0 us  start=642.430000  irq_noise local_timer:236
+          0.9 us  start=642.431010  irq_noise local_timer:236
+          0.3 us  start=642.429900  irq_noise local_timer:236
+          0.3 us  start=642.431000  irq_noise local_timer:236
+
+tick 5191  late 84.6 us  deadline=642.485900  noise in window 3.5 us  not covered
+          1.1 us  start=642.483910  irq_noise local_timer:236
+          1.0 us  start=642.484000  irq_noise local_timer:236
+          0.9 us  start=642.485010  irq_noise local_timer:236
+          0.3 us  start=642.485000  irq_noise local_timer:236
+          0.3 us  start=642.483900  irq_noise local_timer:236
+
+tick 5218  late 84.5 us  deadline=642.539900  noise in window 3.5 us  not covered
+          1.3 us  start=642.537900  irq_noise local_timer:236
+          1.0 us  start=642.538000  irq_noise local_timer:236
+          0.9 us  start=642.539010  irq_noise local_timer:236
+          0.3 us  start=642.539000  irq_noise local_timer:236
+
+tick 5245  late 84.7 us  deadline=642.593900  noise in window 3.2 us  not covered
+          1.1 us  start=642.591910  irq_noise local_timer:236
+          1.0 us  start=642.592000  irq_noise local_timer:236
+          0.9 us  start=642.593000  irq_noise local_timer:236
+          0.3 us  start=642.591900  irq_noise local_timer:236
+
+tick 5366  late 84.8 us  deadline=642.835900  noise in window 3.7 us  not covered
+          1.2 us  start=642.833910  irq_noise local_timer:236
+          1.0 us  start=642.834001  irq_noise local_timer:236
+          0.9 us  start=642.835010  irq_noise local_timer:236
+          0.3 us  start=642.833900  irq_noise local_timer:236
+          0.3 us  start=642.835000  irq_noise local_timer:236
+
+tick 5393  late 84.9 us  deadline=642.889900  noise in window 3.3 us  not covered
+          1.1 us  start=642.888000  irq_noise local_timer:236
+          1.1 us  start=642.887910  irq_noise local_timer:236
+          0.9 us  start=642.889010  irq_noise local_timer:236
+          0.3 us  start=642.889000  irq_noise local_timer:236
+
+tick 5420  late 84.9 us  deadline=642.943900  noise in window 3.6 us  not covered
+          1.1 us  start=642.941910  irq_noise local_timer:236
+          1.0 us  start=642.942001  irq_noise local_timer:236
+          0.9 us  start=642.943010  irq_noise local_timer:236
+          0.4 us  start=642.941900  irq_noise local_timer:236
+          0.3 us  start=642.943000  irq_noise local_timer:236
+
+tick 5527  late 84.5 us  deadline=643.157900  noise in window 3.6 us  not covered
+          1.1 us  start=643.155910  irq_noise local_timer:236
+          1.1 us  start=643.156000  irq_noise local_timer:236
+          0.9 us  start=643.157010  irq_noise local_timer:236
+          0.3 us  start=643.155900  irq_noise local_timer:236
+          0.3 us  start=643.157000  irq_noise local_timer:236
+
+tick 5554  late 84.9 us  deadline=643.211900  noise in window 3.7 us  not covered
+          1.2 us  start=643.209911  irq_noise local_timer:236
+          1.0 us  start=643.210000  irq_noise local_timer:236
+          0.8 us  start=643.211010  irq_noise local_timer:236
+          0.3 us  start=643.209900  irq_noise local_timer:236
+          0.3 us  start=643.211000  irq_noise local_timer:236
+
+tick 5581  late 84.5 us  deadline=643.265900  noise in window 3.5 us  not covered
+          1.1 us  start=643.263910  irq_noise local_timer:236
+          1.0 us  start=643.264000  irq_noise local_timer:236
+          0.9 us  start=643.265010  irq_noise local_timer:236
+          0.3 us  start=643.265000  irq_noise local_timer:236
+          0.3 us  start=643.263900  irq_noise local_timer:236
+
+tick 5602  late 85.6 us  deadline=643.307900  noise in window 3.4 us  not covered
+          1.1 us  start=643.305910  irq_noise local_timer:236
+          0.9 us  start=643.306000  irq_noise local_timer:236
+          0.8 us  start=643.307010  irq_noise local_timer:236
+          0.3 us  start=643.307000  irq_noise local_timer:236
+          0.3 us  start=643.305900  irq_noise local_timer:236
+
+tick 5608  late 84.6 us  deadline=643.319900  noise in window 3.5 us  not covered
+          1.1 us  start=643.317910  irq_noise local_timer:236
+          1.0 us  start=643.318000  irq_noise local_timer:236
+          0.9 us  start=643.319010  irq_noise local_timer:236
+          0.3 us  start=643.317900  irq_noise local_timer:236
+          0.3 us  start=643.319000  irq_noise local_timer:236
+
+tick 5635  late 85.2 us  deadline=643.373900  noise in window 3.6 us  not covered
+          1.1 us  start=643.371910  irq_noise local_timer:236
+          1.0 us  start=643.373010  irq_noise local_timer:236
+          1.0 us  start=643.372000  irq_noise local_timer:236
+          0.4 us  start=643.373000  irq_noise local_timer:236
+          0.3 us  start=643.371900  irq_noise local_timer:236
+
+tick 5662  late 84.5 us  deadline=643.427900  noise in window 3.3 us  not covered
+          1.3 us  start=643.425900  irq_noise local_timer:236
+          0.9 us  start=643.426000  irq_noise local_timer:236
+          0.9 us  start=643.427010  irq_noise local_timer:236
+          0.3 us  start=643.427000  irq_noise local_timer:236
+
+tick 5689  late 84.5 us  deadline=643.481900  noise in window 3.5 us  not covered
+          1.1 us  start=643.479910  irq_noise local_timer:236
+          1.0 us  start=643.480000  irq_noise local_timer:236
+          0.9 us  start=643.481010  irq_noise local_timer:236
+          0.3 us  start=643.481000  irq_noise local_timer:236
+          0.3 us  start=643.479900  irq_noise local_timer:236
+
+tick 5716  late 84.5 us  deadline=643.535900  noise in window 3.5 us  not covered
+          1.2 us  start=643.533910  irq_noise local_timer:236
+          1.0 us  start=643.534001  irq_noise local_timer:236
+          1.0 us  start=643.535000  irq_noise local_timer:236
+          0.3 us  start=643.533900  irq_noise local_timer:236
+
+tick 5743  late 84.4 us  deadline=643.589900  noise in window 3.5 us  not covered
+          1.1 us  start=643.587910  irq_noise local_timer:236
+          1.0 us  start=643.588000  irq_noise local_timer:236
+          0.9 us  start=643.589010  irq_noise local_timer:236
+          0.3 us  start=643.587900  irq_noise local_timer:236
+          0.3 us  start=643.589000  irq_noise local_timer:236
+
+tick 5770  late 84.7 us  deadline=643.643900  noise in window 3.4 us  not covered
+          1.0 us  start=643.641910  irq_noise local_timer:236
+          1.0 us  start=643.642000  irq_noise local_timer:236
+          0.9 us  start=643.643010  irq_noise local_timer:236
+          0.3 us  start=643.641900  irq_noise local_timer:236
+          0.3 us  start=643.643000  irq_noise local_timer:236
+
+tick 5797  late 84.8 us  deadline=643.697900  noise in window 3.4 us  not covered
+          1.0 us  start=643.695910  irq_noise local_timer:236
+          1.0 us  start=643.696000  irq_noise local_timer:236
+          0.9 us  start=643.697010  irq_noise local_timer:236
+          0.3 us  start=643.695900  irq_noise local_timer:236
+          0.3 us  start=643.697000  irq_noise local_timer:236
+
+tick 5851  late 84.7 us  deadline=643.805900  noise in window 3.3 us  not covered
+          1.1 us  start=643.804000  irq_noise local_timer:236
+          1.1 us  start=643.803900  irq_noise local_timer:236
+          0.9 us  start=643.805010  irq_noise local_timer:236
+          0.3 us  start=643.805000  irq_noise local_timer:236
+
+tick 5878  late 84.9 us  deadline=643.859900  noise in window 3.5 us  not covered
+          1.1 us  start=643.857910  irq_noise local_timer:236
+          1.0 us  start=643.858000  irq_noise local_timer:236
+          0.9 us  start=643.859010  irq_noise local_timer:236
+          0.3 us  start=643.859000  irq_noise local_timer:236
+          0.3 us  start=643.857900  irq_noise local_timer:236
+
+tick 5905  late 84.5 us  deadline=643.913900  noise in window 3.5 us  not covered
+          1.1 us  start=643.911910  irq_noise local_timer:236
+          1.0 us  start=643.912000  irq_noise local_timer:236
+          0.9 us  start=643.913010  irq_noise local_timer:236
+          0.3 us  start=643.911900  irq_noise local_timer:236
+          0.3 us  start=643.913000  irq_noise local_timer:236
+
+tick 5932  late 84.8 us  deadline=643.967900  noise in window 3.4 us  not covered
+          1.0 us  start=643.965910  irq_noise local_timer:236
+          1.0 us  start=643.966000  irq_noise local_timer:236
+          0.9 us  start=643.967010  irq_noise local_timer:236
+          0.3 us  start=643.965900  irq_noise local_timer:236
+          0.3 us  start=643.967000  irq_noise local_timer:236
+
+tick 6028  late 84.7 us  deadline=644.159900  noise in window 3.4 us  not covered
+          1.0 us  start=644.157910  irq_noise local_timer:236
+          1.0 us  start=644.158000  irq_noise local_timer:236
+          0.9 us  start=644.159010  irq_noise local_timer:236
+          0.3 us  start=644.159000  irq_noise local_timer:236
+          0.3 us  start=644.157900  irq_noise local_timer:236
+
+tick 6079  late 84.5 us  deadline=644.261900  noise in window 3.5 us  not covered
+          1.1 us  start=644.259910  irq_noise local_timer:236
+          1.0 us  start=644.260000  irq_noise local_timer:236
+          0.9 us  start=644.261010  irq_noise local_timer:236
+          0.3 us  start=644.259900  irq_noise local_timer:236
+          0.3 us  start=644.261000  irq_noise local_timer:236
+
+tick 6214  late 84.9 us  deadline=644.531900  noise in window 3.4 us  not covered
+          1.1 us  start=644.529910  irq_noise local_timer:236
+          0.9 us  start=644.530000  irq_noise local_timer:236
+          0.9 us  start=644.531010  irq_noise local_timer:236
+          0.3 us  start=644.529900  irq_noise local_timer:236
+          0.3 us  start=644.531000  irq_noise local_timer:236
+
+tick 6349  late 84.5 us  deadline=644.801900  noise in window 3.5 us  not covered
+          1.1 us  start=644.799910  irq_noise local_timer:236
+          1.0 us  start=644.800000  irq_noise local_timer:236
+          0.9 us  start=644.801010  irq_noise local_timer:236
+          0.3 us  start=644.801000  irq_noise local_timer:236
+          0.3 us  start=644.799900  irq_noise local_timer:236
+
+tick 6376  late 84.5 us  deadline=644.855900  noise in window 3.4 us  not covered
+          1.1 us  start=644.853910  irq_noise local_timer:236
+          0.9 us  start=644.854000  irq_noise local_timer:236
+          0.9 us  start=644.855010  irq_noise local_timer:236
+          0.3 us  start=644.853900  irq_noise local_timer:236
+          0.3 us  start=644.855000  irq_noise local_timer:236
+
+tick 6403  late 85.0 us  deadline=644.909900  noise in window 3.4 us  not covered
+          1.1 us  start=644.907910  irq_noise local_timer:236
+          0.9 us  start=644.908000  irq_noise local_timer:236
+          0.8 us  start=644.909010  irq_noise local_timer:236
+          0.3 us  start=644.907900  irq_noise local_timer:236
+          0.3 us  start=644.909000  irq_noise local_timer:236
+
+tick 6511  late 84.7 us  deadline=645.125900  noise in window 3.4 us  not covered
+          1.1 us  start=645.123910  irq_noise local_timer:236
+          0.9 us  start=645.124000  irq_noise local_timer:236
+          0.9 us  start=645.125010  irq_noise local_timer:236
+          0.3 us  start=645.123900  irq_noise local_timer:236
+          0.3 us  start=645.125000  irq_noise local_timer:236
+
+tick 6565  late 84.5 us  deadline=645.233900  noise in window 3.3 us  not covered
+          1.1 us  start=645.231900  irq_noise local_timer:236
+          1.0 us  start=645.232000  irq_noise local_timer:236
+          0.9 us  start=645.233010  irq_noise local_timer:236
+          0.3 us  start=645.233000  irq_noise local_timer:236
+
+tick 6592  late 84.7 us  deadline=645.287900  noise in window 3.4 us  not covered
+          1.2 us  start=645.285900  irq_noise local_timer:236
+          1.1 us  start=645.286000  irq_noise local_timer:236
+          0.9 us  start=645.287010  irq_noise local_timer:236
+          0.3 us  start=645.287000  irq_noise local_timer:236
+
+tick 6628  late 85.2 us  deadline=645.359900  noise in window 3.4 us  not covered
+          1.0 us  start=645.357910  irq_noise local_timer:236
+          1.0 us  start=645.358000  irq_noise local_timer:236
+          0.9 us  start=645.359010  irq_noise local_timer:236
+          0.3 us  start=645.357900  irq_noise local_timer:236
+          0.3 us  start=645.359000  irq_noise local_timer:236
+
+tick 6634  late 84.1 us  deadline=645.371900  noise in window 3.8 us  not covered
+          1.1 us  start=645.369910  irq_noise local_timer:236
+          1.0 us  start=645.370000  irq_noise local_timer:236
+          0.9 us  start=645.371010  irq_noise local_timer:236
+          0.3 us  start=645.371000  irq_noise local_timer:236
+          0.3 us  start=645.369900  irq_noise local_timer:236
+          0.2 us  start=645.370002  softirq_noise TIMER:1
+
+tick 6888  late 52.1 us  deadline=645.879900  noise in window 3.4 us  not covered
+          1.1 us  start=645.877910  irq_noise local_timer:236
+          0.9 us  start=645.878000  irq_noise local_timer:236
+          0.9 us  start=645.879010  irq_noise local_timer:236
+          0.3 us  start=645.877900  irq_noise local_timer:236
+          0.3 us  start=645.879000  irq_noise local_timer:236
+
+tick 6915  late 57.4 us  deadline=645.933900  noise in window 3.1 us  not covered
+          1.0 us  start=645.931910  irq_noise local_timer:236
+          1.0 us  start=645.932000  irq_noise local_timer:236
+          0.8 us  start=645.933000  irq_noise local_timer:236
+          0.3 us  start=645.931900  irq_noise local_timer:236
+
+tick 6942  late 62.8 us  deadline=645.987900  noise in window 3.5 us  not covered
+          1.1 us  start=645.985910  irq_noise local_timer:236
+          1.0 us  start=645.986000  irq_noise local_timer:236
+          0.9 us  start=645.987010  irq_noise local_timer:236
+          0.3 us  start=645.987000  irq_noise local_timer:236
+          0.3 us  start=645.985900  irq_noise local_timer:236
+
+tick 6955  late 84.6 us  deadline=646.013900  noise in window 3.2 us  not covered
+          1.1 us  start=646.012000  irq_noise local_timer:236
+          1.1 us  start=646.011900  irq_noise local_timer:236
+          0.8 us  start=646.013010  irq_noise local_timer:236
+          0.3 us  start=646.013000  irq_noise local_timer:236
+
+tick 6969  late 68.1 us  deadline=646.041900  noise in window 3.4 us  not covered
+          1.1 us  start=646.039910  irq_noise local_timer:236
+          1.0 us  start=646.040000  irq_noise local_timer:236
+          0.8 us  start=646.041010  irq_noise local_timer:236
+          0.3 us  start=646.041000  irq_noise local_timer:236
+          0.3 us  start=646.039900  irq_noise local_timer:236
+
+tick 6996  late 73.5 us  deadline=646.095900  noise in window 3.6 us  not covered
+          1.1 us  start=646.093910  irq_noise local_timer:236
+          1.0 us  start=646.094000  irq_noise local_timer:236
+          0.9 us  start=646.095011  irq_noise local_timer:236
+          0.3 us  start=646.095000  irq_noise local_timer:236
+          0.3 us  start=646.093900  irq_noise local_timer:236
+
+tick 7023  late 78.8 us  deadline=646.149900  noise in window 3.4 us  not covered
+          1.0 us  start=646.147910  irq_noise local_timer:236
+          1.0 us  start=646.148000  irq_noise local_timer:236
+          0.9 us  start=646.149010  irq_noise local_timer:236
+          0.3 us  start=646.147900  irq_noise local_timer:236
+          0.3 us  start=646.149000  irq_noise local_timer:236
+
+tick 7036  late 85.1 us  deadline=646.175900  noise in window 3.4 us  not covered
+          1.1 us  start=646.173910  irq_noise local_timer:236
+          0.9 us  start=646.174000  irq_noise local_timer:236
+          0.9 us  start=646.175010  irq_noise local_timer:236
+          0.3 us  start=646.173900  irq_noise local_timer:236
+          0.3 us  start=646.175000  irq_noise local_timer:236
+
+tick 7050  late 84.3 us  deadline=646.203900  noise in window 3.3 us  not covered
+          1.2 us  start=646.201900  irq_noise local_timer:236
+          0.9 us  start=646.202000  irq_noise local_timer:236
+          0.9 us  start=646.203010  irq_noise local_timer:236
+          0.3 us  start=646.203000  irq_noise local_timer:236
+
+tick 7077  late 85.0 us  deadline=646.257900  noise in window 3.5 us  not covered
+          1.2 us  start=646.255900  irq_noise local_timer:236
+          1.0 us  start=646.256000  irq_noise local_timer:236
+          0.9 us  start=646.257011  irq_noise local_timer:236
+          0.3 us  start=646.257000  irq_noise local_timer:236
+
+tick 7090  late 85.0 us  deadline=646.283900  noise in window 3.3 us  not covered
+          1.2 us  start=646.281900  irq_noise local_timer:236
+          1.0 us  start=646.282000  irq_noise local_timer:236
+          0.9 us  start=646.283010  irq_noise local_timer:236
+          0.3 us  start=646.283000  irq_noise local_timer:236
+
+tick 7131  late 85.2 us  deadline=646.365900  noise in window 3.4 us  not covered
+          1.2 us  start=646.363900  irq_noise local_timer:236
+          1.0 us  start=646.364000  irq_noise local_timer:236
+          0.9 us  start=646.365010  irq_noise local_timer:236
+          0.3 us  start=646.365000  irq_noise local_timer:236
+
+tick 7413  late 84.7 us  deadline=646.929900  noise in window 3.4 us  not covered
+          1.1 us  start=646.927910  irq_noise local_timer:236
+          0.9 us  start=646.928000  irq_noise local_timer:236
+          0.9 us  start=646.929010  irq_noise local_timer:236
+          0.3 us  start=646.929000  irq_noise local_timer:236
+          0.3 us  start=646.927900  irq_noise local_timer:236
+
+tick 7434  late 84.7 us  deadline=646.971900  noise in window 3.2 us  not covered
+          1.1 us  start=646.969900  irq_noise local_timer:236
+          1.0 us  start=646.970000  irq_noise local_timer:236
+          0.9 us  start=646.971010  irq_noise local_timer:236
+          0.3 us  start=646.971000  irq_noise local_timer:236
+
+tick 7440  late 84.9 us  deadline=646.983900  noise in window 3.6 us  not covered
+          1.1 us  start=646.981910  irq_noise local_timer:236
+          1.0 us  start=646.982001  irq_noise local_timer:236
+          0.9 us  start=646.983010  irq_noise local_timer:236
+          0.3 us  start=646.981900  irq_noise local_timer:236
+          0.3 us  start=646.983000  irq_noise local_timer:236
+
+tick 7467  late 84.9 us  deadline=647.037900  noise in window 3.5 us  not covered
+          1.3 us  start=647.035900  irq_noise local_timer:236
+          1.0 us  start=647.036000  irq_noise local_timer:236
+          0.9 us  start=647.037010  irq_noise local_timer:236
+          0.3 us  start=647.037000  irq_noise local_timer:236
+
+tick 7494  late 85.4 us  deadline=647.091900  noise in window 3.3 us  not covered
+          1.2 us  start=647.089900  irq_noise local_timer:236
+          1.0 us  start=647.090000  irq_noise local_timer:236
+          0.9 us  start=647.091010  irq_noise local_timer:236
+          0.3 us  start=647.091000  irq_noise local_timer:236
+
+tick 7521  late 84.9 us  deadline=647.145900  noise in window 3.4 us  not covered
+          1.0 us  start=647.143910  irq_noise local_timer:236
+          1.0 us  start=647.144000  irq_noise local_timer:236
+          0.9 us  start=647.145010  irq_noise local_timer:236
+          0.3 us  start=647.143900  irq_noise local_timer:236
+          0.3 us  start=647.145000  irq_noise local_timer:236
+
+tick 7548  late 85.0 us  deadline=647.199900  noise in window 3.5 us  not covered
+          1.1 us  start=647.197910  irq_noise local_timer:236
+          1.0 us  start=647.198000  irq_noise local_timer:236
+          0.9 us  start=647.199010  irq_noise local_timer:236
+          0.3 us  start=647.199000  irq_noise local_timer:236
+          0.3 us  start=647.197900  irq_noise local_timer:236
+
+tick 7575  late 84.5 us  deadline=647.253900  noise in window 3.4 us  not covered
+          1.0 us  start=647.251910  irq_noise local_timer:236
+          0.9 us  start=647.252000  irq_noise local_timer:236
+          0.9 us  start=647.253010  irq_noise local_timer:236
+          0.3 us  start=647.251900  irq_noise local_timer:236
+          0.3 us  start=647.253000  irq_noise local_timer:236
+
+tick 7602  late 84.9 us  deadline=647.307900  noise in window 3.5 us  not covered
+          1.1 us  start=647.305910  irq_noise local_timer:236
+          0.9 us  start=647.306000  irq_noise local_timer:236
+          0.9 us  start=647.307010  irq_noise local_timer:236
+          0.3 us  start=647.307000  irq_noise local_timer:236
+          0.3 us  start=647.305900  irq_noise local_timer:236
+
+tick 7629  late 84.5 us  deadline=647.361900  noise in window 3.5 us  not covered
+          1.1 us  start=647.359910  irq_noise local_timer:236
+          1.0 us  start=647.360000  irq_noise local_timer:236
+          0.9 us  start=647.361010  irq_noise local_timer:236
+          0.3 us  start=647.361000  irq_noise local_timer:236
+          0.3 us  start=647.359900  irq_noise local_timer:236
+
+tick 7656  late 85.1 us  deadline=647.415900  noise in window 3.5 us  not covered
+          1.1 us  start=647.413910  irq_noise local_timer:236
+          1.0 us  start=647.414000  irq_noise local_timer:236
+          0.9 us  start=647.415010  irq_noise local_timer:236
+          0.3 us  start=647.415000  irq_noise local_timer:236
+          0.3 us  start=647.413900  irq_noise local_timer:236
+
+tick 7683  late 85.1 us  deadline=647.469900  noise in window 3.5 us  not covered
+          1.1 us  start=647.467910  irq_noise local_timer:236
+          1.0 us  start=647.468000  irq_noise local_timer:236
+          0.9 us  start=647.469010  irq_noise local_timer:236
+          0.3 us  start=647.469000  irq_noise local_timer:236
+          0.3 us  start=647.467900  irq_noise local_timer:236
+
+tick 7710  late 85.0 us  deadline=647.523900  noise in window 3.4 us  not covered
+          1.1 us  start=647.521910  irq_noise local_timer:236
+          1.0 us  start=647.522001  irq_noise local_timer:236
+          1.0 us  start=647.523000  irq_noise local_timer:236
+          0.3 us  start=647.521900  irq_noise local_timer:236
+
+tick 7737  late 84.6 us  deadline=647.577900  noise in window 3.4 us  not covered
+          1.0 us  start=647.575910  irq_noise local_timer:236
+          1.0 us  start=647.576000  irq_noise local_timer:236
+          0.9 us  start=647.577010  irq_noise local_timer:236
+          0.3 us  start=647.577000  irq_noise local_timer:236
+          0.3 us  start=647.575900  irq_noise local_timer:236
+
+tick 7764  late 84.5 us  deadline=647.631900  noise in window 3.6 us  not covered
+          1.2 us  start=647.629910  irq_noise local_timer:236
+          1.0 us  start=647.630001  irq_noise local_timer:236
+          0.9 us  start=647.631010  irq_noise local_timer:236
+          0.3 us  start=647.629900  irq_noise local_timer:236
+          0.3 us  start=647.631000  irq_noise local_timer:236
+
+tick 7818  late 85.1 us  deadline=647.739900  noise in window 3.4 us  not covered
+          1.0 us  start=647.737910  irq_noise local_timer:236
+          1.0 us  start=647.738000  irq_noise local_timer:236
+          0.9 us  start=647.739010  irq_noise local_timer:236
+          0.3 us  start=647.739000  irq_noise local_timer:236
+          0.3 us  start=647.737900  irq_noise local_timer:236
+
+tick 7845  late 84.9 us  deadline=647.793900  noise in window 4.2 us  not covered
+          1.6 us  start=647.793010  irq_noise local_timer:236
+          1.1 us  start=647.791910  irq_noise local_timer:236
+          1.0 us  start=647.792000  irq_noise local_timer:236
+          0.3 us  start=647.793000  irq_noise local_timer:236
+          0.3 us  start=647.791900  irq_noise local_timer:236
+
+tick 7956  late 84.7 us  deadline=648.015900  noise in window 4.6 us  not covered
+          1.3 us  start=648.014002  softirq_noise TIMER:1
+          1.1 us  start=648.013910  irq_noise local_timer:236
+          1.0 us  start=648.014000  irq_noise local_timer:236
+          0.9 us  start=648.015000  irq_noise local_timer:236
+          0.3 us  start=648.013900  irq_noise local_timer:236
+
+tick 8106  late 84.9 us  deadline=648.315900  noise in window 3.4 us  not covered
+          1.3 us  start=648.313900  irq_noise local_timer:236
+          1.0 us  start=648.314000  irq_noise local_timer:236
+          0.9 us  start=648.315010  irq_noise local_timer:236
+          0.3 us  start=648.315000  irq_noise local_timer:236
+
+tick 8127  late 84.7 us  deadline=648.357900  noise in window 3.5 us  not covered
+          1.1 us  start=648.356000  irq_noise local_timer:236
+          1.0 us  start=648.355910  irq_noise local_timer:236
+          1.0 us  start=648.357010  irq_noise local_timer:236
+          0.3 us  start=648.357000  irq_noise local_timer:236
+
+tick 8154  late 84.6 us  deadline=648.411900  noise in window 3.6 us  not covered
+          1.1 us  start=648.409911  irq_noise local_timer:236
+          1.0 us  start=648.410000  irq_noise local_timer:236
+          0.8 us  start=648.411010  irq_noise local_timer:236
+          0.4 us  start=648.409900  irq_noise local_timer:236
+          0.3 us  start=648.411000  irq_noise local_timer:236
+
+tick 8208  late 84.8 us  deadline=648.519900  noise in window 3.4 us  not covered
+          1.1 us  start=648.517910  irq_noise local_timer:236
+          0.9 us  start=648.518000  irq_noise local_timer:236
+          0.9 us  start=648.519010  irq_noise local_timer:236
+          0.3 us  start=648.519000  irq_noise local_timer:236
+          0.3 us  start=648.517900  irq_noise local_timer:236
+
+tick 8235  late 85.3 us  deadline=648.573900  noise in window 3.5 us  not covered
+          1.1 us  start=648.571910  irq_noise local_timer:236
+          1.0 us  start=648.572000  irq_noise local_timer:236
+          0.9 us  start=648.573010  irq_noise local_timer:236
+          0.3 us  start=648.571900  irq_noise local_timer:236
+          0.3 us  start=648.573000  irq_noise local_timer:236
+
+tick 8262  late 84.9 us  deadline=648.627900  noise in window 3.4 us  not covered
+          1.0 us  start=648.625910  irq_noise local_timer:236
+          1.0 us  start=648.626000  irq_noise local_timer:236
+          0.9 us  start=648.627010  irq_noise local_timer:236
+          0.3 us  start=648.627000  irq_noise local_timer:236
+          0.3 us  start=648.625900  irq_noise local_timer:236
+
+tick 8343  late 84.9 us  deadline=648.789900  noise in window 3.6 us  not covered
+          1.1 us  start=648.787910  irq_noise local_timer:236
+          1.0 us  start=648.789010  irq_noise local_timer:236
+          1.0 us  start=648.788000  irq_noise local_timer:236
+          0.3 us  start=648.789000  irq_noise local_timer:236
+          0.3 us  start=648.787900  irq_noise local_timer:236
+
+tick 8451  late 85.0 us  deadline=649.005900  noise in window 3.6 us  not covered
+          1.1 us  start=649.003911  irq_noise local_timer:236
+          1.0 us  start=649.004000  irq_noise local_timer:236
+          0.9 us  start=649.005010  irq_noise local_timer:236
+          0.3 us  start=649.003900  irq_noise local_timer:236
+          0.3 us  start=649.005000  irq_noise local_timer:236
+
+tick 8478  late 84.8 us  deadline=649.059900  noise in window 3.4 us  not covered
+          1.2 us  start=649.057900  irq_noise local_timer:236
+          1.1 us  start=649.058000  irq_noise local_timer:236
+          0.9 us  start=649.059010  irq_noise local_timer:236
+          0.3 us  start=649.059000  irq_noise local_timer:236
+
+tick 8532  late 85.8 us  deadline=649.167900  noise in window 3.6 us  not covered
+          1.1 us  start=649.166000  irq_noise local_timer:236
+          1.1 us  start=649.165910  irq_noise local_timer:236
+          0.9 us  start=649.167010  irq_noise local_timer:236
+          0.3 us  start=649.167000  irq_noise local_timer:236
+          0.3 us  start=649.165900  irq_noise local_timer:236
+
+tick 8574  late 84.6 us  deadline=649.251900  noise in window 3.5 us  not covered
+          1.1 us  start=649.249910  irq_noise local_timer:236
+          1.0 us  start=649.250000  irq_noise local_timer:236
+          0.9 us  start=649.251010  irq_noise local_timer:236
+          0.3 us  start=649.249900  irq_noise local_timer:236
+          0.3 us  start=649.251000  irq_noise local_timer:236
+
+tick 8754  late 84.7 us  deadline=649.611900  noise in window 3.4 us  not covered
+          1.0 us  start=649.609910  irq_noise local_timer:236
+          1.0 us  start=649.610000  irq_noise local_timer:236
+          0.9 us  start=649.611010  irq_noise local_timer:236
+          0.3 us  start=649.609900  irq_noise local_timer:236
+          0.3 us  start=649.611000  irq_noise local_timer:236
+
+tick 8814  late 85.0 us  deadline=649.731900  noise in window 3.4 us  not covered
+          1.1 us  start=649.729910  irq_noise local_timer:236
+          1.0 us  start=649.730000  irq_noise local_timer:236
+          0.9 us  start=649.731010  irq_noise local_timer:236
+          0.3 us  start=649.731000  irq_noise local_timer:236
+          0.3 us  start=649.729900  irq_noise local_timer:236
+
+tick 8828  late 53.4 us  deadline=649.759900  noise in window 3.5 us  not covered
+          1.1 us  start=649.757910  irq_noise local_timer:236
+          0.9 us  start=649.758000  irq_noise local_timer:236
+          0.9 us  start=649.759010  irq_noise local_timer:236
+          0.3 us  start=649.759000  irq_noise local_timer:236
+          0.3 us  start=649.757900  irq_noise local_timer:236
+
+tick 8855  late 58.8 us  deadline=649.813900  noise in window 3.4 us  not covered
+          1.1 us  start=649.811910  irq_noise local_timer:236
+          1.0 us  start=649.812000  irq_noise local_timer:236
+          0.9 us  start=649.813010  irq_noise local_timer:236
+          0.3 us  start=649.813000  irq_noise local_timer:236
+          0.3 us  start=649.811900  irq_noise local_timer:236
+
+tick 8882  late 64.2 us  deadline=649.867900  noise in window 3.3 us  not covered
+          1.1 us  start=649.865900  irq_noise local_timer:236
+          1.0 us  start=649.866000  irq_noise local_timer:236
+          0.9 us  start=649.867010  irq_noise local_timer:236
+          0.3 us  start=649.867000  irq_noise local_timer:236
+
+tick 8909  late 69.5 us  deadline=649.921900  noise in window 3.6 us  not covered
+          1.1 us  start=649.919910  irq_noise local_timer:236
+          1.0 us  start=649.920001  irq_noise local_timer:236
+          0.9 us  start=649.921010  irq_noise local_timer:236
+          0.3 us  start=649.919900  irq_noise local_timer:236
+          0.3 us  start=649.921000  irq_noise local_timer:236
+
+tick 8921  late 71.8 us  deadline=649.945900  noise in window 3.6 us  not covered
+          1.1 us  start=649.943910  irq_noise local_timer:236
+          1.0 us  start=649.944000  irq_noise local_timer:236
+          0.9 us  start=649.945010  irq_noise local_timer:236
+          0.3 us  start=649.945000  irq_noise local_timer:236
+          0.3 us  start=649.943900  irq_noise local_timer:236
+
+tick 8922  late 84.9 us  deadline=649.947900  noise in window 2.4 us  not covered
+          1.0 us  start=649.946010  irq_noise local_timer:236
+          0.9 us  start=649.947010  irq_noise local_timer:236
+          0.3 us  start=649.946000  irq_noise local_timer:236
+          0.3 us  start=649.947000  irq_noise local_timer:236
+
+tick 8936  late 74.8 us  deadline=649.975900  noise in window 3.6 us  not covered
+          1.1 us  start=649.973910  irq_noise local_timer:236
+          1.0 us  start=649.974001  irq_noise local_timer:236
+          0.9 us  start=649.975010  irq_noise local_timer:236
+          0.3 us  start=649.973900  irq_noise local_timer:236
+          0.3 us  start=649.975000  irq_noise local_timer:236
+
+tick 8963  late 80.0 us  deadline=650.029900  noise in window 3.6 us  not covered
+          1.1 us  start=650.027910  irq_noise local_timer:236
+          1.0 us  start=650.029011  irq_noise local_timer:236
+          1.0 us  start=650.028000  irq_noise local_timer:236
+          0.3 us  start=650.029000  irq_noise local_timer:236
+          0.3 us  start=650.027900  irq_noise local_timer:236
+
+tick 8990  late 85.0 us  deadline=650.083900  noise in window 3.4 us  not covered
+          1.1 us  start=650.081910  irq_noise local_timer:236
+          1.0 us  start=650.082000  irq_noise local_timer:236
+          0.9 us  start=650.083010  irq_noise local_timer:236
+          0.3 us  start=650.083000  irq_noise local_timer:236
+          0.3 us  start=650.081900  irq_noise local_timer:236
+
+tick 9003  late 85.0 us  deadline=650.109900  noise in window 3.4 us  not covered
+          1.0 us  start=650.107910  irq_noise local_timer:236
+          0.9 us  start=650.108000  irq_noise local_timer:236
+          0.8 us  start=650.109010  irq_noise local_timer:236
+          0.3 us  start=650.107900  irq_noise local_timer:236
+          0.3 us  start=650.109000  irq_noise local_timer:236
+
+tick 9005  late 85.2 us  deadline=650.113900  noise in window 3.4 us  not covered
+          1.1 us  start=650.111910  irq_noise local_timer:236
+          1.0 us  start=650.112000  irq_noise local_timer:236
+          0.9 us  start=650.113010  irq_noise local_timer:236
+          0.3 us  start=650.113000  irq_noise local_timer:236
+          0.3 us  start=650.111900  irq_noise local_timer:236
+
+tick 9017  late 85.1 us  deadline=650.137900  noise in window 3.4 us  not covered
+          1.4 us  start=650.135900  irq_noise local_timer:236
+          0.9 us  start=650.136000  irq_noise local_timer:236
+          0.9 us  start=650.137010  irq_noise local_timer:236
+          0.3 us  start=650.137000  irq_noise local_timer:236
+
+tick 9029  late 84.7 us  deadline=650.161900  noise in window 3.6 us  not covered
+          1.3 us  start=650.159900  irq_noise local_timer:236
+          1.1 us  start=650.160000  irq_noise local_timer:236
+          0.9 us  start=650.161010  irq_noise local_timer:236
+          0.3 us  start=650.161000  irq_noise local_timer:236
+
+tick 9032  late 84.6 us  deadline=650.167900  noise in window 3.4 us  not covered
+          1.1 us  start=650.165910  irq_noise local_timer:236
+          1.0 us  start=650.166000  irq_noise local_timer:236
+          0.8 us  start=650.167010  irq_noise local_timer:236
+          0.3 us  start=650.167000  irq_noise local_timer:236
+          0.3 us  start=650.165900  irq_noise local_timer:236
+
+tick 9033  late 85.0 us  deadline=650.169900  noise in window 2.3 us  not covered
+          0.9 us  start=650.168010  irq_noise local_timer:236
+          0.9 us  start=650.169010  irq_noise local_timer:236
+          0.3 us  start=650.169000  irq_noise local_timer:236
+          0.3 us  start=650.168000  irq_noise local_timer:236
+
+tick 9057  late 84.7 us  deadline=650.217900  noise in window 3.4 us  not covered
+          1.1 us  start=650.215910  irq_noise local_timer:236
+          1.0 us  start=650.216000  irq_noise local_timer:236
+          0.9 us  start=650.217010  irq_noise local_timer:236
+          0.3 us  start=650.215900  irq_noise local_timer:236
+          0.3 us  start=650.217000  irq_noise local_timer:236
+
+tick 9084  late 84.7 us  deadline=650.271900  noise in window 3.5 us  not covered
+          1.1 us  start=650.269910  irq_noise local_timer:236
+          1.0 us  start=650.270000  irq_noise local_timer:236
+          0.9 us  start=650.271010  irq_noise local_timer:236
+          0.3 us  start=650.269900  irq_noise local_timer:236
+          0.3 us  start=650.271000  irq_noise local_timer:236
+
+tick 9299  late 85.0 us  deadline=650.701900  noise in window 3.3 us  not covered
+          1.1 us  start=650.699900  irq_noise local_timer:236
+          1.0 us  start=650.700000  irq_noise local_timer:236
+          0.9 us  start=650.701010  irq_noise local_timer:236
+          0.3 us  start=650.701000  irq_noise local_timer:236
+
+tick 9326  late 85.1 us  deadline=650.755900  noise in window 3.4 us  not covered
+          1.1 us  start=650.753910  irq_noise local_timer:236
+          1.0 us  start=650.754000  irq_noise local_timer:236
+          0.9 us  start=650.755010  irq_noise local_timer:236
+          0.3 us  start=650.755000  irq_noise local_timer:236
+          0.3 us  start=650.753900  irq_noise local_timer:236
+
+tick 9353  late 84.9 us  deadline=650.809900  noise in window 3.6 us  not covered
+          1.1 us  start=650.807911  irq_noise local_timer:236
+          1.0 us  start=650.808000  irq_noise local_timer:236
+          0.9 us  start=650.809010  irq_noise local_timer:236
+          0.3 us  start=650.807900  irq_noise local_timer:236
+          0.3 us  start=650.809000  irq_noise local_timer:236
+
+tick 9434  late 84.5 us  deadline=650.971900  noise in window 3.7 us  not covered
+          1.2 us  start=650.969911  irq_noise local_timer:236
+          1.0 us  start=650.970000  irq_noise local_timer:236
+          0.9 us  start=650.971010  irq_noise local_timer:236
+          0.3 us  start=650.969900  irq_noise local_timer:236
+          0.3 us  start=650.971000  irq_noise local_timer:236
+
+tick 9461  late 84.7 us  deadline=651.025900  noise in window 3.5 us  not covered
+          1.0 us  start=651.023910  irq_noise local_timer:236
+          1.0 us  start=651.024000  irq_noise local_timer:236
+          0.9 us  start=651.025011  irq_noise local_timer:236
+          0.3 us  start=651.025000  irq_noise local_timer:236
+          0.3 us  start=651.023900  irq_noise local_timer:236
+
+tick 9488  late 84.8 us  deadline=651.079900  noise in window 3.5 us  not covered
+          1.0 us  start=651.077910  irq_noise local_timer:236
+          1.0 us  start=651.079011  irq_noise local_timer:236
+          0.9 us  start=651.078000  irq_noise local_timer:236
+          0.3 us  start=651.079000  irq_noise local_timer:236
+          0.3 us  start=651.077900  irq_noise local_timer:236
+
+tick 9515  late 85.0 us  deadline=651.133900  noise in window 3.4 us  not covered
+          1.0 us  start=651.131910  irq_noise local_timer:236
+          0.9 us  start=651.132000  irq_noise local_timer:236
+          0.9 us  start=651.133010  irq_noise local_timer:236
+          0.3 us  start=651.133000  irq_noise local_timer:236
+          0.3 us  start=651.131900  irq_noise local_timer:236
+
+tick 9542  late 84.9 us  deadline=651.187900  noise in window 3.4 us  not covered
+          1.1 us  start=651.185910  irq_noise local_timer:236
+          1.0 us  start=651.186000  irq_noise local_timer:236
+          0.9 us  start=651.187010  irq_noise local_timer:236
+          0.3 us  start=651.187000  irq_noise local_timer:236
+          0.3 us  start=651.185900  irq_noise local_timer:236
+
+tick 9569  late 84.5 us  deadline=651.241900  noise in window 3.6 us  not covered
+          1.1 us  start=651.239910  irq_noise local_timer:236
+          1.0 us  start=651.240000  irq_noise local_timer:236
+          0.9 us  start=651.241010  irq_noise local_timer:236
+          0.3 us  start=651.241000  irq_noise local_timer:236
+          0.3 us  start=651.239900  irq_noise local_timer:236
+
+tick 9596  late 85.0 us  deadline=651.295900  noise in window 3.4 us  not covered
+          1.1 us  start=651.293910  irq_noise local_timer:236
+          1.0 us  start=651.294000  irq_noise local_timer:236
+          0.9 us  start=651.295010  irq_noise local_timer:236
+          0.3 us  start=651.293900  irq_noise local_timer:236
+          0.3 us  start=651.295000  irq_noise local_timer:236
+
+tick 9650  late 84.7 us  deadline=651.403900  noise in window 3.3 us  not covered
+          1.1 us  start=651.402000  irq_noise local_timer:236
+          1.0 us  start=651.401910  irq_noise local_timer:236
+          0.9 us  start=651.403010  irq_noise local_timer:236
+          0.3 us  start=651.403000  irq_noise local_timer:236
+
+tick 9677  late 84.9 us  deadline=651.457900  noise in window 3.4 us  not covered
+          1.1 us  start=651.455910  irq_noise local_timer:236
+          1.0 us  start=651.456000  irq_noise local_timer:236
+          0.8 us  start=651.457010  irq_noise local_timer:236
+          0.3 us  start=651.455900  irq_noise local_timer:236
+          0.3 us  start=651.457000  irq_noise local_timer:236
+
+tick 9692  late 84.8 us  deadline=651.487900  noise in window 3.5 us  not covered
+          1.0 us  start=651.485910  irq_noise local_timer:236
+          1.0 us  start=651.486000  irq_noise local_timer:236
+          0.9 us  start=651.487010  irq_noise local_timer:236
+          0.3 us  start=651.487000  irq_noise local_timer:236
+          0.3 us  start=651.485900  irq_noise local_timer:236
+
+tick 9704  late 84.6 us  deadline=651.511900  noise in window 3.5 us  not covered
+          1.1 us  start=651.509910  irq_noise local_timer:236
+          1.0 us  start=651.510000  irq_noise local_timer:236
+          0.9 us  start=651.511010  irq_noise local_timer:236
+          0.3 us  start=651.509900  irq_noise local_timer:236
+          0.3 us  start=651.511000  irq_noise local_timer:236
+
+tick 9731  late 84.7 us  deadline=651.565900  noise in window 4.3 us  not covered
+          1.7 us  start=651.565010  irq_noise local_timer:236
+          1.1 us  start=651.563910  irq_noise local_timer:236
+          1.0 us  start=651.564000  irq_noise local_timer:236
+          0.3 us  start=651.565000  irq_noise local_timer:236
+          0.3 us  start=651.563900  irq_noise local_timer:236
+
+tick 10013  late 84.6 us  deadline=652.129900  noise in window 3.5 us  not covered
+          1.1 us  start=652.127910  irq_noise local_timer:236
+          1.0 us  start=652.128001  irq_noise local_timer:236
+          0.9 us  start=652.129010  irq_noise local_timer:236
+          0.3 us  start=652.129000  irq_noise local_timer:236
+          0.3 us  start=652.127900  irq_noise local_timer:236
+
+tick 10040  late 84.9 us  deadline=652.183900  noise in window 3.5 us  not covered
+          1.1 us  start=652.181910  irq_noise local_timer:236
+          0.9 us  start=652.182000  irq_noise local_timer:236
+          0.9 us  start=652.183010  irq_noise local_timer:236
+          0.3 us  start=652.181900  irq_noise local_timer:236
+          0.3 us  start=652.183000  irq_noise local_timer:236
+
+tick 10094  late 84.6 us  deadline=652.291900  noise in window 3.4 us  not covered
+          1.3 us  start=652.289900  irq_noise local_timer:236
+          1.1 us  start=652.290000  irq_noise local_timer:236
+          0.8 us  start=652.291010  irq_noise local_timer:236
+          0.3 us  start=652.291000  irq_noise local_timer:236
+
+tick 10121  late 84.4 us  deadline=652.345900  noise in window 3.3 us  not covered
+          1.2 us  start=652.343900  irq_noise local_timer:236
+          1.0 us  start=652.344000  irq_noise local_timer:236
+          0.9 us  start=652.345010  irq_noise local_timer:236
+          0.3 us  start=652.345000  irq_noise local_timer:236
+
+tick 10151  late 84.9 us  deadline=652.405900  noise in window 3.6 us  not covered
+          1.1 us  start=652.404000  irq_noise local_timer:236
+          1.0 us  start=652.403910  irq_noise local_timer:236
+          0.9 us  start=652.405010  irq_noise local_timer:236
+          0.3 us  start=652.405000  irq_noise local_timer:236
+          0.3 us  start=652.403900  irq_noise local_timer:236
+
+tick 10154  late 84.9 us  deadline=652.411900  noise in window 3.4 us  not covered
+          1.3 us  start=652.409900  irq_noise local_timer:236
+          1.0 us  start=652.410000  irq_noise local_timer:236
+          0.9 us  start=652.411010  irq_noise local_timer:236
+          0.3 us  start=652.411000  irq_noise local_timer:236
+
+tick 10175  late 84.8 us  deadline=652.453900  noise in window 5.2 us  not covered
+          1.7 us  start=652.452002  softirq_noise TIMER:1
+          1.1 us  start=652.451910  irq_noise local_timer:236
+          1.0 us  start=652.452000  irq_noise local_timer:236
+          0.9 us  start=652.453010  irq_noise local_timer:236
+          0.3 us  start=652.451900  irq_noise local_timer:236
+          0.3 us  start=652.453000  irq_noise local_timer:236
+
+tick 10205  late 84.3 us  deadline=652.513900  noise in window 3.4 us  not covered
+          1.1 us  start=652.511910  irq_noise local_timer:236
+          1.0 us  start=652.512000  irq_noise local_timer:236
+          0.8 us  start=652.513010  irq_noise local_timer:236
+          0.3 us  start=652.513000  irq_noise local_timer:236
+          0.3 us  start=652.511900  irq_noise local_timer:236
+
+tick 10229  late 85.0 us  deadline=652.561900  noise in window 3.1 us  not covered
+          1.1 us  start=652.559910  irq_noise local_timer:236
+          0.9 us  start=652.560000  irq_noise local_timer:236
+          0.9 us  start=652.561000  irq_noise local_timer:236
+          0.3 us  start=652.559900  irq_noise local_timer:236
+
+tick 10232  late 85.0 us  deadline=652.567900  noise in window 3.5 us  not covered
+          1.0 us  start=652.565910  irq_noise local_timer:236
+          1.0 us  start=652.566000  irq_noise local_timer:236
+          0.9 us  start=652.567010  irq_noise local_timer:236
+          0.3 us  start=652.567000  irq_noise local_timer:236
+          0.3 us  start=652.565900  irq_noise local_timer:236
+
+tick 10283  late 84.6 us  deadline=652.669900  noise in window 3.4 us  not covered
+          1.2 us  start=652.667900  irq_noise local_timer:236
+          1.0 us  start=652.668000  irq_noise local_timer:236
+          0.9 us  start=652.669010  irq_noise local_timer:236
+          0.3 us  start=652.669000  irq_noise local_timer:236
+
+tick 10310  late 84.6 us  deadline=652.723900  noise in window 3.3 us  not covered
+          1.2 us  start=652.721900  irq_noise local_timer:236
+          1.0 us  start=652.722000  irq_noise local_timer:236
+          0.9 us  start=652.723010  irq_noise local_timer:236
+          0.3 us  start=652.723000  irq_noise local_timer:236
+
+tick 10391  late 84.5 us  deadline=652.885900  noise in window 3.6 us  not covered
+          1.2 us  start=652.883911  irq_noise local_timer:236
+          0.9 us  start=652.884000  irq_noise local_timer:236
+          0.9 us  start=652.885010  irq_noise local_timer:236
+          0.3 us  start=652.883900  irq_noise local_timer:236
+          0.3 us  start=652.885000  irq_noise local_timer:236
+
+tick 10418  late 84.6 us  deadline=652.939900  noise in window 3.4 us  not covered
+          1.1 us  start=652.937910  irq_noise local_timer:236
+          1.0 us  start=652.938000  irq_noise local_timer:236
+          0.9 us  start=652.939010  irq_noise local_timer:236
+          0.3 us  start=652.937900  irq_noise local_timer:236
+          0.3 us  start=652.939000  irq_noise local_timer:236
+
+tick 10445  late 84.7 us  deadline=652.993900  noise in window 3.9 us  not covered
+          1.3 us  start=652.993011  irq_noise local_timer:236
+          1.1 us  start=652.991910  irq_noise local_timer:236
+          1.0 us  start=652.992000  irq_noise local_timer:236
+          0.3 us  start=652.993000  irq_noise local_timer:236
+          0.3 us  start=652.991900  irq_noise local_timer:236
+
+tick 10529  late 84.8 us  deadline=653.161900  noise in window 2.4 us  not covered
+          0.9 us  start=653.160010  irq_noise local_timer:236
+          0.9 us  start=653.161010  irq_noise local_timer:236
+          0.3 us  start=653.161000  irq_noise local_timer:236
+          0.3 us  start=653.160000  irq_noise local_timer:236
+
+tick 10568  late 84.8 us  deadline=653.239900  noise in window 3.5 us  not covered
+          1.1 us  start=653.238000  irq_noise local_timer:236
+          1.0 us  start=653.237910  irq_noise local_timer:236
+          0.9 us  start=653.239010  irq_noise local_timer:236
+          0.3 us  start=653.237900  irq_noise local_timer:236
+          0.3 us  start=653.239000  irq_noise local_timer:236
+
+tick 10613  late 84.9 us  deadline=653.329900  noise in window 3.6 us  not covered
+          1.2 us  start=653.327910  irq_noise local_timer:236
+          1.0 us  start=653.328000  irq_noise local_timer:236
+          0.9 us  start=653.329010  irq_noise local_timer:236
+          0.3 us  start=653.327900  irq_noise local_timer:236
+          0.3 us  start=653.329000  irq_noise local_timer:236
+
+tick 10730  late 85.2 us  deadline=653.563900  noise in window 3.6 us  not covered
+          1.1 us  start=653.561911  irq_noise local_timer:236
+          1.0 us  start=653.562000  irq_noise local_timer:236
+          0.9 us  start=653.563010  irq_noise local_timer:236
+          0.3 us  start=653.561900  irq_noise local_timer:236
+          0.3 us  start=653.563000  irq_noise local_timer:236
+
+tick 10754  late 85.1 us  deadline=653.611900  noise in window 3.2 us  not covered
+          1.2 us  start=653.609900  irq_noise local_timer:236
+          0.9 us  start=653.610000  irq_noise local_timer:236
+          0.8 us  start=653.611010  irq_noise local_timer:236
+          0.3 us  start=653.611000  irq_noise local_timer:236
+
+tick 10771  late 55.7 us  deadline=653.645900  noise in window 3.4 us  not covered
+          1.1 us  start=653.643910  irq_noise local_timer:236
+          0.9 us  start=653.644000  irq_noise local_timer:236
+          0.8 us  start=653.645010  irq_noise local_timer:236
+          0.3 us  start=653.643900  irq_noise local_timer:236
+          0.3 us  start=653.645000  irq_noise local_timer:236
+
+tick 10781  late 84.6 us  deadline=653.665900  noise in window 3.6 us  not covered
+          1.2 us  start=653.664000  irq_noise local_timer:236
+          1.1 us  start=653.663910  irq_noise local_timer:236
+          0.9 us  start=653.665010  irq_noise local_timer:236
+          0.3 us  start=653.665000  irq_noise local_timer:236
+          0.3 us  start=653.663900  irq_noise local_timer:236
+
+tick 10795  late 59.8 us  deadline=653.693900  noise in window 3.4 us  not covered
+          1.1 us  start=653.691910  irq_noise local_timer:236
+          1.0 us  start=653.692000  irq_noise local_timer:236
+          0.9 us  start=653.693010  irq_noise local_timer:236
+          0.3 us  start=653.693000  irq_noise local_timer:236
+          0.3 us  start=653.691900  irq_noise local_timer:236
+
+tick 10808  late 84.4 us  deadline=653.719900  noise in window 3.4 us  not covered
+          1.0 us  start=653.717910  irq_noise local_timer:236
+          0.9 us  start=653.718000  irq_noise local_timer:236
+          0.9 us  start=653.719010  irq_noise local_timer:236
+          0.3 us  start=653.717900  irq_noise local_timer:236
+          0.3 us  start=653.719000  irq_noise local_timer:236
+
+tick 10822  late 65.5 us  deadline=653.747900  noise in window 3.4 us  not covered
+          1.1 us  start=653.745910  irq_noise local_timer:236
+          1.0 us  start=653.746000  irq_noise local_timer:236
+          0.9 us  start=653.747010  irq_noise local_timer:236
+          0.3 us  start=653.745900  irq_noise local_timer:236
+          0.3 us  start=653.747000  irq_noise local_timer:236
+
+tick 10835  late 84.8 us  deadline=653.773900  noise in window 3.7 us  not covered
+          1.2 us  start=653.771900  irq_noise local_timer:236
+          1.1 us  start=653.772000  irq_noise local_timer:236
+          0.9 us  start=653.773010  irq_noise local_timer:236
+          0.3 us  start=653.773000  irq_noise local_timer:236
+          0.2 us  start=653.773012  softirq_noise TIMER:1
+
+tick 10876  late 76.0 us  deadline=653.855900  noise in window 3.5 us  not covered
+          1.1 us  start=653.853910  irq_noise local_timer:236
+          1.0 us  start=653.854000  irq_noise local_timer:236
+          0.9 us  start=653.855010  irq_noise local_timer:236
+          0.3 us  start=653.855000  irq_noise local_timer:236
+          0.3 us  start=653.853900  irq_noise local_timer:236
+
+tick 10889  late 84.3 us  deadline=653.881900  noise in window 3.5 us  not covered
+          1.1 us  start=653.879910  irq_noise local_timer:236
+          0.9 us  start=653.880000  irq_noise local_timer:236
+          0.9 us  start=653.881010  irq_noise local_timer:236
+          0.3 us  start=653.881000  irq_noise local_timer:236
+          0.3 us  start=653.879900  irq_noise local_timer:236
+
+tick 10903  late 81.5 us  deadline=653.909900  noise in window 3.6 us  not covered
+          1.1 us  start=653.907910  irq_noise local_timer:236
+          1.0 us  start=653.908000  irq_noise local_timer:236
+          1.0 us  start=653.909010  irq_noise local_timer:236
+          0.3 us  start=653.909000  irq_noise local_timer:236
+          0.3 us  start=653.907900  irq_noise local_timer:236
+
+tick 10918  late 84.3 us  deadline=653.939900  noise in window 3.6 us  not covered
+          1.2 us  start=653.937910  irq_noise local_timer:236
+          1.0 us  start=653.938000  irq_noise local_timer:236
+          0.9 us  start=653.939010  irq_noise local_timer:236
+          0.3 us  start=653.939000  irq_noise local_timer:236
+          0.3 us  start=653.937900  irq_noise local_timer:236
+
+tick 10921  late 84.6 us  deadline=653.945900  noise in window 3.5 us  not covered
+          1.2 us  start=653.943900  irq_noise local_timer:236
+          1.1 us  start=653.944000  irq_noise local_timer:236
+          0.9 us  start=653.945010  irq_noise local_timer:236
+          0.3 us  start=653.945000  irq_noise local_timer:236
+
+tick 10943  late 84.6 us  deadline=653.989900  noise in window 3.4 us  not covered
+          1.0 us  start=653.987910  irq_noise local_timer:236
+          1.0 us  start=653.988000  irq_noise local_timer:236
+          0.8 us  start=653.989010  irq_noise local_timer:236
+          0.3 us  start=653.987900  irq_noise local_timer:236
+          0.3 us  start=653.989000  irq_noise local_timer:236
+
+tick 10970  late 84.6 us  deadline=654.043900  noise in window 3.5 us  not covered
+          1.0 us  start=654.041910  irq_noise local_timer:236
+          1.0 us  start=654.042000  irq_noise local_timer:236
+          0.9 us  start=654.043010  irq_noise local_timer:236
+          0.3 us  start=654.043000  irq_noise local_timer:236
+          0.3 us  start=654.041900  irq_noise local_timer:236
+
+tick 10997  late 84.7 us  deadline=654.097900  noise in window 3.4 us  not covered
+          1.0 us  start=654.095910  irq_noise local_timer:236
+          1.0 us  start=654.096000  irq_noise local_timer:236
+          0.9 us  start=654.097010  irq_noise local_timer:236
+          0.3 us  start=654.097000  irq_noise local_timer:236
+          0.3 us  start=654.095900  irq_noise local_timer:236
+
+tick 11185  late 85.0 us  deadline=654.473900  noise in window 3.4 us  not covered
+          1.1 us  start=654.471910  irq_noise local_timer:236
+          0.9 us  start=654.472000  irq_noise local_timer:236
+          0.8 us  start=654.473010  irq_noise local_timer:236
+          0.3 us  start=654.471900  irq_noise local_timer:236
+          0.3 us  start=654.473000  irq_noise local_timer:236
+
+tick 11212  late 85.0 us  deadline=654.527900  noise in window 3.5 us  not covered
+          1.1 us  start=654.525910  irq_noise local_timer:236
+          1.0 us  start=654.526000  irq_noise local_timer:236
+          0.9 us  start=654.527010  irq_noise local_timer:236
+          0.3 us  start=654.527000  irq_noise local_timer:236
+          0.3 us  start=654.525900  irq_noise local_timer:236
+
+tick 11239  late 84.5 us  deadline=654.581900  noise in window 3.5 us  not covered
+          1.1 us  start=654.579910  irq_noise local_timer:236
+          1.0 us  start=654.580000  irq_noise local_timer:236
+          0.9 us  start=654.581010  irq_noise local_timer:236
+          0.3 us  start=654.579900  irq_noise local_timer:236
+          0.3 us  start=654.581000  irq_noise local_timer:236
+
+tick 11266  late 85.2 us  deadline=654.635900  noise in window 3.4 us  not covered
+          1.3 us  start=654.633900  irq_noise local_timer:236
+          1.0 us  start=654.634000  irq_noise local_timer:236
+          0.9 us  start=654.635010  irq_noise local_timer:236
+          0.3 us  start=654.635000  irq_noise local_timer:236
+
+tick 11293  late 85.0 us  deadline=654.689900  noise in window 3.5 us  not covered
+          1.1 us  start=654.687910  irq_noise local_timer:236
+          1.0 us  start=654.688001  irq_noise local_timer:236
+          1.0 us  start=654.689000  irq_noise local_timer:236
+          0.3 us  start=654.687900  irq_noise local_timer:236
+
+tick 11320  late 84.5 us  deadline=654.743900  noise in window 3.5 us  not covered
+          1.1 us  start=654.741910  irq_noise local_timer:236
+          0.9 us  start=654.742000  irq_noise local_timer:236
+          0.9 us  start=654.743011  irq_noise local_timer:236
+          0.3 us  start=654.743000  irq_noise local_timer:236
+          0.3 us  start=654.741900  irq_noise local_timer:236
+
+tick 11347  late 85.1 us  deadline=654.797900  noise in window 3.6 us  not covered
+          1.1 us  start=654.795910  irq_noise local_timer:236
+          1.0 us  start=654.796001  irq_noise local_timer:236
+          0.9 us  start=654.797010  irq_noise local_timer:236
+          0.3 us  start=654.795900  irq_noise local_timer:236
+          0.3 us  start=654.797000  irq_noise local_timer:236
+
+tick 11374  late 85.0 us  deadline=654.851900  noise in window 3.6 us  not covered
+          1.1 us  start=654.849911  irq_noise local_timer:236
+          1.0 us  start=654.850001  irq_noise local_timer:236
+          0.8 us  start=654.851010  irq_noise local_timer:236
+          0.3 us  start=654.849900  irq_noise local_timer:236
+          0.3 us  start=654.851000  irq_noise local_timer:236
+
+tick 11401  late 84.9 us  deadline=654.905900  noise in window 3.6 us  not covered
+          1.1 us  start=654.903910  irq_noise local_timer:236
+          1.0 us  start=654.904000  irq_noise local_timer:236
+          0.9 us  start=654.905010  irq_noise local_timer:236
+          0.3 us  start=654.905000  irq_noise local_timer:236
+          0.3 us  start=654.903900  irq_noise local_timer:236
+
+tick 11428  late 85.0 us  deadline=654.959900  noise in window 3.5 us  not covered
+          1.1 us  start=654.957910  irq_noise local_timer:236
+          1.0 us  start=654.958000  irq_noise local_timer:236
+          0.9 us  start=654.959010  irq_noise local_timer:236
+          0.3 us  start=654.959000  irq_noise local_timer:236
+          0.3 us  start=654.957900  irq_noise local_timer:236
+
+tick 11434  late 85.0 us  deadline=654.971900  noise in window 3.4 us  not covered
+          1.0 us  start=654.969910  irq_noise local_timer:236
+          1.0 us  start=654.970000  irq_noise local_timer:236
+          0.9 us  start=654.971010  irq_noise local_timer:236
+          0.3 us  start=654.971000  irq_noise local_timer:236
+          0.3 us  start=654.969900  irq_noise local_timer:236
+
+tick 11455  late 85.0 us  deadline=655.013900  noise in window 3.5 us  not covered
+          1.1 us  start=655.011910  irq_noise local_timer:236
+          1.0 us  start=655.012000  irq_noise local_timer:236
+          0.9 us  start=655.013010  irq_noise local_timer:236
+          0.3 us  start=655.011900  irq_noise local_timer:236
+          0.3 us  start=655.013000  irq_noise local_timer:236
+
+tick 11482  late 84.6 us  deadline=655.067900  noise in window 3.5 us  not covered
+          1.1 us  start=655.065910  irq_noise local_timer:236
+          1.0 us  start=655.066000  irq_noise local_timer:236
+          0.8 us  start=655.067010  irq_noise local_timer:236
+          0.3 us  start=655.067000  irq_noise local_timer:236
+          0.3 us  start=655.065900  irq_noise local_timer:236
+
+tick 11509  late 85.1 us  deadline=655.121900  noise in window 3.4 us  not covered
+          1.1 us  start=655.119910  irq_noise local_timer:236
+          1.0 us  start=655.120000  irq_noise local_timer:236
+          0.9 us  start=655.121010  irq_noise local_timer:236
+          0.3 us  start=655.121000  irq_noise local_timer:236
+          0.3 us  start=655.119900  irq_noise local_timer:236
+
+tick 11536  late 84.5 us  deadline=655.175900  noise in window 3.4 us  not covered
+          1.0 us  start=655.173910  irq_noise local_timer:236
+          0.9 us  start=655.174000  irq_noise local_timer:236
+          0.9 us  start=655.175010  irq_noise local_timer:236
+          0.3 us  start=655.175000  irq_noise local_timer:236
+          0.3 us  start=655.173900  irq_noise local_timer:236
+
+tick 11563  late 84.6 us  deadline=655.229900  noise in window 3.5 us  not covered
+          1.1 us  start=655.227910  irq_noise local_timer:236
+          1.0 us  start=655.228000  irq_noise local_timer:236
+          0.9 us  start=655.229010  irq_noise local_timer:236
+          0.3 us  start=655.227900  irq_noise local_timer:236
+          0.3 us  start=655.229000  irq_noise local_timer:236
+
+tick 11686  late 85.2 us  deadline=655.475900  noise in window 4.0 us  not covered
+          1.6 us  start=655.473910  irq_noise local_timer:236
+          1.0 us  start=655.474000  irq_noise local_timer:236
+          0.9 us  start=655.475010  irq_noise local_timer:236
+          0.3 us  start=655.473900  irq_noise local_timer:236
+          0.3 us  start=655.475000  irq_noise local_timer:236
+
+tick 11728  late 84.5 us  deadline=655.559900  noise in window 2.5 us  not covered
+          1.1 us  start=655.558011  irq_noise local_timer:236
+          0.8 us  start=655.559010  irq_noise local_timer:236
+          0.3 us  start=655.558000  irq_noise local_timer:236
+          0.3 us  start=655.559000  irq_noise local_timer:236
+
+tick 11899  late 84.8 us  deadline=655.901900  noise in window 3.4 us  not covered
+          1.1 us  start=655.899910  irq_noise local_timer:236
+          0.9 us  start=655.900000  irq_noise local_timer:236
+          0.9 us  start=655.901010  irq_noise local_timer:236
+          0.3 us  start=655.901000  irq_noise local_timer:236
+          0.3 us  start=655.899900  irq_noise local_timer:236
+
+tick 11953  late 84.9 us  deadline=656.009900  noise in window 3.3 us  not covered
+          1.1 us  start=656.007910  irq_noise local_timer:236
+          1.0 us  start=656.008000  irq_noise local_timer:236
+          1.0 us  start=656.009000  irq_noise local_timer:236
+          0.3 us  start=656.007900  irq_noise local_timer:236
+
+tick 12007  late 84.5 us  deadline=656.117900  noise in window 3.6 us  not covered
+          1.4 us  start=656.115900  irq_noise local_timer:236
+          1.0 us  start=656.116000  irq_noise local_timer:236
+          0.9 us  start=656.117010  irq_noise local_timer:236
+          0.3 us  start=656.117000  irq_noise local_timer:236
+
+tick 12034  late 84.9 us  deadline=656.171900  noise in window 3.4 us  not covered
+          1.1 us  start=656.169910  irq_noise local_timer:236
+          1.0 us  start=656.170000  irq_noise local_timer:236
+          0.9 us  start=656.171010  irq_noise local_timer:236
+          0.3 us  start=656.171000  irq_noise local_timer:236
+          0.3 us  start=656.169900  irq_noise local_timer:236
+
+tick 12061  late 85.0 us  deadline=656.225900  noise in window 3.4 us  not covered
+          1.0 us  start=656.223910  irq_noise local_timer:236
+          1.0 us  start=656.224000  irq_noise local_timer:236
+          0.9 us  start=656.225010  irq_noise local_timer:236
+          0.3 us  start=656.225000  irq_noise local_timer:236
+          0.3 us  start=656.223900  irq_noise local_timer:236
+
+tick 12073  late 84.9 us  deadline=656.249900  noise in window 3.5 us  not covered
+          1.2 us  start=656.247910  irq_noise local_timer:236
+          1.0 us  start=656.248000  irq_noise local_timer:236
+          0.9 us  start=656.249010  irq_noise local_timer:236
+          0.3 us  start=656.247900  irq_noise local_timer:236
+          0.3 us  start=656.249000  irq_noise local_timer:236
+
+tick 12088  late 84.7 us  deadline=656.279900  noise in window 3.6 us  not covered
+          1.2 us  start=656.277911  irq_noise local_timer:236
+          1.0 us  start=656.278001  irq_noise local_timer:236
+          0.9 us  start=656.279010  irq_noise local_timer:236
+          0.3 us  start=656.277900  irq_noise local_timer:236
+          0.3 us  start=656.279000  irq_noise local_timer:236
+
+tick 12115  late 84.4 us  deadline=656.333900  noise in window 3.3 us  not covered
+          1.2 us  start=656.331900  irq_noise local_timer:236
+          1.0 us  start=656.332000  irq_noise local_timer:236
+          0.9 us  start=656.333010  irq_noise local_timer:236
+          0.3 us  start=656.333000  irq_noise local_timer:236
+
+tick 12142  late 84.9 us  deadline=656.387900  noise in window 3.7 us  not covered
+          1.2 us  start=656.385910  irq_noise local_timer:236
+          1.0 us  start=656.386001  irq_noise local_timer:236
+          0.9 us  start=656.387010  irq_noise local_timer:236
+          0.3 us  start=656.385900  irq_noise local_timer:236
+          0.3 us  start=656.387000  irq_noise local_timer:236
+
+tick 12202  late 85.2 us  deadline=656.507900  noise in window 3.5 us  not covered
+          1.1 us  start=656.505910  irq_noise local_timer:236
+          1.0 us  start=656.506000  irq_noise local_timer:236
+          0.8 us  start=656.507010  irq_noise local_timer:236
+          0.3 us  start=656.507000  irq_noise local_timer:236
+          0.3 us  start=656.505900  irq_noise local_timer:236
+
+tick 12223  late 84.4 us  deadline=656.549900  noise in window 3.3 us  not covered
+          1.1 us  start=656.547900  irq_noise local_timer:236
+          1.0 us  start=656.548000  irq_noise local_timer:236
+          0.9 us  start=656.549010  irq_noise local_timer:236
+          0.3 us  start=656.549000  irq_noise local_timer:236
+
+tick 12250  late 84.4 us  deadline=656.603900  noise in window 3.3 us  not covered
+          1.2 us  start=656.601900  irq_noise local_timer:236
+          1.0 us  start=656.602000  irq_noise local_timer:236
+          0.8 us  start=656.603010  irq_noise local_timer:236
+          0.3 us  start=656.603000  irq_noise local_timer:236
+
+tick 12304  late 84.5 us  deadline=656.711900  noise in window 3.7 us  not covered
+          1.1 us  start=656.709910  irq_noise local_timer:236
+          1.0 us  start=656.710001  irq_noise local_timer:236
+          0.9 us  start=656.711010  irq_noise local_timer:236
+          0.3 us  start=656.709900  irq_noise local_timer:236
+          0.3 us  start=656.711000  irq_noise local_timer:236
+
+tick 12331  late 85.0 us  deadline=656.765900  noise in window 3.4 us  not covered
+          1.0 us  start=656.763910  irq_noise local_timer:236
+          1.0 us  start=656.764000  irq_noise local_timer:236
+          0.9 us  start=656.765010  irq_noise local_timer:236
+          0.3 us  start=656.765000  irq_noise local_timer:236
+          0.3 us  start=656.763900  irq_noise local_timer:236
+
+tick 12454  late 85.0 us  deadline=657.011900  noise in window 3.3 us  not covered
+          1.2 us  start=657.009900  irq_noise local_timer:236
+          0.9 us  start=657.010000  irq_noise local_timer:236
+          0.9 us  start=657.011010  irq_noise local_timer:236
+          0.3 us  start=657.011000  irq_noise local_timer:236
+
+tick 12634  late 84.6 us  deadline=657.371900  noise in window 3.7 us  not covered
+          1.1 us  start=657.369910  irq_noise local_timer:236
+          1.0 us  start=657.370000  irq_noise local_timer:236
+          0.9 us  start=657.371010  irq_noise local_timer:236
+          0.3 us  start=657.369900  irq_noise local_timer:236
+          0.3 us  start=657.371000  irq_noise local_timer:236
+          0.2 us  start=657.371012  softirq_noise TIMER:1
+
+tick 12640  late 84.7 us  deadline=657.383900  noise in window 3.5 us  not covered
+          1.1 us  start=657.381910  irq_noise local_timer:236
+          1.0 us  start=657.382000  irq_noise local_timer:236
+          0.9 us  start=657.383010  irq_noise local_timer:236
+          0.3 us  start=657.381900  irq_noise local_timer:236
+          0.3 us  start=657.383000  irq_noise local_timer:236
+
+tick 12667  late 85.0 us  deadline=657.437900  noise in window 3.4 us  not covered
+          1.0 us  start=657.435910  irq_noise local_timer:236
+          0.9 us  start=657.436000  irq_noise local_timer:236
+          0.9 us  start=657.437010  irq_noise local_timer:236
+          0.3 us  start=657.435900  irq_noise local_timer:236
+          0.3 us  start=657.437000  irq_noise local_timer:236
+
+tick 12681  late 50.5 us  deadline=657.465900  noise in window 3.5 us  not covered
+          1.1 us  start=657.463910  irq_noise local_timer:236
+          1.0 us  start=657.464000  irq_noise local_timer:236
+          0.9 us  start=657.465010  irq_noise local_timer:236
+          0.3 us  start=657.465000  irq_noise local_timer:236
+          0.3 us  start=657.463900  irq_noise local_timer:236
+
+tick 12694  late 84.8 us  deadline=657.491900  noise in window 3.3 us  not covered
+          1.2 us  start=657.489900  irq_noise local_timer:236
+          0.9 us  start=657.490000  irq_noise local_timer:236
+          0.9 us  start=657.491010  irq_noise local_timer:236
+          0.3 us  start=657.491000  irq_noise local_timer:236
+
+tick 12708  late 56.1 us  deadline=657.519900  noise in window 3.4 us  not covered
+          1.0 us  start=657.517910  irq_noise local_timer:236
+          0.9 us  start=657.518000  irq_noise local_timer:236
+          0.9 us  start=657.519010  irq_noise local_timer:236
+          0.3 us  start=657.519000  irq_noise local_timer:236
+          0.3 us  start=657.517900  irq_noise local_timer:236
+
+tick 12714  late 57.8 us  deadline=657.531900  noise in window 3.2 us  not covered
+          1.0 us  start=657.529910  irq_noise local_timer:236
+          1.0 us  start=657.531000  irq_noise local_timer:236
+          0.9 us  start=657.530000  irq_noise local_timer:236
+          0.3 us  start=657.529900  irq_noise local_timer:236
+
+tick 12721  late 84.7 us  deadline=657.545900  noise in window 3.4 us  not covered
+          1.1 us  start=657.543910  irq_noise local_timer:236
+          1.0 us  start=657.544000  irq_noise local_timer:236
+          0.9 us  start=657.545010  irq_noise local_timer:236
+          0.3 us  start=657.545000  irq_noise local_timer:236
+          0.3 us  start=657.543900  irq_noise local_timer:236
+
+tick 12735  late 61.3 us  deadline=657.573900  noise in window 3.8 us  not covered
+          1.2 us  start=657.571910  irq_noise local_timer:236
+          1.0 us  start=657.572000  irq_noise local_timer:236
+          0.9 us  start=657.573010  irq_noise local_timer:236
+          0.5 us  start=657.571900  irq_noise local_timer:236
+          0.3 us  start=657.573000  irq_noise local_timer:236
+
+tick 12750  late 64.4 us  deadline=657.603900  noise in window 3.5 us  not covered
+          1.1 us  start=657.601910  irq_noise local_timer:236
+          1.0 us  start=657.602000  irq_noise local_timer:236
+          0.9 us  start=657.603010  irq_noise local_timer:236
+          0.3 us  start=657.603000  irq_noise local_timer:236
+          0.3 us  start=657.601900  irq_noise local_timer:236
+
+tick 12762  late 66.5 us  deadline=657.627900  noise in window 3.4 us  not covered
+          1.0 us  start=657.625910  irq_noise local_timer:236
+          1.0 us  start=657.626000  irq_noise local_timer:236
+          0.9 us  start=657.627010  irq_noise local_timer:236
+          0.3 us  start=657.627000  irq_noise local_timer:236
+          0.3 us  start=657.625900  irq_noise local_timer:236
+
+tick 12775  late 84.9 us  deadline=657.653900  noise in window 3.3 us  not covered
+          1.2 us  start=657.651900  irq_noise local_timer:236
+          1.0 us  start=657.652000  irq_noise local_timer:236
+          0.9 us  start=657.653010  irq_noise local_timer:236
+          0.3 us  start=657.653000  irq_noise local_timer:236
+
+tick 12789  late 72.0 us  deadline=657.681900  noise in window 3.4 us  not covered
+          1.1 us  start=657.679910  irq_noise local_timer:236
+          1.0 us  start=657.680000  irq_noise local_timer:236
+          0.9 us  start=657.681010  irq_noise local_timer:236
+          0.3 us  start=657.681000  irq_noise local_timer:236
+          0.3 us  start=657.679900  irq_noise local_timer:236
+
+tick 12802  late 84.9 us  deadline=657.707900  noise in window 3.4 us  not covered
+          1.0 us  start=657.705910  irq_noise local_timer:236
+          1.0 us  start=657.706000  irq_noise local_timer:236
+          0.9 us  start=657.707010  irq_noise local_timer:236
+          0.3 us  start=657.705900  irq_noise local_timer:236
+          0.3 us  start=657.707000  irq_noise local_timer:236
+
+tick 12816  late 77.8 us  deadline=657.735900  noise in window 3.3 us  not covered
+          1.0 us  start=657.735000  irq_noise local_timer:236
+          1.0 us  start=657.733910  irq_noise local_timer:236
+          1.0 us  start=657.734000  irq_noise local_timer:236
+          0.3 us  start=657.733900  irq_noise local_timer:236
+
+tick 12829  late 84.7 us  deadline=657.761900  noise in window 3.3 us  not covered
+          1.2 us  start=657.759900  irq_noise local_timer:236
+          0.9 us  start=657.760000  irq_noise local_timer:236
+          0.9 us  start=657.761010  irq_noise local_timer:236
+          0.3 us  start=657.761000  irq_noise local_timer:236
+
+tick 12856  late 84.8 us  deadline=657.815900  noise in window 3.4 us  not covered
+          1.1 us  start=657.813910  irq_noise local_timer:236
+          1.0 us  start=657.814000  irq_noise local_timer:236
+          0.9 us  start=657.815010  irq_noise local_timer:236
+          0.3 us  start=657.815000  irq_noise local_timer:236
+          0.3 us  start=657.813900  irq_noise local_timer:236
+
+tick 12883  late 84.5 us  deadline=657.869900  noise in window 3.4 us  not covered
+          1.0 us  start=657.867910  irq_noise local_timer:236
+          0.9 us  start=657.868000  irq_noise local_timer:236
+          0.9 us  start=657.869010  irq_noise local_timer:236
+          0.3 us  start=657.867900  irq_noise local_timer:236
+          0.3 us  start=657.869000  irq_noise local_timer:236
+
+tick 12900  late 84.9 us  deadline=657.903900  noise in window 2.3 us  not covered
+          0.9 us  start=657.902010  irq_noise local_timer:236
+          0.8 us  start=657.903010  irq_noise local_timer:236
+          0.3 us  start=657.903000  irq_noise local_timer:236
+          0.3 us  start=657.902000  irq_noise local_timer:236
+
+tick 12910  late 85.2 us  deadline=657.923900  noise in window 3.4 us  not covered
+          1.1 us  start=657.921910  irq_noise local_timer:236
+          1.0 us  start=657.922000  irq_noise local_timer:236
+          0.9 us  start=657.923010  irq_noise local_timer:236
+          0.3 us  start=657.923000  irq_noise local_timer:236
+          0.3 us  start=657.921900  irq_noise local_timer:236
+
+tick 12927  late 84.8 us  deadline=657.957900  noise in window 2.4 us  not covered
+          0.9 us  start=657.956010  irq_noise local_timer:236
+          0.9 us  start=657.957010  irq_noise local_timer:236
+          0.3 us  start=657.956000  irq_noise local_timer:236
+          0.3 us  start=657.957000  irq_noise local_timer:236
+
+tick 13098  late 85.0 us  deadline=658.299900  noise in window 3.3 us  not covered
+          1.2 us  start=658.297900  irq_noise local_timer:236
+          0.9 us  start=658.298000  irq_noise local_timer:236
+          0.9 us  start=658.299010  irq_noise local_timer:236
+          0.3 us  start=658.299000  irq_noise local_timer:236
+
+tick 13125  late 84.9 us  deadline=658.353900  noise in window 3.5 us  not covered
+          1.1 us  start=658.351910  irq_noise local_timer:236
+          0.9 us  start=658.353010  irq_noise local_timer:236
+          0.9 us  start=658.352000  irq_noise local_timer:236
+          0.3 us  start=658.353000  irq_noise local_timer:236
+          0.3 us  start=658.351900  irq_noise local_timer:236
+
+tick 13152  late 84.9 us  deadline=658.407900  noise in window 3.4 us  not covered
+          1.0 us  start=658.405910  irq_noise local_timer:236
+          1.0 us  start=658.406000  irq_noise local_timer:236
+          0.9 us  start=658.407010  irq_noise local_timer:236
+          0.3 us  start=658.407000  irq_noise local_timer:236
+          0.3 us  start=658.405900  irq_noise local_timer:236
+
+tick 13179  late 84.8 us  deadline=658.461900  noise in window 3.6 us  not covered
+          1.1 us  start=658.459910  irq_noise local_timer:236
+          1.0 us  start=658.460000  irq_noise local_timer:236
+          0.9 us  start=658.461010  irq_noise local_timer:236
+          0.3 us  start=658.461000  irq_noise local_timer:236
+          0.3 us  start=658.459900  irq_noise local_timer:236
+
+tick 13206  late 85.1 us  deadline=658.515900  noise in window 3.7 us  not covered
+          1.1 us  start=658.513910  irq_noise local_timer:236
+          1.1 us  start=658.514001  irq_noise local_timer:236
+          0.9 us  start=658.515010  irq_noise local_timer:236
+          0.3 us  start=658.513900  irq_noise local_timer:236
+          0.3 us  start=658.515000  irq_noise local_timer:236
+
+tick 13233  late 84.5 us  deadline=658.569900  noise in window 3.5 us  not covered
+          1.2 us  start=658.567900  irq_noise local_timer:236
+          1.0 us  start=658.568000  irq_noise local_timer:236
+          0.9 us  start=658.569010  irq_noise local_timer:236
+          0.3 us  start=658.569000  irq_noise local_timer:236
+
+tick 13260  late 84.6 us  deadline=658.623900  noise in window 3.4 us  not covered
+          1.1 us  start=658.621910  irq_noise local_timer:236
+          0.9 us  start=658.622000  irq_noise local_timer:236
+          0.9 us  start=658.623010  irq_noise local_timer:236
+          0.3 us  start=658.621900  irq_noise local_timer:236
+          0.3 us  start=658.623000  irq_noise local_timer:236
+
+tick 13266  late 84.9 us  deadline=658.635900  noise in window 3.1 us  not covered
+          1.0 us  start=658.633910  irq_noise local_timer:236
+          0.9 us  start=658.634000  irq_noise local_timer:236
+          0.8 us  start=658.635000  irq_noise local_timer:236
+          0.3 us  start=658.633900  irq_noise local_timer:236
+
+tick 13287  late 85.1 us  deadline=658.677900  noise in window 3.7 us  not covered
+          1.1 us  start=658.676000  irq_noise local_timer:236
+          1.1 us  start=658.675910  irq_noise local_timer:236
+          0.9 us  start=658.677010  irq_noise local_timer:236
+          0.3 us  start=658.677000  irq_noise local_timer:236
+          0.3 us  start=658.675900  irq_noise local_timer:236
+
+tick 13314  late 84.9 us  deadline=658.731900  noise in window 3.4 us  not covered
+          1.1 us  start=658.729910  irq_noise local_timer:236
+          0.9 us  start=658.730000  irq_noise local_timer:236
+          0.9 us  start=658.731010  irq_noise local_timer:236
+          0.3 us  start=658.729900  irq_noise local_timer:236
+          0.3 us  start=658.731000  irq_noise local_timer:236
+
+tick 13341  late 85.2 us  deadline=658.785900  noise in window 3.5 us  not covered
+          1.1 us  start=658.783910  irq_noise local_timer:236
+          0.9 us  start=658.784000  irq_noise local_timer:236
+          0.9 us  start=658.785010  irq_noise local_timer:236
+          0.3 us  start=658.785000  irq_noise local_timer:236
+          0.3 us  start=658.783900  irq_noise local_timer:236
+
+tick 13368  late 84.7 us  deadline=658.839900  noise in window 3.4 us  not covered
+          1.2 us  start=658.837900  irq_noise local_timer:236
+          1.0 us  start=658.838000  irq_noise local_timer:236
+          0.9 us  start=658.839010  irq_noise local_timer:236
+          0.3 us  start=658.839000  irq_noise local_timer:236
+
+tick 13395  late 84.6 us  deadline=658.893900  noise in window 3.6 us  not covered
+          1.1 us  start=658.891910  irq_noise local_timer:236
+          1.0 us  start=658.893011  irq_noise local_timer:236
+          1.0 us  start=658.892000  irq_noise local_timer:236
+          0.3 us  start=658.893000  irq_noise local_timer:236
+          0.3 us  start=658.891900  irq_noise local_timer:236
+
+tick 13422  late 85.1 us  deadline=658.947900  noise in window 3.5 us  not covered
+          1.1 us  start=658.945910  irq_noise local_timer:236
+          1.0 us  start=658.946000  irq_noise local_timer:236
+          0.9 us  start=658.947011  irq_noise local_timer:236
+          0.3 us  start=658.947000  irq_noise local_timer:236
+          0.3 us  start=658.945900  irq_noise local_timer:236
+
+tick 13449  late 84.9 us  deadline=659.001900  noise in window 3.4 us  not covered
+          1.1 us  start=658.999910  irq_noise local_timer:236
+          1.0 us  start=659.000000  irq_noise local_timer:236
+          0.9 us  start=659.001010  irq_noise local_timer:236
+          0.3 us  start=659.001000  irq_noise local_timer:236
+          0.3 us  start=658.999900  irq_noise local_timer:236
+
+tick 13476  late 84.9 us  deadline=659.055900  noise in window 3.3 us  not covered
+          1.2 us  start=659.053900  irq_noise local_timer:236
+          1.0 us  start=659.054000  irq_noise local_timer:236
+          0.9 us  start=659.055010  irq_noise local_timer:236
+          0.3 us  start=659.055000  irq_noise local_timer:236
+
+tick 13503  late 85.0 us  deadline=659.109900  noise in window 3.6 us  not covered
+          1.1 us  start=659.107910  irq_noise local_timer:236
+          1.0 us  start=659.108000  irq_noise local_timer:236
+          0.9 us  start=659.109011  irq_noise local_timer:236
+          0.3 us  start=659.109000  irq_noise local_timer:236
+          0.3 us  start=659.107900  irq_noise local_timer:236
+
+tick 13506  late 85.2 us  deadline=659.115900  noise in window 3.2 us  not covered
+          1.1 us  start=659.113900  irq_noise local_timer:236
+          1.0 us  start=659.114000  irq_noise local_timer:236
+          0.9 us  start=659.115010  irq_noise local_timer:236
+          0.3 us  start=659.115000  irq_noise local_timer:236
+
+tick 13530  late 85.5 us  deadline=659.163900  noise in window 3.3 us  not covered
+          1.2 us  start=659.161901  irq_noise local_timer:236
+          1.0 us  start=659.162000  irq_noise local_timer:236
+          0.9 us  start=659.163010  irq_noise local_timer:236
+          0.3 us  start=659.163000  irq_noise local_timer:236
+
+tick 13734  late 85.5 us  deadline=659.571900  noise in window 3.4 us  not covered
+          1.3 us  start=659.569900  irq_noise local_timer:236
+          1.0 us  start=659.570000  irq_noise local_timer:236
+          0.9 us  start=659.571010  irq_noise local_timer:236
+          0.3 us  start=659.571000  irq_noise local_timer:236
+
+tick 13812  late 84.7 us  deadline=659.727900  noise in window 3.6 us  not covered
+          1.1 us  start=659.725910  irq_noise local_timer:236
+          1.0 us  start=659.726001  irq_noise local_timer:236
+          0.9 us  start=659.727010  irq_noise local_timer:236
+          0.3 us  start=659.725900  irq_noise local_timer:236
+          0.3 us  start=659.727000  irq_noise local_timer:236
+
+tick 13830  late 84.9 us  deadline=659.763900  noise in window 2.3 us  not covered
+          0.9 us  start=659.762010  irq_noise local_timer:236
+          0.8 us  start=659.763010  irq_noise local_timer:236
+          0.3 us  start=659.762000  irq_noise local_timer:236
+          0.3 us  start=659.763000  irq_noise local_timer:236
+
+tick 13839  late 85.1 us  deadline=659.781900  noise in window 3.4 us  not covered
+          1.0 us  start=659.779910  irq_noise local_timer:236
+          1.0 us  start=659.780000  irq_noise local_timer:236
+          0.9 us  start=659.781010  irq_noise local_timer:236
+          0.3 us  start=659.779900  irq_noise local_timer:236
+          0.3 us  start=659.781000  irq_noise local_timer:236
+
+tick 13866  late 84.5 us  deadline=659.835900  noise in window 3.4 us  not covered
+          1.1 us  start=659.833910  irq_noise local_timer:236
+          1.0 us  start=659.834000  irq_noise local_timer:236
+          0.9 us  start=659.835010  irq_noise local_timer:236
+          0.3 us  start=659.833900  irq_noise local_timer:236
+          0.3 us  start=659.835000  irq_noise local_timer:236
+
+tick 13893  late 84.5 us  deadline=659.889900  noise in window 3.5 us  not covered
+          1.1 us  start=659.887910  irq_noise local_timer:236
+          0.9 us  start=659.888001  irq_noise local_timer:236
+          0.9 us  start=659.889010  irq_noise local_timer:236
+          0.3 us  start=659.887900  irq_noise local_timer:236
+          0.3 us  start=659.889000  irq_noise local_timer:236
+
+tick 13947  late 84.6 us  deadline=659.997900  noise in window 3.4 us  not covered
+          1.1 us  start=659.995910  irq_noise local_timer:236
+          1.0 us  start=659.996000  irq_noise local_timer:236
+          0.9 us  start=659.997010  irq_noise local_timer:236
+          0.3 us  start=659.997000  irq_noise local_timer:236
+          0.3 us  start=659.995900  irq_noise local_timer:236
+
+tick 13974  late 84.5 us  deadline=660.051900  noise in window 3.4 us  not covered
+          1.0 us  start=660.049910  irq_noise local_timer:236
+          0.9 us  start=660.050000  irq_noise local_timer:236
+          0.9 us  start=660.051010  irq_noise local_timer:236
+          0.3 us  start=660.051000  irq_noise local_timer:236
+          0.3 us  start=660.049900  irq_noise local_timer:236
+
+tick 14001  late 85.0 us  deadline=660.105900  noise in window 3.5 us  not covered
+          1.2 us  start=660.103900  irq_noise local_timer:236
+          1.1 us  start=660.104000  irq_noise local_timer:236
+          0.8 us  start=660.105010  irq_noise local_timer:236
+          0.3 us  start=660.105000  irq_noise local_timer:236
+
+tick 14004  late 85.2 us  deadline=660.111900  noise in window 3.5 us  not covered
+          1.1 us  start=660.109910  irq_noise local_timer:236
+          1.0 us  start=660.110000  irq_noise local_timer:236
+          0.9 us  start=660.111010  irq_noise local_timer:236
+          0.3 us  start=660.109900  irq_noise local_timer:236
+          0.3 us  start=660.111000  irq_noise local_timer:236
+
+tick 14055  late 84.6 us  deadline=660.213900  noise in window 3.4 us  not covered
+          1.1 us  start=660.211910  irq_noise local_timer:236
+          0.9 us  start=660.212000  irq_noise local_timer:236
+          0.9 us  start=660.213010  irq_noise local_timer:236
+          0.3 us  start=660.211900  irq_noise local_timer:236
+          0.3 us  start=660.213000  irq_noise local_timer:236
+
+tick 14070  late 84.0 us  deadline=660.243900  noise in window 3.4 us  not covered
+          1.1 us  start=660.241910  irq_noise local_timer:236
+          0.9 us  start=660.242000  irq_noise local_timer:236
+          0.9 us  start=660.243010  irq_noise local_timer:236
+          0.3 us  start=660.243000  irq_noise local_timer:236
+          0.3 us  start=660.241900  irq_noise local_timer:236
+
+tick 14109  late 85.1 us  deadline=660.321900  noise in window 3.7 us  not covered
+          1.1 us  start=660.319911  irq_noise local_timer:236
+          1.0 us  start=660.320000  irq_noise local_timer:236
+          0.9 us  start=660.321010  irq_noise local_timer:236
+          0.3 us  start=660.319900  irq_noise local_timer:236
+          0.3 us  start=660.321000  irq_noise local_timer:236
+
+tick 14163  late 84.6 us  deadline=660.429900  noise in window 3.5 us  not covered
+          1.1 us  start=660.427910  irq_noise local_timer:236
+          1.0 us  start=660.428000  irq_noise local_timer:236
+          0.9 us  start=660.429010  irq_noise local_timer:236
+          0.3 us  start=660.427900  irq_noise local_timer:236
+          0.3 us  start=660.429000  irq_noise local_timer:236
+
+tick 14166  late 85.1 us  deadline=660.435900  noise in window 3.4 us  not covered
+          1.0 us  start=660.433910  irq_noise local_timer:236
+          1.0 us  start=660.434000  irq_noise local_timer:236
+          0.9 us  start=660.435010  irq_noise local_timer:236
+          0.3 us  start=660.433900  irq_noise local_timer:236
+          0.3 us  start=660.435000  irq_noise local_timer:236
+
+tick 14190  late 84.9 us  deadline=660.483900  noise in window 3.5 us  not covered
+          1.1 us  start=660.481910  irq_noise local_timer:236
+          1.0 us  start=660.482000  irq_noise local_timer:236
+          0.9 us  start=660.483010  irq_noise local_timer:236
+          0.3 us  start=660.481900  irq_noise local_timer:236
+          0.3 us  start=660.483000  irq_noise local_timer:236
+
+tick 14220  late 85.0 us  deadline=660.543900  noise in window 3.4 us  not covered
+          1.1 us  start=660.541910  irq_noise local_timer:236
+          0.9 us  start=660.542000  irq_noise local_timer:236
+          0.9 us  start=660.543010  irq_noise local_timer:236
+          0.3 us  start=660.541900  irq_noise local_timer:236
+          0.3 us  start=660.543000  irq_noise local_timer:236
+
+tick 14238  late 84.6 us  deadline=660.579900  noise in window 2.3 us  not covered
+          0.9 us  start=660.578010  irq_noise local_timer:236
+          0.8 us  start=660.579010  irq_noise local_timer:236
+          0.3 us  start=660.579000  irq_noise local_timer:236
+          0.3 us  start=660.578000  irq_noise local_timer:236
+
+tick 14244  late 84.6 us  deadline=660.591900  noise in window 3.9 us  not covered
+          1.3 us  start=660.591011  irq_noise local_timer:236
+          1.1 us  start=660.589910  irq_noise local_timer:236
+          0.9 us  start=660.590000  irq_noise local_timer:236
+          0.3 us  start=660.591000  irq_noise local_timer:236
+          0.3 us  start=660.589900  irq_noise local_timer:236
+
+tick 14580  late 85.1 us  deadline=661.263900  noise in window 3.6 us  not covered
+          1.1 us  start=661.261910  irq_noise local_timer:236
+          1.0 us  start=661.262001  irq_noise local_timer:236
+          0.9 us  start=661.263010  irq_noise local_timer:236
+          0.3 us  start=661.261900  irq_noise local_timer:236
+          0.3 us  start=661.263000  irq_noise local_timer:236
+
+tick 14621  late 51.7 us  deadline=661.345900  noise in window 3.7 us  not covered
+          1.1 us  start=661.344000  irq_noise local_timer:236
+          1.0 us  start=661.343910  irq_noise local_timer:236
+          1.0 us  start=661.345010  irq_noise local_timer:236
+          0.3 us  start=661.345000  irq_noise local_timer:236
+          0.3 us  start=661.343900  irq_noise local_timer:236
+
+tick 14634  late 85.1 us  deadline=661.371900  noise in window 3.3 us  not covered
+          1.2 us  start=661.369900  irq_noise local_timer:236
+          1.0 us  start=661.370000  irq_noise local_timer:236
+          0.9 us  start=661.371010  irq_noise local_timer:236
+          0.3 us  start=661.371000  irq_noise local_timer:236
+
+tick 14648  late 57.1 us  deadline=661.399900  noise in window 3.5 us  not covered
+          1.0 us  start=661.397910  irq_noise local_timer:236
+          0.9 us  start=661.398000  irq_noise local_timer:236
+          0.9 us  start=661.399010  irq_noise local_timer:236
+          0.3 us  start=661.399000  irq_noise local_timer:236
+          0.3 us  start=661.397900  irq_noise local_timer:236
+
+tick 14654  late 58.8 us  deadline=661.411900  noise in window 3.2 us  not covered
+          1.1 us  start=661.409900  irq_noise local_timer:236
+          0.9 us  start=661.410001  irq_noise local_timer:236
+          0.9 us  start=661.411010  irq_noise local_timer:236
+          0.3 us  start=661.411000  irq_noise local_timer:236
+
+tick 14661  late 84.7 us  deadline=661.425900  noise in window 3.6 us  not covered
+          1.1 us  start=661.424000  irq_noise local_timer:236
+          1.1 us  start=661.423910  irq_noise local_timer:236
+          0.9 us  start=661.425010  irq_noise local_timer:236
+          0.3 us  start=661.423900  irq_noise local_timer:236
+          0.2 us  start=661.425000  irq_noise local_timer:236
+
+tick 14675  late 62.8 us  deadline=661.453900  noise in window 3.5 us  not covered
+          1.1 us  start=661.451910  irq_noise local_timer:236
+          1.0 us  start=661.452001  irq_noise local_timer:236
+          1.0 us  start=661.453000  irq_noise local_timer:236
+          0.3 us  start=661.451900  irq_noise local_timer:236
+
+tick 14702  late 67.9 us  deadline=661.507900  noise in window 3.5 us  not covered
+          1.2 us  start=661.505900  irq_noise local_timer:236
+          1.1 us  start=661.506000  irq_noise local_timer:236
+          0.9 us  start=661.507010  irq_noise local_timer:236
+          0.3 us  start=661.507000  irq_noise local_timer:236
+
+tick 14715  late 84.7 us  deadline=661.533900  noise in window 3.7 us  not covered
+          1.1 us  start=661.531911  irq_noise local_timer:236
+          1.0 us  start=661.532000  irq_noise local_timer:236
+          0.9 us  start=661.533010  irq_noise local_timer:236
+          0.3 us  start=661.531900  irq_noise local_timer:236
+          0.3 us  start=661.533000  irq_noise local_timer:236
+
+tick 14730  late 84.5 us  deadline=661.563900  noise in window 3.3 us  not covered
+          1.2 us  start=661.561900  irq_noise local_timer:236
+          1.0 us  start=661.562000  irq_noise local_timer:236
+          0.9 us  start=661.563010  irq_noise local_timer:236
+          0.3 us  start=661.563000  irq_noise local_timer:236
+
+tick 14732  late 73.8 us  deadline=661.567900  noise in window 2.4 us  not covered
+          0.9 us  start=661.566010  irq_noise local_timer:236
+          0.9 us  start=661.567010  irq_noise local_timer:236
+          0.3 us  start=661.566000  irq_noise local_timer:236
+          0.3 us  start=661.567000  irq_noise local_timer:236
+
+tick 14742  late 84.6 us  deadline=661.587900  noise in window 3.4 us  not covered
+          1.0 us  start=661.585910  irq_noise local_timer:236
+          1.0 us  start=661.586000  irq_noise local_timer:236
+          0.9 us  start=661.587010  irq_noise local_timer:236
+          0.3 us  start=661.587000  irq_noise local_timer:236
+          0.3 us  start=661.585900  irq_noise local_timer:236
+
+tick 14745  late 84.6 us  deadline=661.593900  noise in window 3.6 us  not covered
+          1.2 us  start=661.591911  irq_noise local_timer:236
+          1.0 us  start=661.592000  irq_noise local_timer:236
+          0.8 us  start=661.593010  irq_noise local_timer:236
+          0.3 us  start=661.591900  irq_noise local_timer:236
+          0.3 us  start=661.593000  irq_noise local_timer:236
+
+tick 14750  late 77.6 us  deadline=661.603900  noise in window 2.3 us  not covered
+          0.9 us  start=661.602010  irq_noise local_timer:236
+          0.9 us  start=661.603010  irq_noise local_timer:236
+          0.3 us  start=661.602000  irq_noise local_timer:236
+          0.2 us  start=661.603000  irq_noise local_timer:236
+
+tick 14757  late 97.8 us  deadline=661.617900  noise in window 5.6 us  not covered
+          2.4 us  start=661.615901  irq_noise local_timer:236
+          1.9 us  start=661.616000  irq_noise local_timer:236
+          1.1 us  start=661.617010  irq_noise local_timer:236
+          0.3 us  start=661.617000  irq_noise local_timer:236
+
+tick 14769  late 84.6 us  deadline=661.641900  noise in window 1.0 us  not covered
+          1.0 us  start=661.639910  irq_noise local_timer:236
+
+tick 14802  late 84.9 us  deadline=661.707900  noise in window 1.4 us  not covered
+          1.1 us  start=661.705910  irq_noise local_timer:236
+          0.3 us  start=661.705900  irq_noise local_timer:236
+
+tick 14922  late 85.3 us  deadline=661.947900  noise in window 1.1 us  not covered
+          1.1 us  start=661.945910  irq_noise local_timer:236
+
+tick 14931  late 84.8 us  deadline=661.965900  noise in window 1.1 us  not covered
+          1.1 us  start=661.963910  irq_noise local_timer:236
+
+tick 15029  late 85.3 us  deadline=662.161900  noise in window 0.0 us  not covered
+    (no noise event in window)
+
+tick 15092  late 85.0 us  deadline=662.287900  noise in window 1.5 us  not covered
+          1.1 us  start=662.285910  irq_noise local_timer:236
+          0.4 us  start=662.285900  irq_noise local_timer:236
+
+tick 15119  late 84.7 us  deadline=662.341900  noise in window 1.1 us  not covered
+          1.1 us  start=662.339910  irq_noise local_timer:236
+
+tick 15146  late 85.4 us  deadline=662.395900  noise in window 1.4 us  not covered
+          1.2 us  start=662.393910  irq_noise local_timer:236
+          0.3 us  start=662.393900  irq_noise local_timer:236
+
+tick 15173  late 84.9 us  deadline=662.449900  noise in window 1.1 us  not covered
+          1.1 us  start=662.447910  irq_noise local_timer:236
+
+tick 15200  late 85.1 us  deadline=662.503900  noise in window 1.5 us  not covered
+          1.1 us  start=662.501910  irq_noise local_timer:236
+          0.4 us  start=662.501900  irq_noise local_timer:236
+
+tick 15227  late 85.3 us  deadline=662.557900  noise in window 1.1 us  not covered
+          1.1 us  start=662.555909  irq_noise local_timer:236
+
+tick 15254  late 85.4 us  deadline=662.611900  noise in window 1.1 us  not covered
+          1.1 us  start=662.609910  irq_noise local_timer:236
+
+tick 15281  late 85.3 us  deadline=662.665900  noise in window 1.4 us  not covered
+          1.1 us  start=662.663910  irq_noise local_timer:236
+          0.3 us  start=662.663900  irq_noise local_timer:236
+
+tick 15308  late 84.9 us  deadline=662.719900  noise in window 1.4 us  not covered
+          1.1 us  start=662.717910  irq_noise local_timer:236
+          0.3 us  start=662.717900  irq_noise local_timer:236
+
+tick 15335  late 85.1 us  deadline=662.773900  noise in window 1.4 us  not covered
+          1.1 us  start=662.771910  irq_noise local_timer:236
+          0.3 us  start=662.771900  irq_noise local_timer:236
+
+tick 15362  late 85.1 us  deadline=662.827900  noise in window 1.1 us  not covered
+          1.1 us  start=662.825909  irq_noise local_timer:236
+
+tick 15389  late 85.4 us  deadline=662.881900  noise in window 1.0 us  not covered
+          1.0 us  start=662.879910  irq_noise local_timer:236
+
+tick 15416  late 85.0 us  deadline=662.935900  noise in window 1.3 us  not covered
+          1.0 us  start=662.933910  irq_noise local_timer:236
+          0.3 us  start=662.933900  irq_noise local_timer:236
+
+tick 15443  late 84.6 us  deadline=662.989900  noise in window 1.1 us  not covered
+          1.1 us  start=662.987909  irq_noise local_timer:236
+
+tick 15578  late 84.7 us  deadline=663.259900  noise in window 1.1 us  not covered
+          1.1 us  start=663.257910  irq_noise local_timer:236
+
+tick 15605  late 85.0 us  deadline=663.313900  noise in window 1.4 us  not covered
+          1.1 us  start=663.311910  irq_noise local_timer:236
+          0.3 us  start=663.311900  irq_noise local_timer:236
+
+tick 15632  late 84.6 us  deadline=663.367900  noise in window 1.1 us  not covered
+          1.1 us  start=663.365910  irq_noise local_timer:236
+
+tick 15686  late 84.9 us  deadline=663.475900  noise in window 1.1 us  not covered
+          1.1 us  start=663.473909  irq_noise local_timer:236
+
+tick 15713  late 85.2 us  deadline=663.529900  noise in window 1.0 us  not covered
+          1.0 us  start=663.527909  irq_noise local_timer:236
+
+tick 15740  late 85.2 us  deadline=663.583900  noise in window 1.2 us  not covered
+          1.2 us  start=663.581910  irq_noise local_timer:236
+
+late cycles: 374; covered by kernel-visible noise: 0; not covered: 374

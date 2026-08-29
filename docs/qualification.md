@@ -21,6 +21,14 @@ CONFIG_RCU_NOCB_CPU=y
 # CONFIG_RCU_NOCB_CPU_DEFAULT_ALL is not set
 ```
 
+2026-08-29: an apt upgrade replaced both 7.0.0-29 images with 7.0.0-30
+(generic and realtime) and removed the old ones, and GRUB_DEFAULT=0
+then booted the realtime image, which sorts first. The default now
+names the generic entry by id
+(GRUB_DEFAULT="gnulinux-advanced-<uuid>>gnulinux-7.0.0-30-generic-advanced-<uuid>");
+every number from that date on is 7.0.0-30-generic. Both images carry
+CONFIG_OSNOISE_TRACER=y.
+
 The isolation boot parameters (isolcpus, nohz_full, rcu_nocbs) engage on
 this kernel. The realtime comparison kernel is in the archive,
 version-matched to generic:
@@ -144,9 +152,98 @@ on this 16-CPU machine; the kernel rejected it with EOVERFLOW, so IRQ
 affinity was not applied for that campaign. The correct exclude-6,7
 mask is ff3f.
 
-## Pending measurements
+## Session discipline, 2026-08-29 (the pinned-timer discipline)
 
-- Per-run environment discipline: AC status, EPP setting, governor, and
-  package temperature recorded alongside each summary.
-- Optional: confirm the tick stops on the isolated pair under load
-  (timer:tick_stop tracepoint).
+Not yet the discipline of record; that is decided with the next full
+campaign (results.md, what this changes). The machine-wide idle-set
+above makes every idle CPU busy-poll on 7.0.0-30: turbostat read
+Busy% 100 on all cores at 4,211 MHz and 24.96 W package power, and
+k10temp read 92 C once during the session (captures in
+baselines/2026-08-29-timer-migration/session-observations.txt). What
+it was compensating for is nohz_full timer migration (results.md, the
+far tail), and this discipline goes at the source:
+
+```
+$ sudo cpupower frequency-set -g performance
+$ echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference
+$ echo ff3f | sudo tee /proc/irq/default_smp_affinity
+$ for f in /proc/irq/[0-9]*/smp_affinity; do echo ff3f | sudo tee "$f" > /dev/null 2>&1 || echo "refused: $f"; done
+$ sudo cpupower -c 6,7 idle-set -D 0
+$ echo 0 | sudo tee /proc/sys/kernel/timer_migration
+```
+
+Verified state before osnoise-C-mig0:
+
+```
+$ cat /sys/devices/system/cpu/cpu*/cpuidle/state*/disable | sort | uniq -c
+     56 0
+      8 1
+$ cat /proc/sys/kernel/timer_migration
+0
+```
+
+All of it resets on reboot. With only the pair polling the package
+read 68 C at the start and 69 C at the end of the ten-minute
+osnoise-C-mig0 run (its run.log), and 67 to 69 C in the env blocks of
+all pair-only runs.
+
+Where the wakeup timer lives, sampled from /proc/timer_list during an
+L5 run with timer_migration=1 (six samples 0.5 s apart; three carried
+a hrtimer_wakeup entry expiring within 2.5 ms, two carried stale
+entries from other processes, one carried none; all six in
+session-observations.txt):
+
+```
+hrtimer_wakeup on cpu 4, expires in 1218 us
+hrtimer_wakeup on cpu 4, expires in 2198 us
+hrtimer_wakeup on cpu 7, expires in 1444 us
+```
+
+With timer_migration=0, LOC for CPU 7 in /proc/interrupts climbs two
+per cycle during a run (607,732 over 300,000 cycles in osnoise-C-mig0,
+31,893 over 16,000 in timerdiag-mig0). With it at 1 the count depends
+on where the timer went: 93 over 60,000 cycles in osnoise-B-all, 69,490
+over 15,000 in osnoise-A-pair (results.md explains the difference). The
+LOC count alone does not prove the timer is pinned; /proc/timer_list
+does.
+
+## IRQ affinity (applied 2026-08-29)
+
+First campaign with the mask in force. 26 IRQs refuse the write
+(session-observations.txt has the list): irq 0 (timer), irq 2, six
+ACPI events, the power button, the touchpad, and the sixteen NVMe
+queues, which are kernel-managed. Two of those land on the isolated
+pair:
+
+```
+irq 55  nvme0q3  effective_affinity 0040   (CPU 6)
+irq 56  nvme0q4  effective_affinity 0080   (CPU 7)
+```
+
+Neither fired during any traced run: each irq-delta.txt prints their
+rows, zero on both CPUs. Per-IRQ deltas on CPUs 6 and 7 over the
+ten-minute run: LOC 205 and 607,732, CAL 258 and 258, IWI, RES, and
+MCP in single digits, nothing else. Keeping managed IRQs off the pair
+needs isolcpus=domain,managed_irq,6,7 at the next reboot; the domain
+flag must be written explicitly, because a flag list replaces the
+implicit domain isolation of a bare CPU list and the pair would rejoin
+the scheduler domains.
+
+## Tick on the isolated pair (measured 2026-08-29)
+
+tick_stop events on CPU 7 across the three traced runs (tick-stop.txt
+per run): five in osnoise-A-pair, two successful stops and three held
+by RCU; none in osnoise-B-all; two in osnoise-C-mig0, both held by
+RCU. /proc/timer_list for CPU 7 read .tick_stopped: 1 while idle after
+osnoise-A-pair; that read is the only direct evidence of a stopped
+tick during the session. The local-timer handler on CPU 7 runs 0.87 us
+at the median and 40 us at worst (osnoise-A-pair), so the tick is not a
+far-tail candidate either way.
+
+## Pending
+
+- isolcpus=domain,managed_irq,6,7 in GRUB_CMDLINE_LINUX_DEFAULT, a
+  reboot, and a re-check of the two NVMe queues above.
+- timer_migration recorded in each summary's env block.
+- A full L0 to L6 campaign under the pinned-timer discipline to replace
+  the gate baselines.

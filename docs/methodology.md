@@ -117,16 +117,40 @@ back in. Running under sudo works too, but changes the environment being
 measured.
 
 **Move interrupts away.** Stop irqbalance if it is running; write masks
-excluding the isolated pair to /proc/irq/*/smp_affinity. Some kernel-
-managed IRQs refuse the write; that is expected. Verify with
+excluding the isolated pair to /proc/irq/default_smp_affinity and every
+/proc/irq/*/smp_affinity (ff3f on this machine; a mask with bits above
+the CPU count is rejected with EOVERFLOW, and the loop must not hide
+that). Kernel-managed IRQs refuse the write; NVMe queues among them can
+still have effective affinity on the pair, and only
+isolcpus=domain,managed_irq,<cpus> keeps them off (write the domain
+flag too, or the pair rejoins the scheduler domains). Verify with
 /proc/interrupts deltas during a run.
 
 **Benchmark on AC power, always.** power-profiles-daemon rewrites the
 energy performance preference on AC/battery transitions; mask it for the
-run and pin EPP to performance under amd_pstate. Disable deep idle on the
-isolated pair only (per-CPU cpuidle sysfs or /dev/cpu_dma_latency), not
-machine-wide: forcing 16 threads to C0 in a 15 W thin chassis invites
-thermal throttling mid-run.
+run and pin EPP to performance under amd_pstate. Disable idle states on
+the isolated pair only (cpupower -c 6,7 idle-set -D 0), not
+machine-wide: on kernel 7.0.0-30 every idle CPU with no enabled state
+busy-polls, which is 25 W of package power in a 15 W chassis
+(qualification.md). Machine-wide disabling was the v0.2a discipline;
+it worked by keeping the housekeeping CPUs awake, which matters only
+because of the timer placement below.
+
+**Pin the wakeup timer to the isolated core.** With nohz_full the
+kernel migrates unpinned timers off the CPU that armed them, and the
+hrtimer behind clock_nanosleep is unpinned; isolcpus leaves the core
+without a scheduler domain to search, so the timer lands on an
+arbitrary housekeeping CPU and the loop's wake latency becomes that
+CPU's idle-exit latency, 85 to 900 us measured (results.md, the far
+tail). `echo 0 > /proc/sys/kernel/timer_migration` keeps the timer on
+the core; this is the pinned-timer discipline, measured on 2026-08-29
+and pending the campaign that makes it the configuration of record.
+Verify during a run with /proc/timer_list: the hrtimer_wakeup entry
+expiring within one period sits under the isolated CPU. LOC in
+/proc/interrupts should climb about two per cycle on that CPU; a
+higher count means something else drives its local timer, and a lower
+one means the timer left. The sysctl is machine-wide and resets on
+reboot.
 
 **Qualify the platform before trusting it.** An hour of hwlatdetect at
 idle, and the SMI counter (turbostat) logged across every run. Firmware

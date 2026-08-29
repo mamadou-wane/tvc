@@ -1,0 +1,5 @@
+<idle>-0       [007] d..1.   661.618004: tick_stop: success=1 dependency=NONE
+tvc_harness-12499   [007] dN.1.   664.111039: tick_stop: success=0 dependency=RCU
+tvc_harness-12499   [007] dN.1.   664.112006: tick_stop: success=0 dependency=RCU
+tvc_harness-12499   [007] d....   664.113001: tick_stop: success=0 dependency=RCU
+tvc_harness-12499   [007] d..1.   664.113016: tick_stop: success=1 dependency=NONE

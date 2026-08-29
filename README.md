@@ -12,15 +12,18 @@ generic kernel, with per-core isolation and every C-state disabled, and
 48 nanoseconds of the quiet configuration over 2.4 million cycles per
 arm, zero ring drops). The 88.4 us v0.1 number was the same stack under
 a discipline that left C-states enabled: one power-management knob, a
-12x difference. The naive baseline drifts whole seconds off schedule
+12x difference. The knob acted at a distance. nohz_full had moved the
+loop's wakeup timer onto the housekeeping cores, and their idle exits
+set the tail. The naive baseline drifts whole seconds off schedule
 and cannot see it in its own measurement. Seven mitigations, applied
 one at a time, each measured in isolation:
 [docs/results.md](docs/results.md).
 
 Status: v0.2a complete: wire codec in both languages against a pinned
 golden corpus, SPSC ring with a TSan-verified drop path, drain thread,
-and the campaign above. Next: osnoise tracing of the far tail and the
-v0.2b ground station.
+and the campaign above. Next: a campaign under the pinned-timer
+discipline (docs/results.md, the far tail) and the v0.2b ground
+station.
 
 ## Layout
 

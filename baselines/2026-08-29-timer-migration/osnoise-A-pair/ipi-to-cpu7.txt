@@ -1,0 +1,4 @@
+          <idle>-0       [012] d.h3.   646.653901: ipi_send_cpu: cpu=7 callsite=ttwu_queue_wakelist+0x15b/0x250 callback=generic_smp_call_function_single_interrupt+0x0/0x20
+          <idle>-0       [012] d.h3.   651.825902: ipi_send_cpu: cpu=7 callsite=ttwu_queue_wakelist+0x15b/0x250 callback=generic_smp_call_function_single_interrupt+0x0/0x20
+     rcu_preempt-15      [000] d..1.   664.111033: ipi_send_cpu: cpu=7 callsite=resched_cpu+0x8a/0xa0 callback=0x0
+     tvc_harness-12499   [007] dn.3.   664.111035: ipi_send_cpu: cpu=7 callsite=irq_work_queue+0x2d/0x70 callback=nohz_full_kick_func+0x0/0x10
