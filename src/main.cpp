@@ -473,7 +473,8 @@ int main(int argc, char** argv) {
         ", \"governor\": \"" + env_probe::sysfs_or_unknown(cpufreq_dir + "scaling_governor") + "\"" +
         ", \"epp\": \"" + env_probe::sysfs_or_unknown(cpufreq_dir + "energy_performance_preference") + "\"" +
         ", \"pkg_temp_c\": " + std::to_string(read_pkg_temp_c()) +
-        ", \"cpuidle\": " + env_probe::cpuidle_json() + " }";
+        ", \"cpuidle\": " + env_probe::cpuidle_json() +
+        ", \"timer_migration\": " + std::to_string(env_probe::timer_migration()) + " }";
 
     const std::string cfgstr = config_string(cfg);
 

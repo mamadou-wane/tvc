@@ -80,4 +80,11 @@ std::string cpuidle_json(const std::string& cpu_root) {
         ", \"states\": [" + (states.empty() ? "" : " " + states + " ") + "] }";
 }
 
+int timer_migration(const std::string& path) {
+    std::int64_t v = 0;
+    if (!to_i64(read_sysfs_line(path).c_str(), v)) return -1;
+    if (v != 0 && v != 1) return -1;
+    return static_cast<int>(v);
+}
+
 }  // namespace env_probe

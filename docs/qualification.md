@@ -244,6 +244,5 @@ far-tail candidate either way.
 
 - isolcpus=domain,managed_irq,6,7 in GRUB_CMDLINE_LINUX_DEFAULT, a
   reboot, and a re-check of the two NVMe queues above.
-- timer_migration recorded in each summary's env block.
 - A full L0 to L6 campaign under the pinned-timer discipline to replace
   the gate baselines.
