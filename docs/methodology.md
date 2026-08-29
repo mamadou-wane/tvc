@@ -143,8 +143,8 @@ without a scheduler domain to search, so the timer lands on an
 arbitrary housekeeping CPU and the loop's wake latency becomes that
 CPU's idle-exit latency, 85 to 900 us measured (results.md, the far
 tail). `echo 0 > /proc/sys/kernel/timer_migration` keeps the timer on
-the core; this is the pinned-timer discipline, measured on 2026-08-29
-and pending the campaign that makes it the configuration of record.
+the core; this is the pinned-timer discipline, the configuration of
+record since the 2026-08-29 campaign (results.md).
 Verify during a run with /proc/timer_list: the hrtimer_wakeup entry
 expiring within one period sits under the isolated CPU. LOC in
 /proc/interrupts should climb about two per cycle on that CPU; a

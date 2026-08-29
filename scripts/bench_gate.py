@@ -52,12 +52,12 @@ def gate(new_values, base_values, tolerance_pct):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--results", required=True, help="fresh campaign directory")
-    ap.add_argument("--baseline", default="baselines/2026-08-16-telemetry-campaign")
+    ap.add_argument("--baseline", default="baselines/2026-08-29-pinned-timer-campaign")
     ap.add_argument("--level", default="L5")
     # 100% at the 7.5 us floor: identical-config medians ranged 7.4-14 us
     # across eight runs (run-scale environment mode), while a C-state
     # discipline lapse lands near 88 us, far past any tolerance.
-    ap.add_argument("--tolerance-pct", type=float, default=100.0)
+    ap.add_argument("--tolerance-pct", type=float, default=50.0)
     args = ap.parse_args()
 
     ok, msg = gate(verified_p999s(args.results, args.level),
