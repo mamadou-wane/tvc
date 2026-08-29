@@ -1,0 +1,12 @@
+start 11:42:28  temp 68 C
+timer_migration: 0   discipline: 56 0 8 1
+tracing_on 1  cpu7 buffer_kb 262147
+sweep exit 0  11:52:38
+end temp 69 C
+entries: 1217875
+overrun: 0
+commit overrun: 0
+L6  + telemetry ring + drain thread
+L6        13.9      15.3             21.8       10.3       78.4       0      0   abs-deadline mlock fifo:80 cpu:7 no-alloc telemetry
+records=305000 crc_errors=0 frames_ok=305000 lost=0 resyncs=0 seq_discontinuities=0 skipped_bytes=0 version_mismatch=0 schema_known=True 
+DONE 11:52:50

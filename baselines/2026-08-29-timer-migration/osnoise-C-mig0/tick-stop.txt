@@ -1,0 +1,2 @@
+tvc_harness-13023   [007] dN.1.  1851.036062: tick_stop: success=0 dependency=RCU
+tvc_harness-13023   [007] dN...  1851.037004: tick_stop: success=0 dependency=RCU

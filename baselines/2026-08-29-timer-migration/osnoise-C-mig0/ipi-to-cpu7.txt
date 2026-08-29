@@ -1,0 +1,3 @@
+          <idle>-0       [007] d.s3.  1643.579017: ipi_send_cpu: cpu=7 callsite=irq_work_queue_on+0x9b/0xb0 callback=nohz_full_kick_func+0x0/0x10
+     rcu_preempt-15      [014] d..1.  1851.036057: ipi_send_cpu: cpu=7 callsite=resched_cpu+0x8a/0xa0 callback=0x0
+     tvc_harness-13023   [007] dn.3.  1851.036059: ipi_send_cpu: cpu=7 callsite=irq_work_queue+0x2d/0x70 callback=nohz_full_kick_func+0x0/0x10

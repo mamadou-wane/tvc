@@ -1,0 +1,108 @@
+records=305000 warmup_skipped=5000 measured=300000 crc_errors=0 late>30us=12
+trace events=1217875
+
+events by source: count, total ms, worst us
+  irq_noise local_timer:236                      607724      423.5       35.4
+  thread_noise swapper/7:0                       305003  1849355.8 1240789304.6
+  thread_noise tvc_harness:13023                 305002      790.8    10425.1
+  softirq_noise TIMER:1                             136        1.1       39.9
+  ipi_send_cpu                                        2        0.0        0.0
+  irq_noise irq_work:246                              2        0.0        0.2
+  tick_stop                                           2        0.0        0.0
+  softirq_noise RCU:9                                 2        0.0        0.4
+  thread_noise kworker/7:1H:12433                     1        0.0       11.2
+  irq_noise reschedule:253                            1        0.0        0.1
+
+non-noise events by detail:
+       2  tick_stop: success=0 dependency=RCU
+       1  ipi_send_cpu: cpu=7 callsite=irq_work_queue_on+0x9b/0xb0 callback=nohz_full_kick_func+0x0/0x10
+       1  ipi_send_cpu: cpu=7 callsite=irq_work_queue+0x2d/0x70 callback=nohz_full_kick_func+0x0/0x10
+
+20 longest noise events (idle time and the loop's own run time excluded):
+       39.9 us  start=1804.100012  softirq_noise TIMER:1
+       38.9 us  start=1692.107012  softirq_noise TIMER:1
+       35.4 us  start=1831.442081  irq_noise local_timer:236
+       26.0 us  start=1297.010072  irq_noise local_timer:236
+       20.2 us  start=1380.099013  softirq_noise TIMER:1
+       19.7 us  start=1591.648072  irq_noise local_timer:236
+       19.5 us  start=1625.310090  irq_noise local_timer:236
+       19.3 us  start=1581.946075  irq_noise local_timer:236
+       18.8 us  start=1780.099012  softirq_noise TIMER:1
+       18.0 us  start=1824.004080  irq_noise local_timer:236
+       16.6 us  start=1524.099012  softirq_noise TIMER:1
+       15.8 us  start=1681.300069  irq_noise local_timer:236
+       15.7 us  start=1281.000080  irq_noise local_timer:236
+       15.5 us  start=1741.672071  irq_noise local_timer:236
+       15.2 us  start=1484.099013  softirq_noise TIMER:1
+       15.2 us  start=1316.099054  softirq_noise TIMER:1
+       15.2 us  start=1676.099012  softirq_noise TIMER:1
+       14.9 us  start=1836.099013  softirq_noise TIMER:1
+       14.9 us  start=1708.099018  softirq_noise TIMER:1
+       14.8 us  start=1620.099012  softirq_noise TIMER:1
+
+per late cycle: noise events overlapping [deadline - period, wake]; 'covered' means noise duration in the window >= half the lateness
+
+tick 27991  late 49.8 us  deadline=1297.010070  noise in window 27.4 us  covered
+         26.0 us  start=1297.010072  irq_noise local_timer:236
+          1.1 us  start=1297.008080  irq_noise local_timer:236
+          0.3 us  start=1297.008070  irq_noise local_timer:236
+
+tick 96704  late 39.1 us  deadline=1434.436070  noise in window 3.3 us  not covered
+          1.9 us  start=1434.434080  irq_noise local_timer:236
+          1.1 us  start=1434.436096  irq_noise local_timer:236
+          0.3 us  start=1434.436069  irq_noise local_timer:236
+
+tick 137488  late 30.1 us  deadline=1516.004070  noise in window 7.5 us  not covered
+          5.7 us  start=1516.004080  irq_noise local_timer:236
+          1.1 us  start=1516.002080  irq_noise local_timer:236
+          0.5 us  start=1516.004069  irq_noise local_timer:236
+          0.2 us  start=1516.002070  irq_noise local_timer:236
+
+tick 160309  late 38.8 us  deadline=1561.646070  noise in window 10.6 us  not covered
+          6.7 us  start=1561.646080  irq_noise local_timer:236
+          3.5 us  start=1561.644079  irq_noise local_timer:236
+          0.4 us  start=1561.646071  irq_noise local_timer:236
+
+tick 170459  late 37.4 us  deadline=1581.946070  noise in window 21.5 us  covered
+         19.3 us  start=1581.946075  irq_noise local_timer:236
+          1.8 us  start=1581.944080  irq_noise local_timer:236
+          0.4 us  start=1581.944071  irq_noise local_timer:236
+
+tick 175310  late 38.4 us  deadline=1591.648070  noise in window 21.1 us  covered
+         19.7 us  start=1591.648072  irq_noise local_timer:236
+          1.1 us  start=1591.646080  irq_noise local_timer:236
+          0.3 us  start=1591.646070  irq_noise local_timer:236
+
+tick 192141  late 78.4 us  deadline=1625.310070  noise in window 20.8 us  not covered
+         19.5 us  start=1625.310090  irq_noise local_timer:236
+          1.1 us  start=1625.308080  irq_noise local_timer:236
+          0.3 us  start=1625.310071  irq_noise local_timer:236
+
+tick 236960  late 52.1 us  deadline=1714.948070  noise in window 7.8 us  not covered
+          5.7 us  start=1714.948080  irq_noise local_timer:236
+          1.4 us  start=1714.946080  irq_noise local_timer:236
+          0.4 us  start=1714.946070  irq_noise local_timer:236
+          0.3 us  start=1714.948071  irq_noise local_timer:236
+
+tick 246669  late 42.2 us  deadline=1734.366070  noise in window 5.3 us  not covered
+          3.8 us  start=1734.366079  irq_noise local_timer:236
+          1.1 us  start=1734.364080  irq_noise local_timer:236
+          0.3 us  start=1734.366073  irq_noise local_timer:236
+          0.3 us  start=1734.364070  irq_noise local_timer:236
+
+tick 252659  late 34.9 us  deadline=1746.346070  noise in window 3.0 us  not covered
+          1.4 us  start=1746.344080  irq_noise local_timer:236
+          1.1 us  start=1746.346080  irq_noise local_timer:236
+          0.3 us  start=1746.346070  irq_noise local_timer:236
+          0.3 us  start=1746.344070  irq_noise local_timer:236
+
+tick 291488  late 32.5 us  deadline=1824.004070  noise in window 19.4 us  covered
+         18.0 us  start=1824.004080  irq_noise local_timer:236
+          1.1 us  start=1824.002080  irq_noise local_timer:236
+          0.3 us  start=1824.004069  irq_noise local_timer:236
+
+tick 295207  late 52.8 us  deadline=1831.442070  noise in window 36.4 us  covered
+         35.4 us  start=1831.442081  irq_noise local_timer:236
+          1.1 us  start=1831.440080  irq_noise local_timer:236
+
+late cycles: 12; covered by kernel-visible noise: 5; not covered: 7

@@ -16,8 +16,10 @@ generic kernel, with per-core isolation and every C-state disabled (the
 v0.2a campaign below). Under the original discipline, which left
 C-states enabled, the same stack measured 88.4 us: one power-management
 knob carried a 12x difference that the recorded environment fields could
-not see. The naive baseline drifts whole seconds off schedule and cannot
-see that in its own measurement.
+not see, and the knob acted at a distance: a migrated wakeup timer, not
+the isolated core (the far tail section below). The naive baseline
+drifts whole seconds off schedule and cannot see that in its own
+measurement.
 
 ## The table
 
@@ -82,6 +84,9 @@ likely interrupts still reaching the isolated pair. Characterizing them
 with the osnoise tracer is the next measurement. Until then the honest
 claim stops at p99.9.
 
+Resolved on 2026-08-29: they arrived through a migrated wakeup timer,
+not through interrupts on the pair. See the far tail section below.
+
 ## Kernel comparison: generic vs PREEMPT_RT
 
 From 26.04 the PREEMPT_RT kernel ships free in the archive, version-matched
@@ -111,6 +116,8 @@ survived both kernels unchanged, which narrows its suspect list: threading
 every IRQ handler changed nothing, so those events are likely
 non-preemptible work such as IPIs, TLB shootdowns, or the residual tick.
 The osnoise tracer is the next step and now has a sharper question.
+The osnoise pass of 2026-08-29 found none of the three: the wakeup
+timer was on another CPU (the far tail section below).
 
 The cost side is equally clear: unpinned SCHED_OTHER runs roughly doubled
 (L1 p50 35 to 113 us, p99.9 565 to 1,010) and L1 dropped one deadline in
@@ -129,7 +136,8 @@ v0.2a caveat: this comparison ran with C-states enabled, and the v0.2a
 campaign below showed C-state exits set the 88 us p99.9 floor on this
 machine. Both kernels were paying the same power-management cost, so the
 tie says the kernels tie under that discipline. Whether they still tie
-with C-states disabled is an open question for a rematch.
+with the wakeup timer pinned to the isolated core is the rematch
+question (the far tail section below).
 
 ## v0.2a: telemetry at no measured cost, and the C-state floor
 
@@ -167,7 +175,8 @@ with all states disabled, the tail that sat near 100 us at p99 and
 88 us at p99.9 in v0.1 collapses to 8 to 14 us. The v0.1 headline was a
 measurement of C-state exit latency. Even L0's drift shrank
 9x, because the sleep_for overshoot that compounds it is itself mostly
-C-state exit.
+C-state exit. The pinned levels paid that exit on a housekeeping CPU,
+not on the isolated core: the far tail section below.
 
 The provenance system could not see this. Each summary records
 governor, EPP, AC state, and package temperature, and every one of
@@ -222,7 +231,8 @@ recordings already contribute: each carries a per-cycle tick stamp, and
 decoding the 35.4 us repeat's recording places its 383 cycles above
 20 us across the full ten minutes (ticks 87 to 300,940), so that run's
 elevated tail was a sustained state across the whole window. Whatever
-visited the machine stayed for the run.
+visited the machine stayed for the run. All three suspects are cleared
+in the far tail section below.
 
 ### Incidents, recorded
 
@@ -238,6 +248,155 @@ CPUs 16 to 23 on a 16-CPU machine; the kernel rejected it with
 EOVERFLOW and the per-IRQ loop suppressed the errors, so IRQ affinity
 was likely never applied. The correct exclude-6,7 mask is ff3f. The
 numbers above were measured without it.
+
+## The far tail: timer migration, not the isolated core
+
+Session of 2026-08-29 on the same machine, kernel 7.0.0-30-generic (an
+apt upgrade had replaced the 7.0.0-29 images; qualification.md). The
+osnoise tracer ran on CPU 7 with its own workload disabled
+(NO_OSNOISE_WORKLOAD) and the trace clock set to mono, so every
+interrupt, softirq, NMI, and thread that touched the core is stamped
+in the clock the recording uses for each cycle's deadline and wake.
+IRQ affinity was applied for the first time (mask ff3f; the 2026-08-16
+write had failed, see incidents above). Data:
+baselines/2026-08-29-timer-migration/, one directory per run, osnoise
+reports next to the summaries, the two analysis scripts under tools/,
+and session-observations.txt for the console captures (turbostat,
+/proc/timer_list, the refused IRQ list, temperatures) that no summary
+carries.
+
+Wakeup jitter in microseconds. L5 except the osnoise runs, which are
+L6 because the recording is what ties a trace event to the cycle it
+hit.
+
+| Run | Cycles | Idle states off on | timer_migration | p50 | p99 | p99.9 | p99.99 | max |
+|---|---|---|---|---|---|---|---|---|
+| cpuidle-before | 15k | no CPU | 1 | 421.9 | 943.1 | 1,155.1 | 1,225.7 | 1,241 |
+| cpuidle-after | 15k | all 16 CPUs | 1 | 12.9 | 14.0 | 16.4 | 21.4 | 32 |
+| cpuidle-pair | 15k | CPUs 6, 7 | 1 | 13.8 | 86.1 | 169.5 | 447.7 | 937 |
+| osnoise-A-pair | 15k | CPUs 6, 7 | 1 | 13.8 | 84.9 | 85.3 | 85.8 | 98 |
+| timerdiag-mig1 | 15k | CPUs 6, 7 | 1 | 12.9 | 25.5 | 380.4 | 635.4 | 894 |
+| timerdiag-mig0 | 15k | CPUs 6, 7 | 0 | 12.7 | 14.1 | 16.6 | 24.2 | 27 |
+| osnoise-B-all | 60k | all 16 CPUs | 1 | 4.3 | 15.1 | 16.2 | 70.1 | 233 |
+| osnoise-C-mig0 | 300k | CPUs 6, 7 | 0 | 13.9 | 15.3 | 21.8 | 27.9 | 78 |
+
+The first two rows are the cpuidle acceptance check ai-log 0030 asked
+for: the env block's per-state disable counts read 0 before
+cpupower idle-set -D 0 and 16 after, on all four states, and the same
+L5 loop moved from p99.9 1,155 us to 16.4.
+
+### What the tracer saw
+
+CPU 7 never sleeps in any run but cpuidle-before: its idle states are
+disabled, and turbostat shows CPUs 6 and 7 at 4.56 GHz with Busy% 99.9
+under the pair discipline (session-observations.txt). The tail still
+moves with what the other fourteen CPUs are allowed to do:
+cpuidle-pair against cpuidle-after, nothing on CPU 7 changed, p99.99
+447.7 against 21.4 us and max 937 against 32. In osnoise-A-pair, 374
+of 15,000 cycles woke more than 50 us late, clustered at 84 to 85 us,
+and none of them is covered by kernel-visible noise: tail-report.txt
+lists every noise event in every window, and nothing in any window
+reaches half the lateness (the local-timer handler in those windows
+runs 0.3 to 1.2 us; the run's worst local-timer handler, 40 us, and
+worst TIMER softirq, 132 us, fall outside them). In osnoise-B-all,
+with every CPU polling, CPU 7's local timer fired 93 times across
+60,000 cycles.
+
+The wakeup timer is not reliably on CPU 7. clock_nanosleep arms an
+unpinned hrtimer. With nohz_full, timer migration moves unpinned
+timers off the CPU that armed them (get_target_base to
+get_nohz_timer_target); nohz_full removes CPU 7 from the timer
+housekeeping set, isolcpus leaves it with no scheduler domain to
+search, so the target is whatever housekeeping_any_cpu returns at
+each arming. /proc/timer_list sampled six times during timerdiag-mig1
+caught the loop's hrtimer_wakeup three times: on CPU 4, CPU 4, and
+CPU 7 (session-observations.txt). The single-variable test is
+timerdiag-mig1 against timerdiag-mig0: same discipline, minutes apart,
+only /proc/sys/kernel/timer_migration changed, p99.9 380 against
+16.6 us and max 894 against 27. With the timer on a housekeeping CPU
+the loop's wake latency is that CPU's idle-exit latency, and the
+quantum follows the state it was in: 84 to 87 us in osnoise-A-pair,
+cpuidle-pair, and every v0.1 L5 run (p99 87.2 in all three repeats of
+baselines/2026-08-15-campaign-2), 380 to 900 us in timerdiag-mig1.
+
+The local-timer counts on CPU 7 fit that reading but do not prove it
+on their own. With the timer pinned they run two per cycle (607,732
+over 300,000 cycles in osnoise-C-mig0). With migration on they depend
+on where the timer went: 93 over 60,000 cycles in osnoise-B-all, 69,490
+over 15,000 in osnoise-A-pair. The kernel keeps a migrating timer on
+the arming CPU when the target has no earlier event to piggyback on
+(switch_hrtimer_base); a polling idle CPU keeps its tick and always
+has one, a sleeping one stops it and mostly does not. So in
+osnoise-B-all the timer left CPU 7 on nearly every cycle, and in
+osnoise-A-pair it stayed for most cycles and left for a minority, the
+2.5 percent that woke 85 us late. That last sentence is a reading of
+the kernel source, not a measurement.
+
+This reinterprets the sections above. The v0.1 floor of 88.4 us was a
+housekeeping CPU's idle exit reaching the loop through a migrated
+timer, and the 300 to 1,000 us events beyond p99.99 were the same path
+from a deeper state. The v0.2a discipline, every idle state off on
+every CPU, worked because it kept every housekeeping CPU awake, not
+because of anything on the isolated core. On 7.0.0-30 that discipline
+means sixteen threads busy-polling: turbostat read Busy% 100 on every
+core at 4,211 MHz and 24.96 W package power, and k10temp read 92 C
+once during the session (session-observations.txt; 68 to 71 C during
+the two-minute osnoise-B-all, temp-during.txt). osnoise-B-all still
+carried six cycles of 100 to 232 us, none covered by noise in its
+window: the timer was still migrated, and whatever delays a
+housekeeping CPU is invisible from CPU 7.
+
+The three suspects named above are cleared by measurement. The tick
+is not it: tick_stop events on CPU 7 number five in osnoise-A-pair
+(two stops, three held by RCU), none in osnoise-B-all, two in
+osnoise-C-mig0 (both held by RCU), and the local-timer handler runs
+0.87 us at the median and 40 us at worst (tick-stop.txt and
+tail-report.txt per run; /proc/timer_list read .tick_stopped: 1 for
+CPU 7 while idle after osnoise-A-pair). IPIs to CPU 7 during the
+ten-minute run: three, two nohz_full_kick and one resched. TLB
+shootdowns: none.
+
+### The ten-minute run
+
+osnoise-C-mig0: L6, 300,000 cycles, idle states off on CPUs 6 and 7
+only, timer_migration=0, package 68 C at the start and 69 C at the end
+(run.log).
+
+    p50 13.9   p99 15.3   p99.9 21.8   p99.99 27.9   max 78.4 us
+    0 missed deadlines, 0 ring drops, 305,000 records, 0 CRC errors
+
+Twelve cycles woke more than 30 us late (tail-report.txt, threshold
+30). Five are covered by a long local-timer handler on CPU 7, the
+hrtimer expiry itself running 19 to 35 us; the other seven have no
+kernel-visible cause and top out at 52 us. The worst cycle of the run,
+78 us, is under the qualified firmware stall of 129 us.
+
+### What this changes, and what it costs
+
+Against the v0.2a headline the pinned-timer discipline gives up the
+median and p99.9 (13.9 and 21.8 us against 3.5 and 7.5) and buys the
+tail (max 78 against 308 to 498 across the eight v0.2a L5 runs) at two
+polling cores instead of sixteen. The median is not explained by the
+discipline alone: the two all-CPU runs, same configuration, read p50
+4.3 (osnoise-B-all) and 12.9 (cpuidle-after). The p99 gap is
+confounded: osnoise-B-all runs the v0.2a idle discipline on 7.0.0-30
+with the tracer live and the IRQ mask applied and reads p99 15.1
+against an L6 median of 5.3 on 7.0.0-29; kernel version, tracer, and
+mask were not separated. timer_migration is a machine-wide sysctl:
+with it at 0 every CPU keeps and services its own timers and idle
+consolidation stops for the whole machine; the cost of that on the
+housekeeping side was not measured. Which discipline is the
+configuration of record is a choice to make with the next campaign,
+L0 to L6 with repeats under timer_migration=0, which also replaces the
+gate baselines; until then the gate keeps the 2026-08-16 baselines and
+the README keeps the 7.5 us headline with its discipline stated.
+
+Open after this session: timer_migration is not in the env block, the
+same provenance gap the cpuidle field closed, and it should be; the
+20 to 35 us hrtimer expiry on CPU 7 is now the largest kernel-visible
+event on the core; two NVMe queues have kernel-managed affinity on
+CPUs 6 and 7 (qualification.md), silent in every run here, and need
+isolcpus=domain,managed_irq,6,7 at the next reboot.
 
 ## Regression gate
 

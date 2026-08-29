@@ -1,0 +1,5 @@
+   irq     cpu6     cpu7  source
+    55        0        0  IR-PCI-MSIX-0000:03:00.0 3-edge nvme0q3
+    56        0        0  IR-PCI-MSIX-0000:03:00.0 4-edge nvme0q4
+   LOC       40       93  Local timer interrupts
+   CAL      258      490  Function call interrupts
