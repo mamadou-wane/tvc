@@ -21,7 +21,7 @@ pinned to it (the pinned-timer campaign below). Two earlier numbers on
 the same code: 88.4 us with C-states left on (v0.1), 7.5 us with every
 core polling at 25 W (v0.2a). Both were set by the housekeeping cores:
 nohz_full had moved the loop's wakeup timer onto them, so their idle
-exits were the tail, including the 300 to 1,000 us events beyond p99.99
+exits were the tail, including the 300 to 500 us events beyond p99.99
 that the 7.5 us configuration kept (the far tail section). Pinning the
 timer removes them with two cores awake and costs the median, 12.7 us
 against 3.6. The naive baseline drifts whole seconds off schedule and
@@ -444,8 +444,8 @@ reschedule, 8 function-call, 36 irq-work, and the local timer; the two
 NVMe queues with managed affinity on the pair delivered none
 (irq-delta.txt).
 
-The telemetry arm reads 0.8 us above the quiet arm at p99.9 (17.3
-against 16.5, 5 percent), inside the 10 percent criterion the v0.2a
+The telemetry arm reads 0.7 us above the quiet arm at p99.9 (17.3
+against 16.5, 4 percent), inside the 10 percent criterion the v0.2a
 plan set, and the first campaign in which the two arms separate at all
 (L5 repeats 16.4 to 16.8, L6 repeats 16.7 to 17.6).
 
@@ -453,9 +453,9 @@ plan set, and the first campaign in which the two arms separate at all
 
 L1 to L3 got worse than v0.2a, and that is the discipline, not noise.
 An unpinned thread runs on a housekeeping CPU, and under this
-discipline those CPUs sleep, so the thread pays its own C-state exit on
-every wake: p99 near 94 us, the 85 us quantum from the far tail section
-measured from the other side. L0's drift went back to 15 seconds for
+discipline those CPUs sleep, so roughly one wake per hundred pays its
+own C-state exit: p99 near 94 us, the 85 us quantum from the far tail
+section measured from the other side. L0's drift went back to 15 seconds for
 the same reason (1.9 s under v0.2a, when every core was polling). The
 ladder's big step moves to L4, 400 to 16 us: on this machine, pinning
 to the disciplined core is the mitigation, and the levels before it
@@ -475,7 +475,7 @@ remote wake noticed by a polling core without one. Why the local path
 costs 12.7 us is not measured.
 
 The regression gate moves to this campaign: baseline L5 p99.9 16.5 us,
-tolerance 50 percent (limit 24.7). A run with timer migration on reads
+tolerance 50 percent (limit 24.8). A run with timer migration on reads
 85 to 400 and fails; a run with the pair's idle states on pays CPU 7's
 own C-state exits and fails; the 7.5 us configuration passes, as it
 should, since it is a legitimate discipline with a stated cost.
@@ -486,7 +486,7 @@ scripts/bench_gate.py compares a fresh campaign directory against the
 committed baselines (as of 2026-08-29:
 baselines/2026-08-29-pinned-timer-campaign, L5 p99.9 median 16.5 us)
 and fails when the L5 p99.9 median regresses beyond tolerance. The
-default tolerance is 50 percent (limit 24.7 us): identical-config
+default tolerance is 50 percent (limit 24.8 us): identical-config
 repeats spread 16.4 to 16.8, a run with timer migration on reads 85 to
 400 us, and a run with the pair's idle states enabled pays CPU 7's own
 C-state exits, so a lapse in either half of the discipline fails far

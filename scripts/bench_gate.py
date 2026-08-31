@@ -54,9 +54,9 @@ def main():
     ap.add_argument("--results", required=True, help="fresh campaign directory")
     ap.add_argument("--baseline", default="baselines/2026-08-29-pinned-timer-campaign")
     ap.add_argument("--level", default="L5")
-    # 100% at the 7.5 us floor: identical-config medians ranged 7.4-14 us
-    # across eight runs (run-scale environment mode), while a C-state
-    # discipline lapse lands near 88 us, far past any tolerance.
+    # 50% at the 16.5 us pinned-timer baseline: identical-config repeats
+    # spread 16.4-16.8 us, while a discipline lapse (timer migration on,
+    # or the pair's C-states enabled) lands at 85 us or worse.
     ap.add_argument("--tolerance-pct", type=float, default=50.0)
     args = ap.parse_args()
 
