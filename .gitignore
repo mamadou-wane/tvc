@@ -9,3 +9,6 @@ __pycache__/
 .claude/scheduled_tasks.lock
 AGENTS.md
 CLAUDE.md
+docs/superpowers/
+docs/ai-log/
+docs/adr/000-agent-roles.md
