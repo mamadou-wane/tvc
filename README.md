@@ -44,7 +44,7 @@ scripts/     campaign runner, plotting, regression gate
 baselines/   committed campaign data the gate diffs against
 tests/       functional and unit tests (container-run for C++)
 docker/      dev image for functional builds and tests
-docs/        results, methodology, qualification, plan, ADRs, AI log
+docs/        results, methodology, qualification, plan
   results.md         the campaign, level by level
   methodology.md     measurement methodology
   qualification.md   measured platform record
