@@ -17,7 +17,7 @@ sits under it.
 | Release | Ships | Check |
 |---|---|---|
 | [v0.1](results.md) | Harness with corrected methodology; qualified ProBook 465 G11; six-level campaign with repeats | A stranger reproduces the README figure from the committed CSVs |
-| [v0.2a](results.md#v02a-telemetry-at-no-measured-cost-and-the-c-state-floor) | Framing, CRC-32C, SPSC ring, drain thread; unit tests and sanitizers in CI | Jitter CCDF unchanged with telemetry enabled |
+| [v0.2a](results.md#v02a-telemetry-at-no-measured-cost-and-the-c-state-floor) | Framing, CRC-32C, SPSC ring, drain thread; unit tests and sanitizers in CI | Telemetry impact measured and bounded: about 4% at p99.9 observed, with zero ring drops |
 | [v0.2b](design/v0.2b.md) | Simulation, PID, link impairment, ground station, episode machine, latency budget | In design. The design file carries its own acceptance predicate |
 
 Later capability phases live in the engineering plan, not here. Nothing past

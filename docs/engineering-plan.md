@@ -21,9 +21,13 @@ a proposal that only makes sense for some other vehicle class is out of scope.
 
 It runs in three modes:
 
-- **lockstep**: the deterministic lane. The simulation owns the clock, and a run
-  is a pure function of model version, scenario, seed, and resolved parameters
-  that reproduces bit for bit. Source of CI correctness, replay goldens,
+- **lockstep**: the deterministic lane. The simulation owns the clock, the
+  vehicle reads none, and the run's **declared semantic and golden artifacts**
+  are a pure function of model version, scenario, seed, resolved parameters,
+  backend and toolchain: they reproduce byte for byte. The release design names
+  that artifact set exactly. Transport retry diagnostics sit outside it, because
+  a kernel-forced resend moves them and nothing else; a release may bring them
+  inside by canonicalizing them. Source of CI correctness, replay goldens,
   seed-exact reproduction, and any future TMR voting. It produces no timing
   evidence.
 - **freerun**: the real-time closed-loop lane. Simulation and vehicle each hold
@@ -219,8 +223,11 @@ The identifiers ride once per run in `<label>.replay.json` and `summary.json`,
 not in every record: the control record is fixed width and the hot path writes
 no identity strings. The recording header stays version 1 with its
 `schema_hash` (`ground/wire.py:28`), its reserved u16 at offset 10 zero and
-available to a future header version carrying a run id. A recording without its
-`replay.json` is unidentified evidence and is not published.
+available to a future header version carrying a run id. For v0.2b and later
+closed-loop or stochastic evidence, a recording without its matching
+`replay.json` is unidentified and is not published. Historical v0.1 and v0.2a
+artifacts predate the file and the stochastic contract it records, and they keep
+the evidence contracts under which they were recorded.
 
 ### Identifier grammar
 
@@ -318,8 +325,8 @@ publishable timing claim. Closed-loop timing evidence, meaning served
 sensor-to-actuator latency, discard age, and anything measured at L8, comes only
 from a free-run run; the harness workload is the published open-loop
 wakeup-jitter lane.
-*Test: every published number traces to a summary whose mode is `harness` or
-`freerun`, taken on the qualified bare-metal machine, that the discipline gate
+*Test: every published timing number traces to a summary whose mode is
+`harness` or `freerun`, taken on the qualified bare-metal machine, that the discipline gate
 accepts; a lockstep summary, a container or hosted-CI summary, a Mac summary, or
 a summary with no mode outside a committed `baselines/` directory fails it. A
 committed baseline summary that predates the `mode` field classifies as
@@ -385,8 +392,9 @@ label and are not re-labelled retroactively.*
 **Reproducibility.** Every stochastic experiment makes its stochastic contract
 inspectable: model version, scenario version, seed, named RNG streams, resolved
 parameter values, and backend or toolchain where relevant.
-*Test: `replay.json` carries all six fields, and a re-run from those fields
-reproduces the digests it names.*
+*Test: for v0.2b and later closed-loop or stochastic evidence, `replay.json`
+carries all six fields and a re-run from those fields reproduces the digests it
+names. Historical v0.1 and v0.2a artifacts are not held to it.*
 
 **Scope.** New complexity materially improves at least one of physical fidelity,
 control fidelity, verification quality, reproducibility, runtime evidence, or
