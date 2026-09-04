@@ -14,7 +14,7 @@ simulator owns the clock and a run reproduces bit for bit, is what makes goldens
 seed-exact reproduction and CI correctness possible. A closed-loop real-time
 lane, where the vehicle and the simulator each hold their own 500 Hz schedule, is
 what makes a sensor-to-actuator latency claim possible. The three produce
-evidence of different kinds, and two of them cannot produce timing evidence at
+evidence of different kinds, and one of them cannot produce timing evidence at
 all.
 
 A summary that does not say which workload produced it cannot be checked. The
@@ -39,15 +39,24 @@ say nothing.
   `baselines/` path, where it classifies as `harness (legacy)` and is admitted as
   `harness`. That classification lives in the analysis scripts. It is not a
   fourth mode and no binary emits it.
-- Nothing is ever inferred as `freerun`. An unknown mode value is treated as a
-  missing one, in `baselines/` too.
+- Only an absent `mode` field, and only under a committed `baselines/` path, may
+  classify as `harness (legacy)`. An explicit value outside
+  `{harness, lockstep, freerun}` is an error everywhere, committed baselines
+  included: it never reaches the grandfather clause, because that clause tests
+  for an absent field.
+- Nothing is ever inferred as `freerun`.
 
 ## Consequences
 
-An existing benchmark level cannot be quietly redefined by a later capability:
-changing what an L0 through L6 row measures now requires changing the mode it
-runs in, and the gate would refuse the result. Cross-mode comparison is
-structurally impossible rather than merely discouraged.
+The mode field prevents cross-mode substitution: a lockstep or free-run summary
+can no longer be published as though it came from the harness workload, and a
+row whose mode does not match its level definition leaves the campaign table with
+a named reason. That is the whole of what the field proves.
+
+It does not prove the harness workload stayed the same. Two other things carry
+that: the frozen compatibility fixture, which pins the deterministic columns of a
+fixed-length harness run against a binary built before the refactor, and the
+unchanged L0 through L6 level definitions in `scripts/sweep.py`.
 
 The cost is one field in every summary, one grandfather clause scoped to a path
 prefix, and a small edit to the fixtures in `tests/unit/test_sweep.py`, which

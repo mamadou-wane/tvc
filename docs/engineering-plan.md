@@ -255,7 +255,7 @@ change.
 | sensor | the truth-to-observation mapping or a rejection rule changes | a counter or diagnostic added beside it |
 | environment | the flight condition or any coefficient derived from it changes | a comment on its provenance |
 | scenario schema | a field is added, removed, retyped, or given new meaning; validation tightens in a way that rejects an existing file | a new scenario file under the same schema |
-| wire payload (`<name>_v<N>`) | the field set, order, offsets, sizes, endianness, or a field's meaning changes, which is exactly when the schema string and its CRC-32C change | assigning meaning to a reserved flag bit, which leaves the schema string and hash untouched; adding a new type beside it |
+| wire payload (`<name>_v<N>`) | the field set, order, offsets, sizes, endianness, or a field's meaning changes, which is exactly when the schema string and its CRC-32C change; and any change an older decoder would read incorrectly, including redefining a bit that already carried meaning | assigning meaning to a bit the payload already declares reserved, a forward-compatible semantic extension that leaves the layout, schema string and hash untouched and that a conforming older decoder ignores; adding a new type beside it |
 | recording schema | the file's type set changes, which changes the file schema hash; or the 32-byte header layout changes, which bumps the header version | appending records of a type the header already declares |
 
 A change to the same concept bumps the integer. A different concept takes a new

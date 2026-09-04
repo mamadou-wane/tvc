@@ -1,4 +1,4 @@
-# One-Axis TVC
+# TVC
 
 TVC is a deterministic and real-time flight-control simulation and
 verification system for thrust-vector-controlled vehicles. What runs

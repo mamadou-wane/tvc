@@ -7,7 +7,7 @@ sits under it.
 |---|---|
 | [docs/engineering-plan.md](engineering-plan.md) | project identity, architecture principles, modeling philosophy, evidence policy, capability progression, release dependencies, project invariants |
 | [docs/design/v0.2b.md](design/v0.2b.md) | the exact technical contract of v0.2b |
-| [docs/adr/](adr/) | consequential architectural decisions; a newer accepted ADR overrides conflicting older design text |
+| [docs/adr/](adr/) | consequential architectural decisions; every affected governing document is updated in the same PR, so the committed tree contains one current answer |
 | [docs/methodology.md](methodology.md) | how measurements are taken |
 | [docs/qualification.md](qualification.md) | the qualified measurement platform |
 | [docs/results.md](results.md) | what was observed, with the environment and cycle counts |
