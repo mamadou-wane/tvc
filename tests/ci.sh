@@ -6,6 +6,8 @@ if grep -rn $'\xe2\x80\x94' src scripts tests \
     --include='*.cpp' --include='*.hpp' --include='*.py' --include='*.sh'; then
   echo "ci.sh: em dashes found in the files above"; exit 1
 fi
+# Public-path gate: no tracked document points at a gitignored path.
+python3 scripts/check_public_paths.py
 cmake -S . -B build && cmake --build build -j
 ./build/wire_tests
 ./build/rt_setup_tests

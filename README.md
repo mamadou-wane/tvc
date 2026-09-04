@@ -1,9 +1,16 @@
 # One-Axis TVC
 
-A hard real-time control and telemetry stack for one-axis thrust
-vector control: a 500 Hz C++20 control loop on Linux, measured as a
-latency distribution, with a Python ground station, simulation, and
-fault injection planned.
+TVC is a deterministic and real-time flight-control simulation and
+verification system for thrust-vector-controlled vehicles. What runs
+today is the real-time foundation: a 500 Hz C++20 control loop on
+Linux, measured as a wakeup-jitter distribution on a qualified
+bare-metal machine, with a framed CRC-32C telemetry stream drained off
+the control cycle. The closed loop around it, a reduced-order vehicle
+model, a controller, impaired sensor and actuator links, and a Python
+ground station, is designed in
+[docs/design/v0.2b.md](docs/design/v0.2b.md) and not implemented. What
+the project is becoming and what every release has to keep true:
+[docs/engineering-plan.md](docs/engineering-plan.md).
 
 ## Results
 
@@ -32,8 +39,11 @@ isolation: [docs/results.md](docs/results.md).
 
 v0.2a complete: wire codec in C++ and Python against a pinned golden
 corpus, SPSC ring with a TSan-verified drop path, drain thread, and
-the campaign above. Next: the v0.2b ground station, then the
-PREEMPT_RT rematch with the timer pinned. Release plan:
+the campaign above. v0.2b is designed and not implemented; its
+technical contract is [docs/design/v0.2b.md](docs/design/v0.2b.md),
+and the project-level rules it answers to are in
+[docs/engineering-plan.md](docs/engineering-plan.md). After it, the
+PREEMPT_RT rematch with the timer pinned. Document index:
 [docs/plan.md](docs/plan.md).
 
 ## Layout
@@ -44,11 +54,14 @@ scripts/     campaign runner, plotting, regression gate
 baselines/   committed campaign data the gate diffs against
 tests/       functional and unit tests (container-run for C++)
 docker/      dev image for functional builds and tests
-docs/        results, methodology, qualification, plan
-  results.md         the campaign, level by level
-  methodology.md     measurement methodology
-  qualification.md   measured platform record
-  plan.md            release plan
+docs/        engineering plan, release designs, ADRs, results, methodology, qualification
+  engineering-plan.md  project identity, principles, invariants, phases
+  design/v0.2b.md      the current release's technical contract
+  adr/                 architectural decisions
+  results.md           the campaign, level by level
+  methodology.md       measurement methodology
+  qualification.md     measured platform record
+  plan.md              document index
 ```
 
 ## Build and test
