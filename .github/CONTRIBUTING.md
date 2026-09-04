@@ -4,13 +4,10 @@ TVC has a single maintainer and is under active development. Bug
 reports and focused contributions are welcome. Issues tagged
 `good first issue` or `help wanted` are the easiest places to start.
 
-What runs today is the real-time and telemetry foundation: a 500 Hz
-C++20 control loop on Linux, a framed CRC-32C telemetry stream drained
-off the control cycle, a wire codec in C++ and Python, and an SPSC
-ring. The vehicle model, the controller, impaired sensor and actuator
-links, episode semantics, and the Python ground station are not
-implemented. v0.2a is complete. The project is pre-1.0 and
-experimental, so interfaces move without warning.
+Start with README.md for the current implemented scope and status.
+Contributions should address behavior present in current `main` or an
+accepted feature proposal. TVC is pre-1.0, so public interfaces may
+change before 1.0.
 
 Do not file a public issue for a vulnerability. Follow
 [SECURITY.md](SECURITY.md) instead.
@@ -56,26 +53,28 @@ docker run --rm -v "$PWD":/w -w /w --cap-add=IPC_LOCK \
 Run that before you open the pull request. CI runs the same functional
 gate on a hosted `ubuntu-latest` runner, inside the same container.
 
-## Timing claims need qualified bare metal
+## Timing claims need a qualified environment
 
 The functional gate proves the code does what it says. It proves
-nothing about latency. Hosted runners are Azure VMs, and containers,
-virtual machines, and laptops all inject scheduling noise that swamps
-the numbers this project publishes. A green CI run is not timing
-evidence.
+nothing about latency. Hosted runners, virtual machines, and
+unqualified machines may provide functional or diagnostic
+observations, but they do not support a published timing claim.
+Published timing evidence requires the documented qualified bare-metal
+environment, applied configuration, and measurement methodology.
+Qualification depends on the environment and discipline, not the
+machine's form factor.
 
 A pull request carrying a timing or performance claim has to state:
 
-- the machine and its configuration, the way
+- the machine and its applied configuration, the way
   [docs/qualification.md](../docs/qualification.md) records one
 - the method, matching
   [docs/methodology.md](../docs/methodology.md)
 - how many cycles the run covered
 - where the campaign output and plots live
 
-Published timing evidence comes from qualified bare metal and nowhere
-else. Measurements are part of the product here, so a change that
-corrupts, mislabels, or weakens one is a critical defect.
+Measurements are part of the product here, so a change that corrupts,
+mislabels, or weakens one is a critical defect.
 
 ## Documentation
 

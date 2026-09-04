@@ -5,11 +5,6 @@ flight and it is not intended for any safety-critical use. Nothing here
 has been through hazard analysis or flight qualification. Treat it as a
 measurement harness on a workstation.
 
-What exists today is a 500 Hz control loop, a framed CRC-32C telemetry
-stream, a wire codec, and an SPSC ring. The vehicle model, the
-controller, the impaired sensor and actuator links, episode semantics,
-and the ground station are not implemented, so no claim covers them.
-
 ## Supported versions
 
 | Version | Status |
@@ -22,6 +17,10 @@ If you pin a tag, read the advisory before assuming a fix reached you.
 ## Reporting a vulnerability
 
 Do not open a public issue for a security vulnerability.
+
+Report privately when crafted or untrusted input can compromise memory
+safety, confidentiality, integrity, availability, or the
+trustworthiness of recorded evidence.
 
 Report it through GitHub private vulnerability reporting:
 https://github.com/mamadou-wane/tvc/security/advisories/new
@@ -38,15 +37,15 @@ A report the maintainer can act on names:
 - the environment: kernel, distribution, CPU, container or bare metal
 - any mitigation you already found, even a partial one
 
-Measurements are part of the product. A defect that corrupts or
-mislabels a measurement counts as critical here even with no attacker
-involved.
-
 ## Not a vulnerability
 
-Ordinary correctness bugs and build failures go in the bug report form:
+A correctness defect in a measurement, a decoder, a recording, or an
+analysis script that carries no security impact is a high-priority
+correctness bug, not a vulnerability. It belongs in the bug report
+form, along with ordinary build failures:
 https://github.com/mamadou-wane/tvc/issues/new/choose
 
-Timing numbers measured on a hosted CI runner are meaningless. Those
-runners are shared Azure VMs, and a pull request only runs the
-functional gate there. A jitter number from one is not a finding.
+Timing measured on a GitHub-hosted runner is diagnostic only and not
+accepted as published timing evidence. A pull request runs the
+functional gate there and nothing else, so a jitter number from one is
+not a finding.

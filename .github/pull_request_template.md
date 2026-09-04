@@ -20,8 +20,9 @@ docker build -t tvc-dev docker/
 docker run --rm -v "$PWD":/w -w /w --cap-add=IPC_LOCK \
   --ulimit memlock=-1:-1 tvc-dev bash tests/ci.sh
 ```
-CI runs the same gate on a hosted `ubuntu-latest` runner, which proves the code
-works and proves nothing about timing. CONTRIBUTING.md covers running the tests. -->
+CI runs the same gate on a GitHub-hosted runner. Timing measured there is
+diagnostic only and not accepted as published timing evidence.
+CONTRIBUTING.md covers running the tests. -->
 
 ## Evidence and claims
 
@@ -31,8 +32,7 @@ works and proves nothing about timing. CONTRIBUTING.md covers running the tests.
 
 ## Known limitations
 
-<!-- What still does not work after this. The vehicle model, the controller, impaired sensor
-     and actuator links, episode semantics, and the Python ground station are not implemented. -->
+<!-- What remains limited, unsupported, or intentionally out of scope after this change? -->
 
 ## Checklist
 
@@ -40,7 +40,7 @@ works and proves nothing about timing. CONTRIBUTING.md covers running the tests.
 - [ ] The change stays focused. No unrelated cleanup rides along.
 - [ ] The functional gate passed in the container.
 - [ ] The gate's ASan, UBSan, and TSan trees came back green.
-- [ ] Public documentation changed only where public behavior changed.
+- [ ] Public documentation describes only implemented behavior, clearly labelled planned work, usage, contribution policy, or evidence.
 - [ ] No internal planning or design document added or linked.
 - [ ] No new timing or performance claim, or qualified evidence is attached.
 - [ ] Any new dependency was accepted in a proposal issue, and the summary says why.

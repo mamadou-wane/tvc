@@ -1,17 +1,14 @@
 name: Feature or capability request
-description: Propose new behavior for the control loop, the telemetry path, or the tooling around them.
+description: Propose behavior for TVC's flight-control simulation, real-time harness, telemetry and evidence paths, or supporting tooling.
 title: "[feature] "
 labels: [enhancement]
 body:
   - type: markdown
     attributes:
       value: |
-        TVC is pre-1.0 and experimental. What runs today is the real-time and
-        telemetry foundation: a 500 Hz C++20 control loop on Linux, a framed
-        CRC-32C telemetry stream drained off the control cycle, a wire codec in
-        C++ and Python, and an SPSC ring. The vehicle model, the controller,
-        impaired sensor and actuator links, episode semantics, and the Python
-        ground station are not implemented.
+        TVC is pre-1.0 and experimental. Proposals may address current
+        behavior or a future capability, but substantial work must be accepted
+        before implementation begins.
 
         Measurements are part of the product. Any change that can corrupt,
         mislabel, or weaken a measurement is a critical defect, so a proposal
@@ -84,9 +81,10 @@ body:
           --ulimit memlock=-1:-1 tvc-dev bash tests/ci.sh
         ```
 
-        CI on a pull request runs that gate on a hosted ubuntu-latest runner.
-        Hosted runners are Azure VMs, so timing numbers from them are meaningless.
-        A claim about jitter or latency needs a run on a qualified bare-metal machine.
+        CI on a pull request runs that gate on a GitHub-hosted runner. Timing
+        measured there is diagnostic only and not accepted as published timing
+        evidence. A claim about jitter or latency needs the documented qualified
+        bare-metal environment, applied configuration, and methodology.
     validations:
       required: true
 
