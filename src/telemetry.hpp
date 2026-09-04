@@ -3,17 +3,19 @@
 #pragma once
 #include <array>
 #include <atomic>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <initializer_list>
 #include <thread>
 #include <type_traits>
 #include <vector>
 
 namespace telem {
 
-// One control cycle, exactly the 56-byte wire payload: the drain frames
-// records by header-wrap, never field-by-field marshal.
+// One control cycle in the ring. The drain encodes its fields explicitly;
+// these layout assertions are tripwires, not a serialization mechanism.
 struct Record {
     std::uint64_t tick;
     std::int64_t  deadline_ns;
@@ -25,6 +27,73 @@ struct Record {
 };
 static_assert(sizeof(Record) == 56);
 static_assert(std::is_trivially_copyable_v<Record>);
+static_assert(std::is_standard_layout_v<Record>);
+static_assert(std::endian::native == std::endian::little);
+static_assert(alignof(Record) == 8);
+static_assert(offsetof(Record, tick)        ==  0);
+static_assert(offsetof(Record, deadline_ns) ==  8);
+static_assert(offsetof(Record, woke_ns)     == 16);
+static_assert(offsetof(Record, done_ns)     == 24);
+static_assert(offsetof(Record, theta)       == 32);
+static_assert(offsetof(Record, cmd)         == 40);
+static_assert(offsetof(Record, drops)       == 48);
+
+// Internal value layout for the control payload. Ring use and its serializer
+// are separate work; declaring this record does not change the active stream.
+struct ControlRecord {
+    std::uint64_t tick;
+    std::int64_t  deadline_ns;
+    std::int64_t  woke_ns;
+    std::int64_t  done_ns;
+    std::int64_t  sensor_send_ns;
+    std::int64_t  rx_ns;
+    std::int64_t  tx_ns;
+    std::uint64_t sensor_tick;
+    double        theta;
+    double        omega;
+    double        cmd;
+    double        i_state;
+    double        d_prev;
+    std::uint64_t drops;
+    std::uint32_t staleness;
+    std::uint32_t ack_cmd_seq;
+    std::uint8_t  rx_count;
+    std::uint8_t  discarded_old;
+    std::uint8_t  discarded_superseded;
+    std::uint8_t  discarded_other;
+    std::uint8_t  state;
+    std::uint8_t  reason;
+    std::uint8_t  flags;
+    std::uint8_t  ack_status;
+};
+static_assert(std::is_trivially_copyable_v<ControlRecord>);
+static_assert(std::is_standard_layout_v<ControlRecord>);
+static_assert(alignof(ControlRecord) == 8);
+static_assert(sizeof(ControlRecord) == 128);
+static_assert(offsetof(ControlRecord, tick)                 ==   0);
+static_assert(offsetof(ControlRecord, deadline_ns)          ==   8);
+static_assert(offsetof(ControlRecord, woke_ns)              ==  16);
+static_assert(offsetof(ControlRecord, done_ns)              ==  24);
+static_assert(offsetof(ControlRecord, sensor_send_ns)       ==  32);
+static_assert(offsetof(ControlRecord, rx_ns)                ==  40);
+static_assert(offsetof(ControlRecord, tx_ns)                ==  48);
+static_assert(offsetof(ControlRecord, sensor_tick)          ==  56);
+static_assert(offsetof(ControlRecord, theta)                ==  64);
+static_assert(offsetof(ControlRecord, omega)                ==  72);
+static_assert(offsetof(ControlRecord, cmd)                  ==  80);
+static_assert(offsetof(ControlRecord, i_state)              ==  88);
+static_assert(offsetof(ControlRecord, d_prev)               ==  96);
+static_assert(offsetof(ControlRecord, drops)                == 104);
+static_assert(offsetof(ControlRecord, staleness)            == 112);
+static_assert(offsetof(ControlRecord, ack_cmd_seq)          == 116);
+static_assert(offsetof(ControlRecord, rx_count)             == 120);
+static_assert(offsetof(ControlRecord, discarded_old)        == 121);
+static_assert(offsetof(ControlRecord, discarded_superseded) == 122);
+static_assert(offsetof(ControlRecord, discarded_other)      == 123);
+static_assert(offsetof(ControlRecord, state)                == 124);
+static_assert(offsetof(ControlRecord, reason)               == 125);
+static_assert(offsetof(ControlRecord, flags)                == 126);
+static_assert(offsetof(ControlRecord, ack_status)           == 127);
 
 inline constexpr std::uint16_t kSync          = 0xEB90;
 inline constexpr std::uint8_t  kVersion       = 1;
@@ -35,6 +104,69 @@ inline constexpr std::size_t   kFrameOverhead = 14;
 inline constexpr const char*   kSchema =
     "telemetry_v1:tick:u64,deadline_ns:i64,woke_ns:i64,done_ns:i64,"
     "theta:f64,cmd:f64,drops:u64";
+
+// Schema metadata does not expand the generic decoder's accepted type set.
+inline constexpr std::size_t kTelemetryV1PayloadBytes = 56;
+inline constexpr std::size_t kCommandV1PayloadBytes   = 16;
+inline constexpr std::size_t kAckV1PayloadBytes       = 16;
+inline constexpr std::size_t kSensorV1PayloadBytes    = 44;
+inline constexpr std::size_t kActuatorV1PayloadBytes  = 48;
+inline constexpr std::size_t kControlV1PayloadBytes   = 128;
+
+inline constexpr const char* kCommandV1Schema =
+    "command_v1:cmd_seq:u32,opcode:u16,flags:u16,effective_tick:u64";
+inline constexpr const char* kAckV1Schema =
+    "ack_v1:applied_tick:u64,cmd_seq:u32,status:u16,state:u8,reason:u8";
+inline constexpr const char* kSensorV1Schema =
+    "sensor_v1:tick:u64,t_send_ns:i64,theta:f64,omega:f64,flags:u32,"
+    "cmd_seq:u32,sim_reason:u32";
+inline constexpr const char* kActuatorV1Schema =
+    "actuator_v1:tick:u64,veh_tick:u64,t_sensor_send_ns:i64,t_veh_send_ns:i64,"
+    "delta:f64,status:u32,staleness:u32";
+inline constexpr const char* kControlV1Schema =
+    "control_v1:tick:u64,deadline_ns:i64,woke_ns:i64,done_ns:i64,"
+    "sensor_send_ns:i64,rx_ns:i64,tx_ns:i64,sensor_tick:u64,theta:f64,"
+    "omega:f64,cmd:f64,i_state:f64,d_prev:f64,drops:u64,staleness:u32,"
+    "ack_cmd_seq:u32,rx_count:u8,discarded_old:u8,discarded_superseded:u8,"
+    "discarded_other:u8,state:u8,reason:u8,flags:u8,ack_status:u8";
+
+inline constexpr std::uint32_t kCommandV1SchemaHash  = 0x7F802902u;
+inline constexpr std::uint32_t kAckV1SchemaHash      = 0x3D42AF39u;
+inline constexpr std::uint32_t kSensorV1SchemaHash   = 0xD23A4196u;
+inline constexpr std::uint32_t kActuatorV1SchemaHash = 0x25573656u;
+inline constexpr std::uint32_t kControlV1SchemaHash  = 0xADFA94C8u;
+
+namespace payload {
+
+// Buffer sizes are checked before payload access; false on length/count failure.
+// Types 2-5 use scalar values, never a native wire-layout struct. Reserved flag
+// bits are zeroed by writers and retained without interpretation by readers.
+bool encode_record(unsigned char*, std::size_t, const Record&) noexcept;
+bool decode_record(const unsigned char*, std::size_t, Record&) noexcept;
+bool encode_command(unsigned char*, std::size_t, std::uint32_t cmd_seq,
+                    std::uint16_t opcode, std::uint16_t flags, std::uint64_t effective_tick) noexcept;
+bool decode_command(const unsigned char*, std::size_t, std::uint32_t& cmd_seq,
+                    std::uint16_t& opcode, std::uint16_t& flags, std::uint64_t& effective_tick) noexcept;
+bool encode_ack(unsigned char*, std::size_t, std::uint64_t applied_tick,
+                std::uint32_t cmd_seq, std::uint16_t status, std::uint8_t state, std::uint8_t reason) noexcept;
+bool decode_ack(const unsigned char*, std::size_t, std::uint64_t& applied_tick,
+                std::uint32_t& cmd_seq, std::uint16_t& status, std::uint8_t& state, std::uint8_t& reason) noexcept;
+bool encode_sensor(unsigned char*, std::size_t, std::uint64_t tick, std::int64_t t_send_ns,
+                   double theta, double omega, std::uint32_t flags,
+                   std::uint32_t cmd_seq, std::uint32_t sim_reason) noexcept;
+bool decode_sensor(const unsigned char*, std::size_t, std::uint64_t& tick, std::int64_t& t_send_ns,
+                   double& theta, double& omega, std::uint32_t& flags,
+                   std::uint32_t& cmd_seq, std::uint32_t& sim_reason) noexcept;
+bool encode_actuator(unsigned char*, std::size_t, std::uint64_t tick, std::uint64_t veh_tick,
+                     std::int64_t t_sensor_send_ns, std::int64_t t_veh_send_ns,
+                     double delta, std::uint32_t status, std::uint32_t staleness) noexcept;
+bool decode_actuator(const unsigned char*, std::size_t, std::uint64_t& tick, std::uint64_t& veh_tick,
+                     std::int64_t& t_sensor_send_ns, std::int64_t& t_veh_send_ns,
+                     double& delta, std::uint32_t& status, std::uint32_t& staleness) noexcept;
+bool encode_control(unsigned char*, std::size_t, const ControlRecord&) noexcept;
+bool decode_control(const unsigned char*, std::size_t, ControlRecord&) noexcept;
+
+}  // namespace payload
 
 // CRC-32C (Castagnoli), reflected, init/xorout 0xFFFFFFFF: the value
 // google-crc32c computes. Byte-wise table; drain-side only.
@@ -63,6 +195,14 @@ struct DecodedFrame {
     std::size_t payload_off;
     std::size_t payload_len;
 };
+
+enum class DatagramError { None, BadSync, BadVersion, BadType, BadLength, BadCrc };
+
+// One datagram, no resynchronization or allocation. On success, returns a raw
+// payload location for the separate typed decoder; failure leaves out unchanged.
+DatagramError decode_datagram(const unsigned char* data, std::size_t len,
+                             std::initializer_list<std::uint8_t> accepted_types,
+                             DecodedFrame& out) noexcept;
 
 // Stream decoder: parses frames from data buffer, appends DecodedFrame
 // entries to out (with offsets into the caller's buffer), returns counters.
