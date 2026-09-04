@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/mamadou-wane/tvc/security/policy
+    about: Do not file a public issue for a vulnerability. Follow the security policy instead.

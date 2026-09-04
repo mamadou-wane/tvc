@@ -1,0 +1,117 @@
+name: Feature or capability request
+description: Propose new behavior for the control loop, the telemetry path, or the tooling around them.
+title: "[feature] "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        TVC is pre-1.0 and experimental. What runs today is the real-time and
+        telemetry foundation: a 500 Hz C++20 control loop on Linux, a framed
+        CRC-32C telemetry stream drained off the control cycle, a wire codec in
+        C++ and Python, and an SPSC ring. The vehicle model, the controller,
+        impaired sensor and actuator links, episode semantics, and the Python
+        ground station are not implemented.
+
+        Measurements are part of the product. Any change that can corrupt,
+        mislabel, or weaken a measurement is a critical defect, so a proposal
+        that touches timing or telemetry needs an evidence plan.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or engineering need
+      description: What breaks, blocks, or stays unmeasurable today? Name the subsystem, file, or workflow.
+      placeholder: |
+        Draining telemetry at 500 Hz gives no way to tell a dropped frame from a
+        stalled reader, so a gap in the capture is ambiguous.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior or capability
+      description: >
+        Describe what the system does after the change, as observable behavior:
+        inputs, outputs, timing constraints, and failure modes. Skip the
+        implementation sketch unless it is the only way to make the behavior clear.
+    validations:
+      required: true
+
+  - type: textarea
+    id: fit
+    attributes:
+      label: Why this belongs in TVC
+      description: >
+        TVC is a deterministic real-time flight-control simulation and verification
+        project for thrust-vector-controlled vehicles. Explain how the proposal sits
+        inside that scope instead of in a separate tool.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: >
+        What does the change touch, and what does it deliberately leave alone? Call
+        out anything that would alter the control cycle, the telemetry frame format,
+        or a public interface.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else did you weigh, and why did you reject it? Doing nothing counts as an alternative.
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation and evidence plan
+      description: |
+        How do you show this works, and how does CI keep it working? Name the tests you would add.
+
+        Every change has to pass the functional gate:
+
+        ```
+        docker build -t tvc-dev docker/
+        docker run --rm -v "$PWD":/w -w /w --cap-add=IPC_LOCK \
+          --ulimit memlock=-1:-1 tvc-dev bash tests/ci.sh
+        ```
+
+        CI on a pull request runs that gate on a hosted ubuntu-latest runner.
+        Hosted runners are Azure VMs, so timing numbers from them are meaningless.
+        A claim about jitter or latency needs a run on a qualified bare-metal machine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Public-facing behavior and documentation impact
+      description: >
+        Which documented behavior changes? Say which of README.md, docs/results.md,
+        docs/methodology.md, and docs/qualification.md need edits, and whether the
+        published numbers stay valid as written.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Before you file
+      options:
+        - label: >
+            I understand that a large change has to be accepted in this issue before
+            the implementation starts. An unsolicited large pull request may be closed
+            without review.
+          required: true
+        - label: >
+            I understand that this project has a single maintainer who decides what
+            fits the roadmap. A well-argued proposal can still be declined or deferred.
+          required: true
