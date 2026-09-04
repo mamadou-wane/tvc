@@ -44,8 +44,8 @@ mode: it is the gate's compatibility classification for committed baseline
 summaries that predate the `mode` field, and it exists only inside the analysis
 scripts.
 
-The qualifying condition for a published number is the machine and its applied
-configuration. The `mode` field says which workload produced it: `harness` for
+The qualifying condition for a published timing number is the machine and its
+applied configuration. The `mode` field says which workload produced it: `harness` for
 L0 through L7, `freerun` for L8.
 
 The vehicle model today is reduced order and one axis: the current fidelity, not
