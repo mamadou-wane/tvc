@@ -1,9 +1,16 @@
-# One-Axis TVC
+# TVC
 
-A hard real-time control and telemetry stack for one-axis thrust
-vector control: a 500 Hz C++20 control loop on Linux, measured as a
-latency distribution, with a Python ground station, simulation, and
-fault injection planned.
+TVC is a deterministic and real-time flight-control simulation and
+verification project for thrust-vector-controlled vehicles.
+
+**What runs today** is the real-time and telemetry foundation: a
+500 Hz C++20 control loop on Linux, measured as a wakeup-jitter
+distribution on a qualified bare-metal machine, with a framed CRC-32C
+telemetry stream drained off the control cycle.
+
+**What comes next** closes the loop: a reduced-order vehicle model, a
+controller, impaired sensor and actuator links, episode semantics, and
+a Python ground station. None of it is implemented.
 
 ## Results
 
@@ -32,9 +39,9 @@ isolation: [docs/results.md](docs/results.md).
 
 v0.2a complete: wire codec in C++ and Python against a pinned golden
 corpus, SPSC ring with a TSan-verified drop path, drain thread, and
-the campaign above. Next: the v0.2b ground station, then the
-PREEMPT_RT rematch with the timer pinned. Release plan:
-[docs/plan.md](docs/plan.md).
+the campaign above. The closed loop described at the top is designed
+and not implemented, so no number here comes from it. After it, the
+PREEMPT_RT rematch with the timer pinned.
 
 ## Layout
 
@@ -44,11 +51,10 @@ scripts/     campaign runner, plotting, regression gate
 baselines/   committed campaign data the gate diffs against
 tests/       functional and unit tests (container-run for C++)
 docker/      dev image for functional builds and tests
-docs/        results, methodology, qualification, plan
+docs/        results, methodology, qualification
   results.md         the campaign, level by level
   methodology.md     measurement methodology
   qualification.md   measured platform record
-  plan.md            release plan
 ```
 
 ## Build and test
