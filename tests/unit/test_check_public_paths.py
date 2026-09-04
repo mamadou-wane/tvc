@@ -153,5 +153,63 @@ class RejectsUnavailable(Fixture):
                          [("README.md", 1, "unavailable")])
 
 
+class RejectsFromGithubDirectory(Fixture):
+    """The community health files are the first tracked markdown outside the
+    repository root and docs/, so the containing-directory and docs/ retries have
+    to reach the internal boundary from .github/ as well."""
+
+    # Every internal path a community health file could name, as .gitignore lists
+    # them. A public template that pointed at one of these would publish it.
+    INTERNAL = (
+        "docs/engineering-plan.md",
+        "docs/plan.md",
+        "docs/design/v0.2b.md",
+        "docs/adr/001-operating-modes.md",
+        "docs/ai-log/0001-example.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+    )
+
+    def setUp(self):
+        super().setUp()
+        write(self.root, ".gitignore",
+              "docs/superpowers/\ndocs/design/\ndocs/adr/\ndocs/ai-log/\n"
+              "docs/engineering-plan.md\ndocs/plan.md\n"
+              "AGENTS.md\nCLAUDE.md\n.claude/workflows/\nSECRET.md\n")
+        for rel in self.INTERNAL:
+            write(self.root, rel, "# internal\n")
+        write(self.root, ".claude/workflows/w.js", "// internal\n")
+
+    def test_every_internal_path_named_from_github(self):
+        for target in self.INTERNAL:
+            with self.subTest(target=target):
+                write(self.root, ".github/CONTRIBUTING.md", f"See [x]({target}).\n")
+                bad = self.check()
+                self.assertEqual([(v.path, v.target, v.kind) for v in bad],
+                                 [(".github/CONTRIBUTING.md", target, "ignored")])
+
+    def test_a_bare_internal_filename_resolved_through_the_docs_retry(self):
+        # "plan.md" names no file under .github/, so the docs/ retry is what
+        # catches it. Without that retry a template could name the plan by
+        # filename alone and pass.
+        write(self.root, ".github/CONTRIBUTING.md", "The plan.md rule applies.\n")
+        bad = self.check()
+        self.assertEqual([(v.path, v.target, v.kind) for v in bad],
+                         [(".github/CONTRIBUTING.md", "plan.md", "ignored")])
+
+    def test_a_relative_link_climbing_out_of_github(self):
+        write(self.root, ".github/pull_request_template.md",
+              "Workflows: [here](../.claude/workflows/).\n")
+        bad = self.check()
+        self.assertEqual([(v.path, v.kind) for v in bad],
+                         [(".github/pull_request_template.md", "ignored")])
+
+    def test_community_files_naming_each_other_and_a_public_doc(self):
+        write(self.root, ".github/CONTRIBUTING.md",
+              "Security: [SECURITY.md](SECURITY.md). Method: docs/methodology.md.\n")
+        write(self.root, ".github/SECURITY.md", "Contributing: CONTRIBUTING.md\n")
+        self.assertEqual(self.check(), [])
+
+
 if __name__ == "__main__":
     unittest.main()

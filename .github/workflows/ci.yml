@@ -12,8 +12,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build dev image
         run: docker build -t tvc-dev docker/
-      # Functional gate only. Hosted runners are Azure VMs; jitter numbers
-      # from them are meaningless (see docs/methodology.md).
+      # Functional gate only. Timing measured on a GitHub-hosted runner is
+      # diagnostic only and not accepted as published timing evidence
+      # (see docs/methodology.md).
       # The jitter gate runs on the ProBook as make bench-gate in v0.1.
       - name: Functional gate
         run: >

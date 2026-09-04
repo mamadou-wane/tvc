@@ -1,0 +1,115 @@
+name: Bug report
+description: Report incorrect behavior in the build, the real-time harness, telemetry, the wire codec, or the docs.
+title: "[bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report security vulnerabilities here. Use private reporting:
+        https://github.com/mamadou-wane/tvc/security/advisories/new
+
+        TVC is pre-1.0 and experimental. Report behavior present in the
+        affected commit or release. Planned capabilities become supported
+        bug-reporting surfaces only after they merge.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One sentence. What breaks?
+      placeholder: Decoder accepts a frame whose payload was corrupted after encoding
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Commit SHA or release
+      description: The exact revision you ran.
+      placeholder: 4770999 or v0.2a
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Build or CI
+        - Real-time harness
+        - Telemetry or recording
+        - Wire codec
+        - Measurement or analysis scripts
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps. Run the failing case in the tvc-dev container when you can.
+      placeholder: |
+        docker build -t tvc-dev docker/
+        docker run --rm -v "$PWD":/w -w /w --cap-add=IPC_LOCK \
+          --ulimit memlock=-1:-1 tvc-dev bash tests/ci.sh
+        Then: <what you did next>
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: Decoder rejects the frame with a CRC mismatch and does not count it as accepted.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the error text or the wrong value, not a paraphrase.
+      placeholder: Decoder accepts the frame and advances the accepted-frame or sequence state.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, CPU architecture, and compiler or Docker image.
+      placeholder: |
+        OS: Ubuntu 24.04, kernel 6.8.0-40-generic
+        Architecture: x86_64
+        Toolchain: output of g++ --version, or the tvc-dev image built from docker/
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or artifacts
+      description: Build output, test output, or the recording that shows the failure. Optional.
+      render: shell
+
+  - type: dropdown
+    id: timing_claim
+    attributes:
+      label: Does this report make a timing or performance claim?
+      description: Latency, jitter, deadline misses, throughput, overrun counts.
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: timing_ack
+    attributes:
+      label: Timing evidence
+      options:
+        - label: I understand that timing observed on hosted or virtualized machines, including GitHub-hosted runners, is diagnostic only and not accepted as published timing evidence.
+          required: true
