@@ -1,5 +1,38 @@
 {
+  "file_schemas": {
+    "0xA871CD84": 1,
+    "0xADFA94C8": 6,
+    "0xD23A4196": 4
+  },
   "files": [
+    {
+      "description": "canonical type-3 acknowledgment frame",
+      "expect": {
+        "crc_errors": 0,
+        "frames_ok": 1,
+        "lost": 0,
+        "resyncs": 0,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 0,
+        "version_mismatch": 0
+      },
+      "file": "frame_ack.bin",
+      "roundtrip": true
+    },
+    {
+      "description": "canonical type-5 actuator frame",
+      "expect": {
+        "crc_errors": 0,
+        "frames_ok": 1,
+        "lost": 0,
+        "resyncs": 0,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 0,
+        "version_mismatch": 0
+      },
+      "file": "frame_actuator.bin",
+      "roundtrip": true
+    },
     {
       "description": "record frame with its final CRC byte flipped",
       "expect": {
@@ -13,6 +46,34 @@
       },
       "file": "frame_badcrc.bin",
       "roundtrip": false
+    },
+    {
+      "description": "canonical type-2 command frame",
+      "expect": {
+        "crc_errors": 0,
+        "frames_ok": 1,
+        "lost": 0,
+        "resyncs": 0,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 0,
+        "version_mismatch": 0
+      },
+      "file": "frame_command.bin",
+      "roundtrip": true
+    },
+    {
+      "description": "canonical type-6 control frame",
+      "expect": {
+        "crc_errors": 0,
+        "frames_ok": 1,
+        "lost": 0,
+        "resyncs": 0,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 0,
+        "version_mismatch": 0
+      },
+      "file": "frame_control.bin",
+      "roundtrip": true
     },
     {
       "description": "type-2 frame with empty payload",
@@ -57,6 +118,20 @@
       "roundtrip": true
     },
     {
+      "description": "canonical type-4 sensor frame",
+      "expect": {
+        "crc_errors": 0,
+        "frames_ok": 1,
+        "lost": 0,
+        "resyncs": 0,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 0,
+        "version_mismatch": 0
+      },
+      "file": "frame_sensor.bin",
+      "roundtrip": true
+    },
+    {
       "description": "record frame cut after 30 bytes",
       "expect": {
         "crc_errors": 0,
@@ -83,6 +158,20 @@
       },
       "file": "frames_seqwrap.bin",
       "roundtrip": true
+    },
+    {
+      "description": "header + six control frames, seq-2 frame corrupted, proving resync",
+      "expect": {
+        "crc_errors": 1,
+        "frames_ok": 5,
+        "lost": 1,
+        "resyncs": 1,
+        "seq_discontinuities": 0,
+        "skipped_bytes": 142,
+        "version_mismatch": 0
+      },
+      "file": "recording_control_mini.tvcrec",
+      "roundtrip": false
     },
     {
       "description": "header + six record frames, seq-2 frame corrupted, proving resync",

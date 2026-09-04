@@ -1,4 +1,5 @@
 #include "telemetry.hpp"
+#include "wire.hpp"
 
 #include <array>
 #include <cstring>
@@ -78,7 +79,7 @@ DecodeCounters decode_stream(const unsigned char* data, std::size_t len,
             ++pos;
         };
         if (ver != kVersion) { fail(true, false); continue; }
-        if (!(type >= 1 && type <= 3) || plen > kMaxPayload) {
+        if (!(type >= 1 && type <= 6) || plen > kMaxPayload) {
             fail(false, false); continue;
         }
         const std::size_t end = pos + kFrameOverhead + plen;
@@ -111,6 +112,219 @@ DecodeCounters decode_stream(const unsigned char* data, std::size_t len,
     return ctr;
 }
 
+DatagramError decode_datagram(const unsigned char* data, std::size_t len,
+                             std::initializer_list<std::uint8_t> accepted_types,
+                             DecodedFrame& out) noexcept {
+    if (len < kFrameOverhead) return DatagramError::BadLength;
+    if (wire::get_u16_le(data, 0) != kSync) return DatagramError::BadSync;
+    if (data[2] != kVersion) return DatagramError::BadVersion;
+    const auto type = data[3];
+    bool accepted = false;
+    for (auto allowed : accepted_types) if (type == allowed) accepted = true;
+    if (type < 1 || type > 6 || !accepted) return DatagramError::BadType;
+    constexpr std::size_t sizes[] = {0, kTelemetryV1PayloadBytes, kCommandV1PayloadBytes,
+        kAckV1PayloadBytes, kSensorV1PayloadBytes, kActuatorV1PayloadBytes, kControlV1PayloadBytes};
+    const auto size = wire::get_u16_le(data, 4);
+    if (size != sizes[type] || len != kFrameOverhead + size) return DatagramError::BadLength;
+    if (wire::get_u32_le(data, len - 4) != crc32c(data + 2, 8 + size)) return DatagramError::BadCrc;
+    out = {type, wire::get_u32_le(data, 6), 10, size};
+    return DatagramError::None;
+}
+
+namespace payload {
+using namespace wire;
+
+bool encode_record(unsigned char* p, std::size_t len, const Record& r) noexcept {
+    if (len != kTelemetryV1PayloadBytes) return false;
+    put_u64_le(p, 0, r.tick);
+    put_i64_le(p, 8, r.deadline_ns);
+    put_i64_le(p, 16, r.woke_ns);
+    put_i64_le(p, 24, r.done_ns);
+    put_f64_le(p, 32, r.theta);
+    put_f64_le(p, 40, r.cmd);
+    put_u64_le(p, 48, r.drops);
+    return true;
+}
+
+bool decode_record(const unsigned char* p, std::size_t len, Record& r) noexcept {
+    if (len != kTelemetryV1PayloadBytes) return false;
+    r.tick = get_u64_le(p, 0);
+    r.deadline_ns = get_i64_le(p, 8);
+    r.woke_ns = get_i64_le(p, 16);
+    r.done_ns = get_i64_le(p, 24);
+    r.theta = get_f64_le(p, 32);
+    r.cmd = get_f64_le(p, 40);
+    r.drops = get_u64_le(p, 48);
+    return true;
+}
+
+bool encode_command(unsigned char* p, std::size_t len, std::uint32_t cmd_seq,
+                    std::uint16_t opcode, std::uint16_t flags, std::uint64_t effective_tick) noexcept {
+    if (len != kCommandV1PayloadBytes) return false;
+    put_u32_le(p, 0, cmd_seq);
+    put_u16_le(p, 4, opcode);
+    put_u16_le(p, 6, flags & 0x0001u);
+    put_u64_le(p, 8, effective_tick);
+    return true;
+}
+
+bool decode_command(const unsigned char* p, std::size_t len, std::uint32_t& cmd_seq,
+                    std::uint16_t& opcode, std::uint16_t& flags, std::uint64_t& effective_tick) noexcept {
+    if (len != kCommandV1PayloadBytes) return false;
+    cmd_seq = get_u32_le(p, 0);
+    opcode = get_u16_le(p, 4);
+    flags = get_u16_le(p, 6);
+    effective_tick = get_u64_le(p, 8);
+    return true;
+}
+
+bool encode_ack(unsigned char* p, std::size_t len, std::uint64_t applied_tick,
+                std::uint32_t cmd_seq, std::uint16_t status, std::uint8_t state, std::uint8_t reason) noexcept {
+    if (len != kAckV1PayloadBytes) return false;
+    put_u64_le(p, 0, applied_tick);
+    put_u32_le(p, 8, cmd_seq);
+    put_u16_le(p, 12, status);
+    put_u8(p, 14, state);
+    put_u8(p, 15, reason);
+    return true;
+}
+
+bool decode_ack(const unsigned char* p, std::size_t len, std::uint64_t& applied_tick,
+                std::uint32_t& cmd_seq, std::uint16_t& status, std::uint8_t& state, std::uint8_t& reason) noexcept {
+    if (len != kAckV1PayloadBytes) return false;
+    applied_tick = get_u64_le(p, 0);
+    cmd_seq = get_u32_le(p, 8);
+    status = get_u16_le(p, 12);
+    state = get_u8(p, 14);
+    reason = get_u8(p, 15);
+    return true;
+}
+
+bool encode_sensor(unsigned char* p, std::size_t len, std::uint64_t tick, std::int64_t t_send_ns,
+                   double theta, double omega, std::uint32_t flags,
+                   std::uint32_t cmd_seq, std::uint32_t sim_reason) noexcept {
+    if (len != kSensorV1PayloadBytes) return false;
+    put_u64_le(p, 0, tick);
+    put_i64_le(p, 8, t_send_ns);
+    put_f64_le(p, 16, theta);
+    put_f64_le(p, 24, omega);
+    put_u32_le(p, 32, flags & 0x0000ff07u);
+    put_u32_le(p, 36, cmd_seq);
+    put_u32_le(p, 40, sim_reason);
+    return true;
+}
+
+bool decode_sensor(const unsigned char* p, std::size_t len, std::uint64_t& tick, std::int64_t& t_send_ns,
+                   double& theta, double& omega, std::uint32_t& flags,
+                   std::uint32_t& cmd_seq, std::uint32_t& sim_reason) noexcept {
+    if (len != kSensorV1PayloadBytes) return false;
+    tick = get_u64_le(p, 0);
+    t_send_ns = get_i64_le(p, 8);
+    theta = get_f64_le(p, 16);
+    omega = get_f64_le(p, 24);
+    flags = get_u32_le(p, 32);
+    cmd_seq = get_u32_le(p, 36);
+    sim_reason = get_u32_le(p, 40);
+    return true;
+}
+
+bool encode_actuator(unsigned char* p, std::size_t len, std::uint64_t tick, std::uint64_t veh_tick,
+                     std::int64_t t_sensor_send_ns, std::int64_t t_veh_send_ns,
+                     double delta, std::uint32_t status, std::uint32_t staleness) noexcept {
+    if (len != kActuatorV1PayloadBytes) return false;
+    put_u64_le(p, 0, tick);
+    put_u64_le(p, 8, veh_tick);
+    put_i64_le(p, 16, t_sensor_send_ns);
+    put_i64_le(p, 24, t_veh_send_ns);
+    put_f64_le(p, 32, delta);
+    put_u32_le(p, 40, status);
+    put_u32_le(p, 44, staleness);
+    return true;
+}
+
+bool decode_actuator(const unsigned char* p, std::size_t len, std::uint64_t& tick, std::uint64_t& veh_tick,
+                     std::int64_t& t_sensor_send_ns, std::int64_t& t_veh_send_ns,
+                     double& delta, std::uint32_t& status, std::uint32_t& staleness) noexcept {
+    if (len != kActuatorV1PayloadBytes) return false;
+    tick = get_u64_le(p, 0);
+    veh_tick = get_u64_le(p, 8);
+    t_sensor_send_ns = get_i64_le(p, 16);
+    t_veh_send_ns = get_i64_le(p, 24);
+    delta = get_f64_le(p, 32);
+    status = get_u32_le(p, 40);
+    staleness = get_u32_le(p, 44);
+    return true;
+}
+
+namespace {
+bool valid_counts(std::uint8_t rx, std::uint8_t old, std::uint8_t superseded,
+                  std::uint8_t other) noexcept {
+    return rx <= 9 && static_cast<unsigned>(old) + superseded + other <= rx;
+}
+}  // namespace
+
+bool encode_control(unsigned char* p, std::size_t len, const ControlRecord& r) noexcept {
+    if (len != kControlV1PayloadBytes ||
+        !valid_counts(r.rx_count, r.discarded_old, r.discarded_superseded, r.discarded_other)) return false;
+    put_u64_le(p, 0, r.tick);
+    put_i64_le(p, 8, r.deadline_ns);
+    put_i64_le(p, 16, r.woke_ns);
+    put_i64_le(p, 24, r.done_ns);
+    put_i64_le(p, 32, r.sensor_send_ns);
+    put_i64_le(p, 40, r.rx_ns);
+    put_i64_le(p, 48, r.tx_ns);
+    put_u64_le(p, 56, r.sensor_tick);
+    put_f64_le(p, 64, r.theta);
+    put_f64_le(p, 72, r.omega);
+    put_f64_le(p, 80, r.cmd);
+    put_f64_le(p, 88, r.i_state);
+    put_f64_le(p, 96, r.d_prev);
+    put_u64_le(p, 104, r.drops);
+    put_u32_le(p, 112, r.staleness);
+    put_u32_le(p, 116, r.ack_cmd_seq);
+    put_u8(p, 120, r.rx_count);
+    put_u8(p, 121, r.discarded_old);
+    put_u8(p, 122, r.discarded_superseded);
+    put_u8(p, 123, r.discarded_other);
+    put_u8(p, 124, r.state);
+    put_u8(p, 125, r.reason);
+    put_u8(p, 126, r.flags);
+    put_u8(p, 127, r.ack_status);
+    return true;
+}
+
+bool decode_control(const unsigned char* p, std::size_t len, ControlRecord& r) noexcept {
+    if (len != kControlV1PayloadBytes) return false;
+    if (!valid_counts(p[120], p[121], p[122], p[123])) return false;
+    r.tick = get_u64_le(p, 0);
+    r.deadline_ns = get_i64_le(p, 8);
+    r.woke_ns = get_i64_le(p, 16);
+    r.done_ns = get_i64_le(p, 24);
+    r.sensor_send_ns = get_i64_le(p, 32);
+    r.rx_ns = get_i64_le(p, 40);
+    r.tx_ns = get_i64_le(p, 48);
+    r.sensor_tick = get_u64_le(p, 56);
+    r.theta = get_f64_le(p, 64);
+    r.omega = get_f64_le(p, 72);
+    r.cmd = get_f64_le(p, 80);
+    r.i_state = get_f64_le(p, 88);
+    r.d_prev = get_f64_le(p, 96);
+    r.drops = get_u64_le(p, 104);
+    r.staleness = get_u32_le(p, 112);
+    r.ack_cmd_seq = get_u32_le(p, 116);
+    r.rx_count = get_u8(p, 120);
+    r.discarded_old = get_u8(p, 121);
+    r.discarded_superseded = get_u8(p, 122);
+    r.discarded_other = get_u8(p, 123);
+    r.state = get_u8(p, 124);
+    r.reason = get_u8(p, 125);
+    r.flags = get_u8(p, 126);
+    r.ack_status = get_u8(p, 127);
+    return true;
+}
+
+}  // namespace payload
+
 namespace {
 inline void put64(unsigned char* p, std::uint64_t v) noexcept {
     for (int i = 0; i < 8; ++i) p[i] = static_cast<unsigned char>(v >> (8 * i));
@@ -141,13 +355,22 @@ void Drain::stop() {
 
 void Drain::run() {
     Record batch[512];
-    unsigned char frame[kFrameOverhead + sizeof(Record)];
+    unsigned char frame[kFrameOverhead + kTelemetryV1PayloadBytes];
     bool stop_seen = false;
     for (;;) {
         const std::size_t n = ring_.pop_batch(batch, 512);
         for (std::size_t i = 0; i < n; ++i) {
+            const Record& r = batch[i];
+            unsigned char payload[kTelemetryV1PayloadBytes];
+            wire::put_u64_le(payload,  0, r.tick);
+            wire::put_i64_le(payload,  8, r.deadline_ns);
+            wire::put_i64_le(payload, 16, r.woke_ns);
+            wire::put_i64_le(payload, 24, r.done_ns);
+            wire::put_f64_le(payload, 32, r.theta);
+            wire::put_f64_le(payload, 40, r.cmd);
+            wire::put_u64_le(payload, 48, r.drops);
             const std::size_t len = encode_frame(
-                kTypeTelemetry, seq_++, &batch[i], sizeof(Record), frame);
+                kTypeTelemetry, seq_++, payload, kTelemetryV1PayloadBytes, frame);
             if (std::fwrite(frame, 1, len, file_) != len)
                 write_failed_.store(true, std::memory_order_relaxed);
             else { ++records_; bytes_ += len; }
