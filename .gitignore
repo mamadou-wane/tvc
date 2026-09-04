@@ -7,8 +7,16 @@ __pycache__/
 .superpowers/
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+.claude/workflows/
+
+# Internal documents. Planning, governance, release designs, ADRs, agent
+# instructions and working decisions stay local. Public documentation describes
+# the system, its behavior, its use, and the evidence behind its claims.
 AGENTS.md
 CLAUDE.md
 docs/superpowers/
 docs/ai-log/
-docs/adr/000-agent-roles.md
+docs/engineering-plan.md
+docs/plan.md
+docs/design/
+docs/adr/

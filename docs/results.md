@@ -149,8 +149,11 @@ question (the far tail section below).
 
 v0.2a added the telemetry path: a 56-byte record per cycle through a
 single-producer single-consumer ring, drained by a SCHED_OTHER thread
-off the isolated core into a CRC-checked recording file (spec:
-superpowers/specs/2026-08-16-telemetry-v02a-design.md). The acceptance
+off the isolated core into a CRC-checked recording file (record
+layout: the schema string and hash in src/telemetry.hpp, the decoder
+in ground/wire.py, the committed corpus and manifest under
+tests/golden/, and the compatibility tests tests/unit/test_wire.py and
+tests/cpp/wire_tests.cpp). The acceptance
 question: does enabling it move the jitter CDF? Campaign of 2026-08-16,
 seven levels, three repeats of 300,000 cycles, same protocol as v0.1;
 L6 is L5 plus --telemetry. Data:
@@ -286,8 +289,8 @@ hit.
 | osnoise-B-all | 60k | all 16 CPUs | 1 | 4.3 | 15.1 | 16.2 | 70.1 | 233 |
 | osnoise-C-mig0 | 300k | CPUs 6, 7 | 0 | 13.9 | 15.3 | 21.8 | 27.9 | 78 |
 
-The first two rows are the cpuidle acceptance check ai-log 0030 asked
-for: the env block's per-state disable counts read 0 before
+The first two rows are the cpuidle acceptance check the campaign
+called for: the env block's per-state disable counts read 0 before
 cpupower idle-set -D 0 and 16 after, on all four states, and the same
 L5 loop moved from p99.9 1,155 us to 16.4.
 
