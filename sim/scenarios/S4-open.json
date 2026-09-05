@@ -1,0 +1,13 @@
+{
+  "ticks": 300,
+  "theta0": 0.02,
+  "omega0": 0.0,
+  "gusts": [],
+  "loss_up": 0.0,
+  "loss_down": 0.0,
+  "loss_start_tick": 0,
+  "blackout_up": null,
+  "blackout_down": null,
+  "commands": [],
+  "auto_arm": false
+}
