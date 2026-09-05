@@ -1,0 +1,108 @@
+{
+  "cases": [
+    {
+      "draw_drop_prefix_down": "01100001010100010001000100110100",
+      "draw_drop_prefix_up": "00101001110010000001010011000001",
+      "final_state_down": "0xd05286d3db785077",
+      "final_state_up": "0xa271271efeebc0d1",
+      "intentionally_lost_down": 608,
+      "intentionally_lost_up": 570,
+      "p_down": "0x1.3333333333333p-2",
+      "p_up": "0x1.3333333333333p-2",
+      "scenario": "S2-gust",
+      "seed": 1,
+      "ticks": 2000
+    },
+    {
+      "draw_drop_prefix_down": "01100001010100010001000100110100",
+      "draw_drop_prefix_up": "00101001110010000001010011000001",
+      "final_state_down": "0xd906036d166d027f",
+      "final_state_up": "0xab24a3b839e072d9",
+      "intentionally_lost_down": 902,
+      "intentionally_lost_up": 875,
+      "p_down": "0x1.3333333333333p-2",
+      "p_up": "0x1.3333333333333p-2",
+      "scenario": "S2-gust",
+      "seed": 1,
+      "ticks": 3000
+    },
+    {
+      "draw_drop_prefix_down": "01100001010100010001000100110100",
+      "draw_drop_prefix_up": "00101001110010000001010011000001",
+      "final_state_down": "0xea6cfc9f8c56668f",
+      "final_state_up": "0xbc8b9ceaafc9d6e9",
+      "intentionally_lost_down": 1479,
+      "intentionally_lost_up": 1477,
+      "p_down": "0x1.3333333333333p-2",
+      "p_up": "0x1.3333333333333p-2",
+      "scenario": "S2-gust",
+      "seed": 1,
+      "ticks": 5000
+    },
+    {
+      "draw_drop_prefix_down": "01100001010100010001000100110100",
+      "draw_drop_prefix_up": "00101001110010000001010011000001",
+      "final_state_down": "0x15ee6b9db31de0b7",
+      "final_state_up": "0xe80d0be8d6915111",
+      "intentionally_lost_down": 2943,
+      "intentionally_lost_up": 3047,
+      "p_down": "0x1.3333333333333p-2",
+      "p_up": "0x1.3333333333333p-2",
+      "scenario": "S2-gust",
+      "seed": 1,
+      "ticks": 10000
+    },
+    {
+      "draw_drop_prefix_down": "11111111111111111111111111111111",
+      "draw_drop_prefix_up": "00000000000000000000000000000000",
+      "final_state_down": "0x85dac4d14ede6f07",
+      "final_state_up": "0x57f9651c7251df61",
+      "intentionally_lost_down": 32,
+      "intentionally_lost_up": 0,
+      "p_down": "0x1.0000000000000p+0",
+      "p_up": "0x0.0p+0",
+      "scenario": "S1-hold",
+      "seed": 1,
+      "ticks": 32
+    },
+    {
+      "draw_drop_prefix_down": "01101011011101010001000100111100",
+      "draw_drop_prefix_up": "00101001110010010001010011001101",
+      "final_state_down": "0x85dac4d14ede6f07",
+      "final_state_up": "0x57f9651c7251df61",
+      "intentionally_lost_down": 16,
+      "intentionally_lost_up": 14,
+      "p_down": "0x1.de2c6aa70a6f2p-2",
+      "p_up": "0x1.7906ac21d0e58p-2",
+      "scenario": "S1-hold",
+      "seed": 1,
+      "ticks": 32
+    },
+    {
+      "draw_drop_prefix_down": "01100001010100010001000100110100",
+      "draw_drop_prefix_up": "00101001110010000001010011000001",
+      "final_state_down": "0xd05286d3db785077",
+      "final_state_up": "0xa271271efeebc0d1",
+      "intentionally_lost_down": 608,
+      "intentionally_lost_up": 589,
+      "p_down": "0x1.3333333333333p-2",
+      "p_up": "0x1.3333333333333p-2",
+      "scenario": "S6-blackout",
+      "seed": 1,
+      "ticks": 2000
+    },
+    {
+      "draw_drop_prefix_down": "00000010001000000000011000001000",
+      "draw_drop_prefix_up": "10000001111110111000000101100010",
+      "final_state_down": "0x916374dc9d0dcca2",
+      "final_state_up": "0xdd533e1366dad898",
+      "intentionally_lost_down": 838,
+      "intentionally_lost_up": 832,
+      "p_down": "0x1.3333333333333p-2",
+      "p_up": "0x1.3333333333333p-2",
+      "scenario": "demo-loss30",
+      "seed": 20260902,
+      "ticks": 3000
+    }
+  ]
+}

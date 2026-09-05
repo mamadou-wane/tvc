@@ -1,0 +1,16 @@
+{
+  "ticks": 3000,
+  "theta0": 0.05,
+  "omega0": 0.0,
+  "gusts": [],
+  "loss_up": 0.30,
+  "loss_down": 0.30,
+  "loss_start_tick": 200,
+  "blackout_up": null,
+  "blackout_down": null,
+  "commands": [
+    {"tick": 0, "opcode": "ARM"},
+    {"tick": 60, "opcode": "LAUNCH"}
+  ],
+  "auto_arm": false
+}
