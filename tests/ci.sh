@@ -11,6 +11,7 @@ python3 scripts/check_public_paths.py
 cmake -S . -B build && cmake --build build -j
 ./build/wire_tests
 ./build/control_tests
+./build/episode_tests
 python3 -B tests/check_pid_corpus.py ./build/control_tests
 ./build/rt_setup_tests
 ./build/env_probe_tests
@@ -27,6 +28,7 @@ if [ -d tests/functional ]; then
 fi
 ./build-asan/wire_tests
 ./build-asan/control_tests
+./build-asan/episode_tests
 python3 -B tests/check_pid_corpus.py ./build-asan/control_tests
 ./build-asan/rt_setup_tests
 ./build-asan/env_probe_tests

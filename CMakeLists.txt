@@ -64,6 +64,17 @@ target_compile_options(control_tests PRIVATE
   -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 target_link_options(control_tests PRIVATE -fno-fast-math)
 
+add_executable(episode_tests tests/cpp/episode_tests.cpp src/episode.cpp src/control.cpp)
+target_compile_options(episode_tests PRIVATE
+  -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+target_link_options(episode_tests PRIVATE -fno-fast-math
+  "LINKER:--wrap=_ZN7control7initialEv"
+  "LINKER:--wrap=_ZN7control4stepERNS_5StateERK11Observation")
+# Call observation needs external references to the real controller definitions.
+# Mangled symbols and interposition are test-only, not production contracts.
+set_target_properties(episode_tests PROPERTIES
+  INTERPROCEDURAL_OPTIMIZATION FALSE UNITY_BUILD OFF)
+
 add_executable(wire_tests tests/cpp/wire_tests.cpp src/telemetry.cpp)
 target_compile_definitions(wire_tests PRIVATE _GNU_SOURCE)
 target_compile_options(wire_tests PRIVATE -Wall -Wextra -Wpedantic)
