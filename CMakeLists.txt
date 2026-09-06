@@ -58,6 +58,12 @@ target_link_libraries(tvc_harness PRIVATE Threads::Threads m)
 
 target_compile_options(tvc_harness PRIVATE -Wall -Wextra -Wpedantic)
 
+add_executable(control_tests tests/cpp/control_tests.cpp src/control.cpp)
+# Future vehicle consumers must explicitly receive this policy too.
+target_compile_options(control_tests PRIVATE
+  -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+target_link_options(control_tests PRIVATE -fno-fast-math)
+
 add_executable(wire_tests tests/cpp/wire_tests.cpp src/telemetry.cpp)
 target_compile_definitions(wire_tests PRIVATE _GNU_SOURCE)
 target_compile_options(wire_tests PRIVATE -Wall -Wextra -Wpedantic)
