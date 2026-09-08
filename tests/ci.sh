@@ -6,10 +6,16 @@ if grep -rn $'\xe2\x80\x94' src scripts tests \
     --include='*.cpp' --include='*.hpp' --include='*.py' --include='*.sh'; then
   echo "ci.sh: em dashes found in the files above"; exit 1
 fi
+python3 scripts/check_nonblocking.py
+test -f tests/cpp/net_tests.cpp
+if grep -nE 'chrono|clock_gettime|now_ns' tests/cpp/net_tests.cpp; then
+  echo "ci.sh: clock reads in socket tests"; exit 1
+fi
 # Public-path gate: no tracked document points at a gitignored path.
 python3 scripts/check_public_paths.py
 cmake -S . -B build && cmake --build build -j
 ./build/wire_tests
+./build/net_tests
 ./build/control_tests
 ./build/episode_tests
 python3 -B tests/check_pid_corpus.py ./build/control_tests
@@ -27,6 +33,7 @@ if [ -d tests/functional ]; then
   TVC_ASAN=1 TVC_BIN="$PWD/build-asan/tvc_harness" python3 -m unittest discover -s tests/functional -v
 fi
 ./build-asan/wire_tests
+./build-asan/net_tests
 ./build-asan/control_tests
 ./build-asan/episode_tests
 python3 -B tests/check_pid_corpus.py ./build-asan/control_tests
