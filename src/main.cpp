@@ -103,6 +103,7 @@ struct Config {
     bool        naive_log    = true;      // the allocating telemetry path
     guard::Mode alloc_guard  = guard::Mode::Off;
     bool        telemetry    = false;
+    bool        record_control = false;
 };
 
 void usage() {
@@ -122,7 +123,8 @@ void usage() {
 "  --cpu=N             pin to CPU N\n"
 "  --no-naive-log      remove the allocating telemetry path from the cycle\n"
 "  --alloc-guard=MODE  off | count | abort                   (default: off)\n"
-"  --telemetry         framed telemetry through the SPSC ring to <label>.telemetry.tvcrec\n"
+"  --telemetry         framed telemetry through the SPSC ring (default: <label>.telemetry.tvcrec)\n"
+"  --record=TYPE       v1 | control                          (default: v1)\n"
 "\n"
 "exit codes: 0 ok, 1 usage, 2 mitigation failed, 3 interrupted, 4 write failed\n"
 "label charset: [A-Za-z0-9._-]\n");
@@ -200,12 +202,20 @@ ParseResult parse(int argc, char** argv, Config& c) {
             else { std::fprintf(stderr, "bad --alloc-guard=%s\n", v); return ParseResult::Error; }
         }
         else if (!std::strcmp(a, "--telemetry")) c.telemetry = true;
+        else if (starts_with(a, "--record=", &v)) {
+            if      (!std::strcmp(v, "v1"))      c.record_control = false;
+            else if (!std::strcmp(v, "control")) c.record_control = true;
+            else { std::fprintf(stderr, "bad --record=%s\n", v); return ParseResult::Error; }
+        }
         else { std::fprintf(stderr, "unknown argument: %s\n\n", a); usage(); return ParseResult::Error; }
     }
     if (!label_ok(c.label)) { std::fputs("bad --label: must match [A-Za-z0-9._-]\n", stderr); return ParseResult::Error; }
     if (c.rate_hz <= 0) { std::fputs("--rate must be positive\n", stderr); return ParseResult::Error; }
     if (c.cycles <= 0) { std::fputs("--cycles must be positive\n", stderr); return ParseResult::Error; }
     if (c.warmup < 0) { std::fputs("--warmup must be >= 0\n", stderr); return ParseResult::Error; }
+    if (c.record_control && !c.telemetry) {
+        std::fputs("--record=control requires --telemetry\n", stderr); return ParseResult::Error;
+    }
     return ParseResult::Ok;
 }
 
@@ -257,6 +267,7 @@ std::string config_string(const Config& c) {
     if (c.cpu >= 0)      s += "cpu:" + std::to_string(c.cpu) + " ";
     s += c.naive_log ? "naive-log " : "no-alloc ";
     if (c.telemetry)     s += "telemetry ";
+    if (c.record_control) s += "record:control ";
     if (!s.empty() && s.back() == ' ') s.pop_back();
     return s;
 }
@@ -287,12 +298,15 @@ int main(int argc, char** argv) {
     // SCHED_OTHER and the default affinity mask (isolcpus keeps it off
     // the isolated core) ----
     bool ok_telem = !cfg.telemetry;
-    std::unique_ptr<telem::SpscRing> ring;
-    std::unique_ptr<telem::Drain> drain;
+    std::unique_ptr<telem::SpscRing<telem::Record>> ring;
+    std::unique_ptr<telem::Drain<telem::Record>> drain;
+    std::unique_ptr<telem::SpscRing<telem::ControlRecord>> control_ring;
+    std::unique_ptr<telem::Drain<telem::ControlRecord>> control_drain;
     if (cfg.telemetry) {
         ::mkdir(cfg.outdir.c_str(), 0755);
         const std::string tpath =
-            cfg.outdir + "/" + cfg.label + ".telemetry.tvcrec";
+            cfg.outdir + "/" + cfg.label +
+            (cfg.record_control ? ".control.tvcrec" : ".telemetry.tvcrec");
         std::FILE* tf = std::fopen(tpath.c_str(), "wb");
         if (tf) {
             unsigned char hdr[32];
@@ -301,14 +315,21 @@ int main(int argc, char** argv) {
             // control path itself never reads CLOCK_REALTIME.
             ::clock_gettime(CLOCK_REALTIME, &rt);
             telem::encode_recording_header(
-                now_ns(), rt.tv_sec * kNsPerSec + rt.tv_nsec, hdr);
+                now_ns(), rt.tv_sec * kNsPerSec + rt.tv_nsec, hdr,
+                cfg.record_control ? telem::kControlV1SchemaHash : telem::kSchemaHash);
             ok_telem = std::fwrite(hdr, 1, sizeof hdr, tf) == sizeof hdr;
             if (!ok_telem) std::fclose(tf);
         }
         if (tf && ok_telem) {
-            ring = std::make_unique<telem::SpscRing>();
-            drain = std::make_unique<telem::Drain>(*ring);
-            drain->start(tf);
+            if (cfg.record_control) {
+                control_ring = std::make_unique<telem::SpscRing<telem::ControlRecord>>();
+                control_drain = std::make_unique<telem::Drain<telem::ControlRecord>>(*control_ring);
+                control_drain->start(tf);
+            } else {
+                ring = std::make_unique<telem::SpscRing<telem::Record>>();
+                drain = std::make_unique<telem::Drain<telem::Record>>(*ring);
+                drain->start(tf);
+            }
         } else {
             ok_telem = false;
         }
@@ -415,6 +436,19 @@ int main(int argc, char** argv) {
             rec.cmd         = plant.last_cmd;
             rec.drops       = ring->drops();
             ring->try_push(rec);
+        } else if (control_ring) {
+            guard::Cycle telem_cycle;
+            telem::ControlRecord rec{};
+            rec.tick        = static_cast<std::uint64_t>(n);
+            rec.deadline_ns = deadline;
+            rec.woke_ns     = woke;
+            rec.done_ns     = done;
+            rec.sensor_tick = std::numeric_limits<std::uint64_t>::max();
+            rec.theta       = plant.theta;
+            rec.omega       = plant.omega;
+            rec.cmd         = plant.last_cmd;
+            rec.drops       = control_ring->drops();
+            control_ring->try_push(rec);
         }
 
         if (n >= cfg.warmup) {
@@ -429,6 +463,7 @@ int main(int argc, char** argv) {
 
     guard::set_mode(guard::Mode::Off);
     if (drain) drain->stop();
+    if (control_drain) control_drain->stop();
 
     // ---- report ----
     const auto s = stats.summary();
@@ -479,11 +514,15 @@ int main(int argc, char** argv) {
     const std::string cfgstr = config_string(cfg);
 
     std::string telemetry_json;
-    if (drain)
+    if (drain || control_drain) {
+        const std::uint64_t records = drain ? drain->records_written() : control_drain->records_written();
+        const std::uint64_t dropped = ring ? ring->drops() : control_ring->drops();
+        const std::uint64_t bytes = drain ? drain->bytes_written() : control_drain->bytes_written();
         telemetry_json =
-            "{ \"records\": " + std::to_string(drain->records_written()) +
-            ", \"dropped\": " + std::to_string(ring->drops()) +
-            ", \"bytes\": " + std::to_string(32 + drain->bytes_written()) + " }";
+            "{ \"records\": " + std::to_string(records) +
+            ", \"dropped\": " + std::to_string(dropped) +
+            ", \"bytes\": " + std::to_string(32 + bytes) + " }";
+    }
 
     // Best effort, single level: a missing parent still fails the writes below.
     ::mkdir(cfg.outdir.c_str(), 0755);
@@ -500,7 +539,8 @@ int main(int argc, char** argv) {
     const bool mitigation_failed =
         (cfg.mlock && !ok_mlock) || (cfg.fifo_prio > 0 && !ok_fifo) ||
         (cfg.cpu >= 0 && !ok_cpu) || (cfg.telemetry && !ok_telem);
-    const bool telem_failed = drain && drain->write_failed();
+    const bool telem_failed = (drain && drain->write_failed()) ||
+                              (control_drain && control_drain->write_failed());
     if (!wrote_ok || telem_failed) return 4;
     if (g_stop.load()) return 3;
     if (mitigation_failed) return 2;

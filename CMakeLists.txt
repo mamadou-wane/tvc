@@ -80,6 +80,13 @@ target_compile_definitions(wire_tests PRIVATE _GNU_SOURCE)
 target_compile_options(wire_tests PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(wire_tests PRIVATE Threads::Threads)
 
+add_executable(net_tests tests/cpp/net_tests.cpp src/net.cpp src/alloc_guard.cpp)
+target_compile_definitions(net_tests PRIVATE _GNU_SOURCE)
+target_compile_options(net_tests PRIVATE -Wall -Wextra -Wpedantic)
+target_link_options(net_tests PRIVATE
+  "LINKER:--wrap=fcntl" "LINKER:--wrap=setsockopt"
+  "LINKER:--wrap=recvmsg" "LINKER:--wrap=socket")
+
 add_executable(rt_setup_tests tests/cpp/rt_setup_tests.cpp src/rt_setup.cpp)
 target_compile_definitions(rt_setup_tests PRIVATE _GNU_SOURCE)
 target_compile_options(rt_setup_tests PRIVATE -Wall -Wextra -Wpedantic)

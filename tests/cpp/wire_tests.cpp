@@ -317,9 +317,7 @@ void test_drain_counters() {
 }
 
 void test_drain_known_answer_bytes() {
-    // Pin the real drain before changing its serializer. These literals use
-    // explicit LE fields and independently checked CRC-32C values, never the
-    // encoder under test. Distinct fields expose swaps; NaNs expose arithmetic.
+    // Independent literal frames pin field order and floating-point bits in the real drain.
     const telem::Record records[] = {
         {0x0102030405060708u, -0x0102030405060708LL,
          0x1112131415161718LL, 0x2122232425262728LL,
@@ -464,6 +462,73 @@ const unsigned char kControlPayload[] = {
     0,0,0,0,0,0,0,0x80, 0,0,0,0,0,0,0x0e,0x40, 0,0,0,0,0,0,0x12,0xc0,
     14,0,0,0,0,0,0,0, 15,0,0,0,16,0,0,0, 9,1,2,3,4,5,0x76,7,
 };
+
+// Payload and bitwise CRC-32C literals are independent of the tested encoder.
+void test_control_drain_exact_bytes() {
+    const telem::ControlRecord record{1,-2,3,4,5,6,7,8,1.25,-2.5,-0.0,3.75,-4.5,14,15,16,9,1,2,3,4,5,0x76,7};
+    telem::SpscRing<telem::ControlRecord> ring;
+    for (int i = 0; i < 3; ++i) CHECK(ring.try_push(record));
+    std::FILE* file = std::tmpfile(); CHECK(file != nullptr);
+    const int reader_fd = ::dup(::fileno(file)); CHECK(reader_fd >= 0);
+    unsigned char header[32];
+    telem::encode_recording_header(1000, 2000, header, telem::kControlV1SchemaHash);
+    CHECK(std::fwrite(header, 1, 32, file) == 32);
+    telem::Drain<telem::ControlRecord> drain(ring);
+    drain.start(file); drain.stop();
+    CHECK(!drain.write_failed() && drain.records_written() == 3 && drain.bytes_written() == 426);
+    const unsigned char expected_header[] = {
+        'T','V','C','R','E','C','R','D',1,0,0,0,0xc8,0x94,0xfa,0xad,
+        0xe8,3,0,0,0,0,0,0,0xd0,7,0,0,0,0,0,0};
+    std::vector<unsigned char> expected(expected_header, expected_header + 32);
+    const unsigned char crcs[][4] = {{0xa7,0x5e,0xab,0x4e},{0xe2,0xec,0xdc,0x2b},{0x2d,0x3a,0x44,0x84}};
+    for (unsigned char seq = 0; seq < 3; ++seq) {
+        const unsigned char frame_header[] = {0x90,0xeb,1,6,128,0,seq,0,0,0};
+        expected.insert(expected.end(), frame_header, frame_header + 10);
+        expected.insert(expected.end(), kControlPayload, kControlPayload + 128);
+        expected.insert(expected.end(), crcs[seq], crcs[seq] + 4);
+    }
+    std::FILE* reader = ::fdopen(reader_fd, "rb"); CHECK(reader != nullptr);
+    std::rewind(reader);
+    std::vector<unsigned char> actual(expected.size());
+    CHECK(std::fread(actual.data(), 1, actual.size(), reader) == actual.size());
+    CHECK(std::fgetc(reader) == EOF && !std::ferror(reader));
+    CHECK(std::fclose(reader) == 0);
+    CHECK(actual == expected);
+}
+
+template<class Record>
+void test_typed_drain_shutdown_and_errors() {
+    telem::SpscRing<Record> ring;
+    std::FILE* file = std::tmpfile(); CHECK(file != nullptr);
+    telem::Drain<Record> drain(ring);
+    drain.start(file);
+    std::uint64_t pushed = 0;
+    std::thread producer([&] {
+        for (std::uint64_t i = 0; i < 50000; ++i) {
+            Record record{}; record.tick = i;
+            if (ring.try_push(record)) ++pushed;
+        }
+    });
+    producer.join(); drain.stop();
+    CHECK(!drain.write_failed() && drain.records_written() == pushed);
+    CHECK(drain.bytes_written() == pushed * (sizeof(Record) + 14));
+    CHECK(pushed + ring.drops() == 50000);
+    for (bool buffered : {false, true}) {
+        telem::SpscRing<Record> failed_ring;
+        Record record{}; CHECK(failed_ring.try_push(record));
+        std::FILE* full = std::fopen("/dev/full", "wb"); CHECK(full != nullptr);
+        char buffer[4096];
+        CHECK(std::setvbuf(full, buffered ? buffer : nullptr, buffered ? _IOFBF : _IONBF,
+                          buffered ? sizeof buffer : 0) == 0);
+        telem::Drain<Record> failed(failed_ring);
+        failed.start(full); failed.stop();
+        CHECK(failed.write_failed());
+        CHECK(failed_ring.drops() == 0);
+        CHECK(failed_ring.pop_batch(&record, 1) == 0);
+        CHECK(failed.records_written() == (buffered ? 1u : 0u));
+        CHECK(failed.bytes_written() == (buffered ? sizeof(Record) + 14 : 0));
+    }
+}
 
 void test_typed_payload_codecs() {
     using namespace telem::payload;
@@ -800,6 +865,9 @@ int main(int argc, char** argv) {
     test_drain_known_answer_bytes();
     test_drain_output_decodes();
     test_drain_stop_after_concurrent_push();
+    test_control_drain_exact_bytes();
+    test_typed_drain_shutdown_and_errors<telem::Record>();
+    test_typed_drain_shutdown_and_errors<telem::ControlRecord>();
     test_typed_payload_codecs();
     test_payload_flags_bits_and_counts();
     test_strict_datagrams_and_expanded_framing();

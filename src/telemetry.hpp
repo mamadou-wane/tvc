@@ -38,8 +38,7 @@ static_assert(offsetof(Record, theta)       == 32);
 static_assert(offsetof(Record, cmd)         == 40);
 static_assert(offsetof(Record, drops)       == 48);
 
-// Internal value layout for the control payload. Ring use and its serializer
-// are separate work; declaring this record does not change the active stream.
+// Stored by value in the ring; wire encoding is field by field.
 struct ControlRecord {
     std::uint64_t tick;
     std::int64_t  deadline_ns;
@@ -168,8 +167,7 @@ bool decode_control(const unsigned char*, std::size_t, ControlRecord&) noexcept;
 
 }  // namespace payload
 
-// CRC-32C (Castagnoli), reflected, init/xorout 0xFFFFFFFF: the value
-// google-crc32c computes. Byte-wise table; drain-side only.
+// CRC-32C (Castagnoli), reflected, init/xorout 0xFFFFFFFF.
 std::uint32_t crc32c(const void* data, std::size_t len) noexcept;
 
 // Frame encoder: writes kFrameOverhead + len bytes into out and returns that
@@ -209,15 +207,15 @@ DatagramError decode_datagram(const unsigned char* data, std::size_t len,
 DecodeCounters decode_stream(const unsigned char* data, std::size_t len,
                              std::vector<DecodedFrame>& out) noexcept;
 
-// Single-producer single-consumer ring. Producer is the control thread:
-// try_push is allocation-free, syscall-free, lock-free, and wait-free.
-// Drop-newest on full; the producer-owned drop counter is published
-// in-stream via Record::drops.
+// One control-thread producer and one drain-thread consumer; try_push never allocates, locks, waits or calls the kernel.
+// Full rings drop newest; each record carries the producer's cumulative drop count.
+template<class T = Record>
 class SpscRing {
+    static_assert(std::is_same_v<T, Record> || std::is_same_v<T, ControlRecord>);
 public:
     static constexpr std::size_t kSlots = 4096;   // power of two, ~8 s at 500 Hz
 
-    bool try_push(const Record& r) noexcept {
+    bool try_push(const T& r) noexcept {
         const std::uint64_t head = head_.load(std::memory_order_relaxed);
         if (head - cached_tail_ == kSlots) {
             cached_tail_ = tail_.load(std::memory_order_acquire);
@@ -228,7 +226,7 @@ public:
         return true;
     }
 
-    std::size_t pop_batch(Record* out, std::size_t max) noexcept {
+    std::size_t pop_batch(T* out, std::size_t max) noexcept {
         const std::uint64_t head = head_.load(std::memory_order_acquire);
         std::uint64_t tail = tail_.load(std::memory_order_relaxed);
         std::size_t n = 0;
@@ -240,24 +238,27 @@ public:
     std::uint64_t drops() const noexcept { return drops_; }
 
 private:
-    std::array<Record, kSlots> slots_{};
+    std::array<T, kSlots> slots_{};
     alignas(64) std::atomic<std::uint64_t> head_{0};
     alignas(64) std::atomic<std::uint64_t> tail_{0};
     alignas(64) std::uint64_t cached_tail_ = 0;   // producer-owned
     std::uint64_t drops_ = 0;                     // producer-owned
 };
 
+static_assert(sizeof(ControlRecord) * SpscRing<ControlRecord>::kSlots == 512u * 1024u);
+
 // Writes the 32-byte recording header into out and returns 32.
 std::size_t encode_recording_header(std::int64_t mono_ns,
                                     std::int64_t epoch_ns,
-                                    unsigned char* out) noexcept;
+                                    unsigned char* out,
+                                    std::uint32_t schema_hash = kSchemaHash) noexcept;
 
-// Consumer side of the ring. Runs SCHED_OTHER off the isolated core (it
-// inherits scheduling from whoever calls start(); call before rt setup).
-// The alloc guard's flag is thread_local, so this thread may allocate.
+// Start before RT setup to inherit ordinary scheduling/affinity; the consumer may allocate.
+// The drain owns/closes its file; read counters only after stop() joins the thread.
+template<class T = Record>
 class Drain {
 public:
-    explicit Drain(SpscRing& ring) : ring_(ring) {}
+    explicit Drain(SpscRing<T>& ring) : ring_(ring) {}
     void start(std::FILE* f);
     void stop();
     bool write_failed() const noexcept {
@@ -268,7 +269,7 @@ public:
 
 private:
     void run();
-    SpscRing& ring_;
+    SpscRing<T>& ring_;
     std::FILE* file_ = nullptr;
     std::thread thread_;
     std::atomic<bool> stop_{false};
@@ -277,5 +278,8 @@ private:
     std::uint64_t bytes_ = 0;
     std::uint32_t seq_ = 0;
 };
+
+extern template class Drain<Record>;
+extern template class Drain<ControlRecord>;
 
 }  // namespace telem

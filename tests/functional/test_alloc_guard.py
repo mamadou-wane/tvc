@@ -28,5 +28,15 @@ class AllocGuard(unittest.TestCase):
             self.assertEqual(p.returncode, 0)
             self.assertIn("hot path is clean", p.stdout)
 
+    def test_record_selections_keep_count_and_abort_paths_clean(self):
+        for record in ("v1", "control"):
+            for mode in ("count", "abort"):
+                with self.subTest(record=record, mode=mode), tempfile.TemporaryDirectory() as d:
+                    p = run(f"--alloc-guard={mode}", "--no-naive-log", "--telemetry",
+                            f"--record={record}", cwd=d)
+                    self.assertEqual(p.returncode, 0, p.stderr)
+                    if mode == "count":
+                        self.assertIn("hot path is clean", p.stdout)
+
 if __name__ == "__main__":
     unittest.main()

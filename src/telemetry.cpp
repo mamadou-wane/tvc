@@ -333,44 +333,53 @@ inline void put64(unsigned char* p, std::uint64_t v) noexcept {
 
 std::size_t encode_recording_header(std::int64_t mono_ns,
                                     std::int64_t epoch_ns,
-                                    unsigned char* out) noexcept {
+                                    unsigned char* out,
+                                    std::uint32_t schema_hash) noexcept {
     std::memcpy(out, "TVCRECRD", 8);
     put16(out + 8, 1);
     put16(out + 10, 0);
-    put32(out + 12, kSchemaHash);
+    put32(out + 12, schema_hash);
     put64(out + 16, static_cast<std::uint64_t>(mono_ns));
     put64(out + 24, static_cast<std::uint64_t>(epoch_ns));
     return 32;
 }
 
-void Drain::start(std::FILE* f) {
+template<class T>
+void Drain<T>::start(std::FILE* f) {
     file_ = f;
     thread_ = std::thread([this] { run(); });
 }
 
-void Drain::stop() {
+template<class T>
+void Drain<T>::stop() {
     stop_.store(true, std::memory_order_release);
     thread_.join();
 }
 
-void Drain::run() {
-    Record batch[512];
-    unsigned char frame[kFrameOverhead + kTelemetryV1PayloadBytes];
+template<class T>
+void Drain<T>::run() {
+    constexpr bool legacy = std::is_same_v<T, Record>;
+    constexpr std::size_t payload_bytes = legacy ? kTelemetryV1PayloadBytes : kControlV1PayloadBytes;
+    constexpr std::uint8_t type = legacy ? kTypeTelemetry : 6;
+    T batch[512];
+    unsigned char frame[kFrameOverhead + payload_bytes];
     bool stop_seen = false;
     for (;;) {
         const std::size_t n = ring_.pop_batch(batch, 512);
         for (std::size_t i = 0; i < n; ++i) {
-            const Record& r = batch[i];
-            unsigned char payload[kTelemetryV1PayloadBytes];
-            wire::put_u64_le(payload,  0, r.tick);
-            wire::put_i64_le(payload,  8, r.deadline_ns);
-            wire::put_i64_le(payload, 16, r.woke_ns);
-            wire::put_i64_le(payload, 24, r.done_ns);
-            wire::put_f64_le(payload, 32, r.theta);
-            wire::put_f64_le(payload, 40, r.cmd);
-            wire::put_u64_le(payload, 48, r.drops);
+            unsigned char payload[payload_bytes];
+            bool encoded;
+            if constexpr (legacy)
+                encoded = payload::encode_record(payload, payload_bytes, batch[i]);
+            else
+                encoded = payload::encode_control(payload, payload_bytes, batch[i]);
+            if (!encoded) {
+                // Never write a rejected payload.
+                write_failed_.store(true, std::memory_order_relaxed);
+                continue;
+            }
             const std::size_t len = encode_frame(
-                kTypeTelemetry, seq_++, payload, kTelemetryV1PayloadBytes, frame);
+                type, seq_++, payload, payload_bytes, frame);
             if (std::fwrite(frame, 1, len, file_) != len)
                 write_failed_.store(true, std::memory_order_relaxed);
             else { ++records_; bytes_ += len; }
@@ -391,5 +400,8 @@ void Drain::run() {
         write_failed_.store(true, std::memory_order_relaxed);
     std::fclose(file_);
 }
+
+template class Drain<Record>;
+template class Drain<ControlRecord>;
 
 }  // namespace telem
