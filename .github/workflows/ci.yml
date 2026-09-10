@@ -21,3 +21,15 @@ jobs:
           docker run --rm -v "$PWD":/w -w /w
           --cap-add=IPC_LOCK --ulimit memlock=-1:-1
           tvc-dev bash tests/ci.sh
+
+  canonical-goldens:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Canonical golden identity
+        run: >
+          scripts/check_canonical.sh
+          ghcr.io/mamadou-wane/tvc-gold@sha256:77cfe56d943ef87fc8660c8e455127a9fe9fda5f96dc6bc0d804570b96a22d64
+          "$RUNNER_TEMP/tvc-canonical"

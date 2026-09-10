@@ -68,7 +68,9 @@ public:
                     const std::string& config, const std::string& applied_json,
                     const std::string& env_json,
                     std::int64_t cycles_requested,
-                    const std::string& telemetry_json) const;
+                    const std::string& telemetry_json,
+                    const char* mode = "harness", bool timing_valid = true,
+                    const std::string& extra_json = "") const;
 
 private:
     hdr_histogram* jitter_raw_   = nullptr;

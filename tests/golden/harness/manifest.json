@@ -1,0 +1,44 @@
+{
+  "columns": [
+    "tick",
+    "theta",
+    "cmd"
+  ],
+  "cycles": 20000,
+  "fixtures": {
+    "aarch64": {
+      "binary_sha256": "f7b42245ca559c1b1dffcadee95528e3ee4d1da590903acf763a647b769fde54",
+      "command": "tvc_harness --telemetry --cycles=20000 --warmup=0 --label=L6-20000",
+      "file": "L6-20000.columns.aarch64.csv",
+      "sha256": "844f604517edab6216ac1c3206085dacb2f78257b2ff3fb100ba9d748e185083",
+      "source_commit": "2a937cdbc0861d978e83e059bb13fb66467eac55",
+      "source_main_sha256": "c86d1aabffeb293920f65d88e2f2f5a9a464e35d1e5be9f7284c3128a5896097",
+      "toolchain": {
+        "cmake": "cmake version 4.2.3",
+        "development_image_id": "sha256:fe6b0d258495f6b3475cd39321c51331b123934ece57ca01e43e756ab28e2687",
+        "fp_contract": "off",
+        "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+        "libc": "ldd (Ubuntu GLIBC 2.43-2ubuntu2.3) 2.43",
+        "platform": "linux/arm64"
+      }
+    },
+    "x86_64": {
+      "binary_sha256": "be4b511f11743190f16361c64951384e4305e643ed14dfff95d477324e6e023d",
+      "command": "tvc_harness --telemetry --cycles=20000 --warmup=0 --label=L6-20000",
+      "file": "L6-20000.columns.x86_64.csv",
+      "sha256": "844f604517edab6216ac1c3206085dacb2f78257b2ff3fb100ba9d748e185083",
+      "source_commit": "2a937cdbc0861d978e83e059bb13fb66467eac55",
+      "source_main_sha256": "c86d1aabffeb293920f65d88e2f2f5a9a464e35d1e5be9f7284c3128a5896097",
+      "toolchain": {
+        "cmake": "cmake version 4.2.3",
+        "development_image_id": "sha256:4182d557e86c9e97813f0f7de861d8bfd2a2dadfe35e236b3ef8b57760d7737a",
+        "fp_contract": "off",
+        "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+        "libc": "ldd (Ubuntu GLIBC 2.43-2ubuntu2.3) 2.43",
+        "platform": "linux/amd64"
+      }
+    }
+  },
+  "format": "tvc-harness-columns-1",
+  "warmup": 0
+}

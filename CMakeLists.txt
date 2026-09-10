@@ -35,6 +35,10 @@ FetchContent_MakeAvailable(hdr_histogram)
 
 add_executable(tvc_harness
   src/main.cpp
+  src/lockstep.cpp
+  src/net.cpp
+  src/control.cpp
+  src/episode.cpp
   src/alloc_guard.cpp
   src/env_probe.cpp
   src/rt_setup.cpp
@@ -56,7 +60,8 @@ endif()
 find_package(Threads REQUIRED)
 target_link_libraries(tvc_harness PRIVATE Threads::Threads m)
 
-target_compile_options(tvc_harness PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_options(tvc_harness PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+target_link_options(tvc_harness PRIVATE -fno-fast-math)
 
 add_executable(control_tests tests/cpp/control_tests.cpp src/control.cpp)
 # Future vehicle consumers must explicitly receive this policy too.
@@ -101,3 +106,22 @@ add_executable(ring_stress tests/cpp/ring_stress.cpp src/telemetry.cpp)
 target_compile_definitions(ring_stress PRIVATE _GNU_SOURCE)
 target_compile_options(ring_stress PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(ring_stress PRIVATE Threads::Threads)
+
+add_executable(lockstep_tests tests/cpp/lockstep_tests.cpp src/lockstep.cpp
+  src/episode.cpp src/control.cpp src/telemetry.cpp src/alloc_guard.cpp
+  src/net.cpp src/rt_setup.cpp src/loop_stats.cpp)
+target_compile_options(lockstep_tests PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+target_link_options(lockstep_tests PRIVATE -fno-fast-math
+  "LINKER:--wrap=_ZN7episode4stepERKNS_5StateERKNS_6InputsE"
+  "LINKER:--wrap=_ZN7control4stepERNS_5StateERK11Observation")
+target_compile_definitions(lockstep_tests PRIVATE _GNU_SOURCE)
+target_include_directories(lockstep_tests PRIVATE ${hdr_histogram_SOURCE_DIR}/include)
+target_link_libraries(lockstep_tests PRIVATE Threads::Threads hdr_histogram_static)
+
+get_target_property(TVC_RUNTIME_SOURCES tvc_harness SOURCES)
+add_executable(lockstep_faults ${TVC_RUNTIME_SOURCES} tests/cpp/lockstep_faults.cpp)
+target_compile_definitions(lockstep_faults PRIVATE _GNU_SOURCE)
+target_include_directories(lockstep_faults PRIVATE ${hdr_histogram_SOURCE_DIR}/include)
+target_compile_options(lockstep_faults PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+target_link_options(lockstep_faults PRIVATE -fno-fast-math "LINKER:--wrap=send" "LINKER:--wrap=fwrite" "LINKER:--wrap=fclose")
+target_link_libraries(lockstep_faults PRIVATE Threads::Threads hdr_histogram_static m)

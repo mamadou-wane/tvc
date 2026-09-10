@@ -103,15 +103,31 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
                            const std::string& config, const std::string& applied_json,
                            const std::string& env_json,
                            std::int64_t cycles_requested,
-                           const std::string& telemetry_json) const {
+                           const std::string& telemetry_json,
+                           const char* mode, bool timing_valid,
+                           const std::string& extra_json) const {
     FILE* f = std::fopen(path.c_str(), "w");
     if (!f) return false;
+    if (!timing_valid) {
+        const int result = std::fprintf(f,
+            "{\n\"label\":\"%s\",\"config\":\"%s\",\"mode\":\"%s\","
+            "\"applied\":%s,\"env\":%s,\"timing_valid\":false,"
+            "\"cycles\":0,\"cycles_requested\":0,\"jitter_us\":null,\"exec_us\":null,"
+            "\"latency_us\":null,\"discard_age_us\":null,\"telemetry\":%s%s\n}\n",
+            label.c_str(), config.c_str(), mode, applied_json.c_str(), env_json.c_str(),
+            telemetry_json.c_str(), extra_json.c_str());
+        const bool flushed = std::fflush(f) == 0;
+        const bool closed = std::fclose(f) == 0;
+        return result >= 0 && flushed && closed;
+    }
     const Summary s = summary();
     auto us = [](std::int64_t ns) { return static_cast<double>(ns) / 1000.0; };
     std::fprintf(f,
         "{\n"
         "  \"label\": \"%s\",\n"
         "  \"config\": \"%s\",\n"
+        "  \"mode\": \"%s\",\n"
+        "  \"timing_valid\": true,\n"
         "  \"applied\": %s,\n"
         "  \"env\": %s,\n"
         "  \"period_us\": %.3f,\n"
@@ -126,7 +142,7 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         "  },\n"
         "  \"dropped_samples\": %" PRId64 ",\n"
         "  \"exec_us\": { \"p50\": %.3f, \"p99.9\": %.3f, \"max\": %.3f }",
-        label.c_str(), config.c_str(), applied_json.c_str(), env_json.c_str(), us(period_ns_),
+        label.c_str(), config.c_str(), mode, applied_json.c_str(), env_json.c_str(), us(period_ns_),
         s.count, cycles_requested, s.missed, s.early,
         us(s.min_ns), us(static_cast<std::int64_t>(s.mean_ns)), us(s.p50_ns),
         us(s.p99_ns), us(s.p999_ns), us(s.p9999_ns), us(s.max_ns),
