@@ -15,21 +15,42 @@ import glob
 import json
 import pathlib
 import statistics
+import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import sweep  # row_problem gates rows here exactly as in the campaign table
 
 
-def verified_p999s(directory, level):
+def legacy_baseline(path):
+    root = pathlib.Path(__file__).resolve().parents[1]
+    try:
+        relative = pathlib.Path(path).resolve().relative_to(root)
+    except ValueError:
+        return False
+    if relative.parts[0] != 'baselines':
+        return False
+    result = subprocess.run(['git', '-C', str(root), 'show', 'HEAD:' + relative.as_posix()],
+                            capture_output=True)
+    return result.returncode == 0 and result.stdout == pathlib.Path(path).read_bytes()
+
+
+def verified_p999s(directory, level, baseline=False):
     """p99.9 values of the level's runs that pass the integrity gate."""
     values = []
     pattern = str(pathlib.Path(directory) / f"{level}*.summary.json")
     for path in sorted(glob.glob(pattern)):
         with open(path) as f:
             s = json.load(f)
-        if sweep.row_problem(s) is None:
+        legacy_ok = baseline and legacy_baseline(path)
+        mode, problem = sweep.summary_mode(s, legacy_ok)
+        if problem or mode != 'harness':
+            raise ValueError(f"{path}: {problem or ('mode ' + mode + ' is not harness timing evidence')}")
+        problem = sweep.row_problem(s, legacy_ok)
+        if problem is None:
             values.append(s["jitter_us"]["p99.9"])
+        else:
+            print(f"{path}: {problem}", file=sys.stderr)
     return values
 
 
@@ -60,9 +81,13 @@ def main():
     ap.add_argument("--tolerance-pct", type=float, default=50.0)
     args = ap.parse_args()
 
-    ok, msg = gate(verified_p999s(args.results, args.level),
-                   verified_p999s(args.baseline, args.level),
-                   args.tolerance_pct)
+    try:
+        ok, msg = gate(verified_p999s(args.results, args.level),
+                       verified_p999s(args.baseline, args.level, baseline=True),
+                       args.tolerance_pct)
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return 1
     print(f"bench gate [{args.level}] {msg}")
     return 0 if ok else 1
 

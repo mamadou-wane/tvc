@@ -17,6 +17,7 @@
 #include "alloc_guard.hpp"
 #include "env_probe.hpp"
 #include "loop_stats.hpp"
+#include "lockstep.hpp"
 #include "rt_setup.hpp"
 #include "telemetry.hpp"
 
@@ -91,6 +92,9 @@ struct Plant {
 
 // ---------------------------------------------------------------------------
 struct Config {
+    std::string mode = "harness";
+    std::uint16_t sensor_port = 24000;
+    bool auto_arm = false, seen_cycles = false, seen_warmup = false, seen_sensor = false;
     std::string label      = "run";
     std::string outdir     = "results";
     double      rate_hz    = 500.0;
@@ -126,7 +130,10 @@ void usage() {
 "  --telemetry         framed telemetry through the SPSC ring (default: <label>.telemetry.tvcrec)\n"
 "  --record=TYPE       v1 | control                          (default: v1)\n"
 "\n"
-"exit codes: 0 ok, 1 usage, 2 mitigation failed, 3 interrupted, 4 write failed\n"
+"  --mode=MODE        harness | lockstep (freerun not implemented)\n"
+"  --sensor-port=N    lockstep UDP bind port (0 selects an ephemeral port)\n"
+"  --auto-arm         lockstep automatic launch on first admitted sample\n"
+"exit codes: 0 ok, 1 usage, 2 mitigation failed, 3 interrupted, 4 write failed, 5 no evidence, 6 link integrity\n"
 "label charset: [A-Za-z0-9._-]\n");
 }
 
@@ -165,15 +172,24 @@ ParseResult parse(int argc, char** argv, Config& c) {
         const char* a = argv[i];
         const char* v = nullptr;
         if (!std::strcmp(a, "--help") || !std::strcmp(a, "-h")) { usage(); return ParseResult::Help; }
+        else if (starts_with(a, "--mode=", &v)) c.mode = v;
+        else if (!std::strcmp(a, "--auto-arm")) c.auto_arm = true;
+        else if (starts_with(a, "--sensor-port=", &v)) {
+            std::int64_t port;
+            if (!to_i64(v, port) || port < 0 || port > 65535) return ParseResult::Error;
+            c.sensor_port = static_cast<std::uint16_t>(port); c.seen_sensor = true;
+        }
         else if (starts_with(a, "--label=",  &v)) c.label   = v;
         else if (starts_with(a, "--out=",    &v)) c.outdir  = v;
         else if (starts_with(a, "--rate=",   &v)) {
             if (!to_double(v, c.rate_hz)) { std::fprintf(stderr, "bad value: %s\n", a); return ParseResult::Error; }
         }
         else if (starts_with(a, "--cycles=", &v)) {
+            c.seen_cycles = true;
             if (!to_i64(v, c.cycles)) { std::fprintf(stderr, "bad value: %s\n", a); return ParseResult::Error; }
         }
         else if (starts_with(a, "--warmup=", &v)) {
+            c.seen_warmup = true;
             if (!to_i64(v, c.warmup)) { std::fprintf(stderr, "bad value: %s\n", a); return ParseResult::Error; }
         }
         else if (!std::strcmp(a, "--abs-deadline")) c.abs_deadline = true;
@@ -208,6 +224,17 @@ ParseResult parse(int argc, char** argv, Config& c) {
             else { std::fprintf(stderr, "bad --record=%s\n", v); return ParseResult::Error; }
         }
         else { std::fprintf(stderr, "unknown argument: %s\n\n", a); usage(); return ParseResult::Error; }
+    }
+    if (c.mode != "harness" && c.mode != "lockstep") {
+        std::fputs("unsupported --mode\n", stderr); return ParseResult::Error;
+    }
+    if (c.mode == "lockstep") {
+        if (c.seen_cycles || (c.seen_warmup && c.warmup != 0) || !c.telemetry || c.rate_hz != 500.0) {
+            std::fputs("lockstep requires telemetry, rate 500, no cycles and zero warmup\n", stderr);
+            return ParseResult::Error;
+        }
+    } else if (c.auto_arm || c.seen_sensor) {
+        std::fputs("sensor-port and auto-arm require lockstep\n", stderr); return ParseResult::Error;
     }
     if (!label_ok(c.label)) { std::fputs("bad --label: must match [A-Za-z0-9._-]\n", stderr); return ParseResult::Error; }
     if (c.rate_hz <= 0) { std::fputs("--rate must be positive\n", stderr); return ParseResult::Error; }
@@ -274,14 +301,7 @@ std::string config_string(const Config& c) {
 
 }  // namespace
 
-int main(int argc, char** argv) {
-    Config cfg;
-    switch (parse(argc, argv, cfg)) {
-        case ParseResult::Error: return 1;
-        case ParseResult::Help:  return 0;
-        case ParseResult::Ok:    break;
-    }
-
+int run_harness(const Config& cfg) {
     std::signal(SIGINT,  on_signal);
     std::signal(SIGTERM, on_signal);
 
@@ -545,4 +565,24 @@ int main(int argc, char** argv) {
     if (g_stop.load()) return 3;
     if (mitigation_failed) return 2;
     return 0;
+}
+
+int main(int argc, char** argv) {
+    Config cfg;
+    switch (parse(argc, argv, cfg)) {
+        case ParseResult::Error: return 1;
+        case ParseResult::Help: return 0;
+        case ParseResult::Ok: break;
+    }
+    if (cfg.mode == "lockstep") {
+        struct sigaction action{};
+        action.sa_handler = on_signal;
+        ::sigemptyset(&action.sa_mask);
+        ::sigaction(SIGINT, &action, nullptr);
+        ::sigaction(SIGTERM, &action, nullptr);
+        return lockstep::run({cfg.label, cfg.outdir, cfg.sensor_port, cfg.auto_arm,
+                              cfg.mlock, cfg.cpu, cfg.fifo_prio, cfg.alloc_guard}, g_stop);
+    }
+    lockstep::ready("harness", 0);
+    return run_harness(cfg);
 }

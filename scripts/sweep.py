@@ -46,10 +46,29 @@ def plan_levels(levels, cpu):
     return runnable, None
 
 
-def row_problem(summary):
+MODES = ('harness', 'lockstep', 'freerun')
+
+
+def summary_mode(summary, legacy_ok=False):
+    if 'mode' not in summary:
+        return ('harness', None) if legacy_ok else (None, 'summary has no mode field')
+    mode = summary['mode']
+    return (mode, None) if mode in MODES else (None, f'unknown mode {mode!r}')
+
+
+def level_mode(flags):
+    return 'freerun' if '--mode=freerun' in flags else 'harness'
+
+
+def row_problem(summary, legacy_ok=False):
     """None if the row is good enough for the table, else a short reason it
     was excluded: either the requested mitigation was not applied, or the
     run is short or interrupted (or predates the cycles_requested field)."""
+    mode, problem = summary_mode(summary, legacy_ok)
+    if problem:
+        return problem
+    if mode == 'lockstep':
+        return 'lockstep has no timing evidence'
     applied = summary.get("applied")
     if not isinstance(applied, dict) or not all(applied.values()):
         return "config was not applied"
@@ -248,8 +267,16 @@ def main() -> int:
     for label in ran:
         pattern = f"{label}.summary.json" if args.repeat == 1 else f"{label}.r*.summary.json"
         summaries = [json.loads(p.read_text()) for p in sorted(outdir.glob(pattern))]
-        good = [s for s in summaries if row_ok(s)]
-        excluded += [(s["label"], row_problem(s)) for s in summaries if not row_ok(s)]
+        good = []
+        expected = level_mode(next(add for name, _, add in runnable if name == label))
+        for summary in summaries:
+            problem = row_problem(summary)
+            if problem is None and summary['mode'] != expected:
+                problem = f"mode {summary['mode']} does not match level {label}"
+            if problem is None:
+                good.append(summary)
+            else:
+                excluded.append((summary['label'], problem))
         if not good:
             continue
         rows.append(aggregate_row(label, good))

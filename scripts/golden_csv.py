@@ -17,6 +17,21 @@ def harness_csv(records) -> str:
     return '\n'.join(lines) + '\n'
 
 
+def vehicle_csv(records) -> str:
+    lines = ['tick,state,reason,sensor_tick,staleness,ladder,theta_bits,omega_bits,cmd_bits,i_state_bits,d_prev_bits']
+    for r in records:
+        scalars = [r[k] for k in ('tick','state','reason','sensor_tick','staleness')] + [r['flags'] & 0x1D]
+        words = [f'0x{struct.unpack("<Q",struct.pack("<d",r[k]))[0]:016x}'
+                 for k in ('theta','omega','cmd','i_state','d_prev')]
+        lines.append(','.join([*(str(v) for v in scalars),*words]))
+    return '\n'.join(lines)+'\n'
+
+
+def sim_csv(rows) -> str:
+    fields = ('tick','has_sample','applied','theta_bits','omega_bits','cmd_applied_bits')
+    return ','.join(fields)+'\n'+''.join(','.join(str(r[k]) for k in fields)+'\n' for r in rows)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--columns', required=True, choices=['tick,theta,cmd'])
