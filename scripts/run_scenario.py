@@ -60,7 +60,7 @@ def recording(path,kind):
     return rows
 
 
-def run_case(*,binary,scenario_path,out,label,seed,delay_ticks,loss=None,sim_args=()):
+def run_case(*,binary,scenario_path,out,label,seed,delay_ticks,loss=None,sim_args=(),toolchain=None):
     out=Path(out).resolve();out.mkdir(parents=True,exist_ok=True)
     if any(out.glob(label+'.*')): raise ValueError('output label already exists')
     spec=load(scenario_path)
@@ -120,7 +120,7 @@ def run_case(*,binary,scenario_path,out,label,seed,delay_ticks,loss=None,sim_arg
                 vehicle_sha256=hashlib.sha256(Path(binary).read_bytes()).hexdigest(),
                 sim_sha256=hashlib.sha256(b''.join(p.read_bytes() for p in sorted((ROOT/'sim').glob('*.py')))).hexdigest(),
                 config_sha256=hashlib.sha256(summary['config'].encode()).hexdigest(),
-                toolchain=dict(image=None,machine=platform.machine(),python=platform.python_version(),lane='development'),
+                toolchain=toolchain if toolchain is not None else dict(image=None,machine=platform.machine(),python=platform.python_version(),lane='development'),
                 digests=digests)
             Path(str(prefix)+'.replay.json').write_text(json.dumps(replay,sort_keys=True,allow_nan=False)+'\n')
     except (OSError,ValueError,KeyError,TypeError) as exc:

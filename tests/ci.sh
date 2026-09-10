@@ -13,6 +13,9 @@ if grep -nE 'chrono|clock_gettime|now_ns' tests/cpp/net_tests.cpp; then
 fi
 # Public-path gate: no tracked document points at a gitignored path.
 python3 scripts/check_public_paths.py
+if [ -f tests/golden/lockstep/campaign-v02b.json ]; then
+  python3 -B scripts/run_campaign.py --check-current
+fi
 cmake -S . -B build && cmake --build build -j
 ./build/wire_tests
 ./build/net_tests

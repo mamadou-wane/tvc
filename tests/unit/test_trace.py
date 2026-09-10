@@ -26,6 +26,16 @@ class PredicateTests(unittest.TestCase):
     def setUp(self):
         self.evaluate = importlib.import_module('sim.trace').evaluate
 
+    def test_artifact_rows_use_the_same_frozen_predicate(self):
+        module=importlib.import_module('sim.trace')
+        rows=tuple(module.EvidenceRow(i,0.0,0.0,0.0,0.0,0.0) for i in range(1000))
+        result=module.evaluate_rows(rows,1000,episode.SimReason.SIM_HORIZON,
+                                   episode.Mode.TERMINATED,episode.TerminalResult(episode.Reason.STABILIZED,999))
+        self.assertEqual(tuple(result),(True,)*5)
+        rows=rows[:-1]+(rows[-1]._replace(d_prev=float('nan')),)
+        self.assertFalse(module.evaluate_rows(rows,1000,episode.SimReason.SIM_HORIZON,
+            episode.Mode.TERMINATED,episode.TerminalResult(episode.Reason.STABILIZED,999)).finiteness)
+
     def test_all_five_clauses_pass_on_independent_zero_equilibrium(self):
         result = self.evaluate(passing_trace())
         self.assertEqual(tuple(result), (True,) * 5)

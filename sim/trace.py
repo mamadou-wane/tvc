@@ -61,29 +61,39 @@ class Acceptance(NamedTuple):
         return all(self)
 
 
+class EvidenceRow(NamedTuple):
+    tick: int
+    theta: float
+    omega: float
+    delta: float
+    i_state: float
+    d_prev: float
+
+
 def evaluate(trace: Trace) -> Acceptance:
-    """Evaluate the five release clauses on truth and logical response rows."""
-    rows = trace.rows
-    termination = False
-    if rows:
-        final = rows[-1]
-        terminal = final.episode.state.terminal
-        termination = (trace.sim_reason == SimReason.SIM_HORIZON
-                       and final.tick == trace.ticks_declared - 1
-                       and final.episode.state.mode == Mode.TERMINATED
-                       and terminal is not None
-                       and terminal.reason == Reason.STABILIZED
-                       and terminal.tick == trace.ticks_declared - 1)
-    peak = bool(rows) and all(abs(r.truth.theta) <= 0.15 for r in rows)
+    rows = tuple(EvidenceRow(r.tick, r.truth.theta, r.truth.omega,
+                 r.episode.requested_delta, r.episode.state.pid.i_state,
+                 r.episode.state.pid.d_prev) for r in trace.rows)
+    state = trace.rows[-1].episode.state if trace.rows else None
+    return evaluate_rows(rows, trace.ticks_declared, trace.sim_reason,
+                         state.mode if state else None, state.terminal if state else None)
+
+
+def evaluate_rows(rows, ticks_declared, sim_reason, vehicle_state, terminal) -> Acceptance:
+    """Apply the same five clauses to observed artifact values or a headless trace."""
+    termination = (bool(rows) and sim_reason == SimReason.SIM_HORIZON
+                   and rows[-1].tick == ticks_declared - 1
+                   and vehicle_state == Mode.TERMINATED
+                   and terminal is not None and terminal.reason == Reason.STABILIZED
+                   and terminal.tick == ticks_declared - 1)
+    peak = bool(rows) and all(abs(r.theta) <= 0.15 for r in rows)
     window = rows[-1000:]
-    settled = (trace.ticks_declared >= 1000 and len(window) == 1000
-               and all(r.tick == trace.ticks_declared - 1000 + i
-                       and abs(r.truth.theta) <= 0.02 and abs(r.truth.omega) <= 0.02
+    settled = (ticks_declared >= 1000 and len(window) == 1000
+               and all(r.tick == ticks_declared - 1000 + i
+                       and abs(r.theta) <= 0.02 and abs(r.omega) <= 0.02
                        for i, r in enumerate(window)))
-    cadence = (trace.ticks_declared > 0 and len(rows) == trace.ticks_declared
+    cadence = (ticks_declared > 0 and len(rows) == ticks_declared
                and all(r.tick == i for i, r in enumerate(rows)))
-    finiteness = bool(rows) and all(
-        math.isfinite(value) for row in rows
-        for value in (row.truth.theta, row.truth.omega, row.episode.requested_delta,
-                      row.episode.state.pid.i_state, row.episode.state.pid.d_prev))
+    finiteness = bool(rows) and all(math.isfinite(value) for row in rows
+                 for value in (row.theta, row.omega, row.delta, row.i_state, row.d_prev))
     return Acceptance(termination, peak, settled, cadence, finiteness)
