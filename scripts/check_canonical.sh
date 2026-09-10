@@ -14,7 +14,8 @@ else
   docker pull --platform linux/amd64 "$image_ref"
 fi
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
-mkdir -p "$out"
+# The mountpoint must exist before the parent checkout is mounted read-only.
+mkdir -p "$repo_root/build" "$out"
 out=$(cd "$out" && pwd)
 [[ $(docker image inspect "$image_ref" --format '{{.Architecture}}') == amd64 ]] || exit 1
 docker run --rm --pull=never --platform linux/amd64 --network=none --tmpfs /w/build:rw,exec \

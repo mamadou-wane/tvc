@@ -1,4 +1,5 @@
-import json, pathlib, sys, tempfile, unittest
+import json, os, pathlib, sys, tempfile, unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "scripts"))
 import bench_gate
@@ -42,6 +43,14 @@ class VerifiedP999s(unittest.TestCase):
 
 
 class ModeEvidence(unittest.TestCase):
+    def test_committed_baseline_when_container_user_differs(self):
+        root=pathlib.Path(__file__).resolve().parents[2]
+        baseline=root/'baselines/2026-08-29-pinned-timer-campaign/L5.r1.summary.json'
+        with patch.dict(os.environ,{'GIT_TEST_ASSUME_DIFFERENT_OWNER':'1'}):
+            self.assertTrue(bench_gate.legacy_baseline(baseline))
+            with patch.object(pathlib.Path,'read_bytes',return_value=b'changed'):
+                self.assertFalse(bench_gate.legacy_baseline(baseline))
+
     def test_fresh_missing_mode_and_lockstep_are_errors(self):
         with tempfile.TemporaryDirectory() as d:
             path=pathlib.Path(d)/'L5.summary.json'

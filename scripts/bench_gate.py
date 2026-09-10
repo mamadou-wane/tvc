@@ -30,7 +30,9 @@ def legacy_baseline(path):
         return False
     if relative.parts[0] != 'baselines':
         return False
-    result = subprocess.run(['git', '-C', str(root), 'show', 'HEAD:' + relative.as_posix()],
+    # The container user may differ from the checkout owner.
+    result = subprocess.run(['git', '-c', 'safe.directory=' + str(root),
+                             '-C', str(root), 'show', 'HEAD:' + relative.as_posix()],
                             capture_output=True)
     return result.returncode == 0 and result.stdout == pathlib.Path(path).read_bytes()
 
