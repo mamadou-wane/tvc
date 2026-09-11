@@ -80,6 +80,17 @@ target_link_options(episode_tests PRIVATE -fno-fast-math
 set_target_properties(episode_tests PROPERTIES
   INTERPROCEDURAL_OPTIMIZATION FALSE UNITY_BUILD OFF)
 
+add_executable(admission_tests tests/cpp/admission_tests.cpp src/freerun_admission.cpp
+  src/telemetry.cpp src/alloc_guard.cpp src/episode.cpp src/control.cpp)
+target_compile_definitions(admission_tests PRIVATE _GNU_SOURCE)
+target_compile_options(admission_tests PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+target_link_options(admission_tests PRIVATE -fno-fast-math
+  "LINKER:--wrap=_ZN7episode4stepERKNS_5StateERKNS_6InputsE"
+  "LINKER:--wrap=_ZN7control4stepERNS_5StateERK11Observation")
+target_link_libraries(admission_tests PRIVATE Threads::Threads)
+set_target_properties(admission_tests PROPERTIES
+  INTERPROCEDURAL_OPTIMIZATION FALSE UNITY_BUILD OFF)
+
 add_executable(wire_tests tests/cpp/wire_tests.cpp src/telemetry.cpp)
 target_compile_definitions(wire_tests PRIVATE _GNU_SOURCE)
 target_compile_options(wire_tests PRIVATE -Wall -Wextra -Wpedantic)

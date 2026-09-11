@@ -22,6 +22,7 @@ cmake -S . -B build && cmake --build build -j
 ./build/control_tests
 ./build/episode_tests
 ./build/lockstep_tests
+./build/admission_tests
 python3 -B tests/check_pid_corpus.py ./build/control_tests
 ./build/rt_setup_tests
 ./build/env_probe_tests
@@ -41,6 +42,7 @@ fi
 ./build-asan/control_tests
 ./build-asan/episode_tests
 ./build-asan/lockstep_tests
+./build-asan/admission_tests
 python3 -B tests/check_pid_corpus.py ./build-asan/control_tests
 ./build-asan/rt_setup_tests
 ./build-asan/env_probe_tests
