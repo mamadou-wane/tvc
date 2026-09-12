@@ -288,7 +288,7 @@ int run(const Config& cfg, std::atomic<bool>& stop) {
         << ",\"receive_errno\":" << r.receive_errno << ",\"receive_errors\":" << r.receive_errors
         << ",\"sleep_error\":" << r.sleep_error;
     const auto yes = [](bool value) { return value ? "true" : "false"; };
-    const std::string applied = std::string("{\"mlock\":") + yes(memory_ok) + ",\"cpu\":" + yes(cpu_ok) + ",\"fifo\":" + yes(fifo_ok) + ",\"telemetry\":true,\"link\":true}";
+    const std::string applied = std::string("{\"mlock\":") + yes(cfg.mlock && memory_ok) + ",\"cpu\":" + yes(cfg.cpu >= 0 && cpu_ok) + ",\"fifo\":" + yes(cfg.fifo_prio > 0 && fifo_ok) + ",\"telemetry\":true,\"link\":true}";
     utsname un{}; ::uname(&un);
     const std::string env = std::string("{\"machine\":\"") + un.machine + "\",\"kernel\":\"" + un.release + "\"}";
     const std::string telemetry = "{\"records\":" + std::to_string(drain.records_written()) + ",\"dropped\":" + std::to_string(ring->drops()) + '}';

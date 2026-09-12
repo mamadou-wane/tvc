@@ -21,6 +21,12 @@ const bool stall = std::getenv("TVC_TEST_STALL") != nullptr;
 const bool fail_summary = std::getenv("TVC_TEST_FAIL_SUMMARY_CLOSE") != nullptr;
 const bool fail_timing = std::getenv("TVC_TEST_FAIL_TIMING_CLOSE") != nullptr;
 const bool remove_summary = std::getenv("TVC_TEST_REMOVE_SUMMARY") != nullptr;
+const char* ready_value = std::getenv("TVC_TEST_READY_FD");
+const char* release_value = std::getenv("TVC_TEST_RELEASE_FD");
+const char* gate_value = std::getenv("TVC_TEST_GATE_CYCLE");
+const unsigned gate_cycle = gate_value ? std::strtoul(gate_value, nullptr, 10) : 1;
+const int ready_fd = ready_value ? std::atoi(ready_value) : -1;
+const int release_fd = release_value ? std::atoi(release_value) : -1;
 unsigned episodes{}, pids{}, batches{}, records{}, sends{}, terminal_sends{}, sleeps{};
 bool failed{}, changed{};
 std::array<unsigned char, 62> terminal_bytes{};
@@ -72,7 +78,12 @@ extern "C" int __real_clock_nanosleep(clockid_t,int,const timespec*,timespec*);
 extern "C" int __wrap_clock_nanosleep(clockid_t clock,int flags,const timespec* deadline,timespec* remainder) {
     if (flags == TIMER_ABSTIME) {
         if (clock != CLOCK_MONOTONIC) std::abort();
-        if (stall && sleeps++ == 1) { timespec pause{0,30000000}; ::nanosleep(&pause,nullptr); }
+        const auto cycle = sleeps++;
+        if (cycle == gate_cycle && ready_fd >= 0 && release_fd >= 0) {
+            char value = 'g';
+            if (::write(ready_fd, &value, 1) != 1 || ::read(release_fd, &value, 1) != 1) std::abort();
+        }
+        if (stall && cycle == 1) { timespec pause{0,30000000}; ::nanosleep(&pause,nullptr); }
     }
     return __real_clock_nanosleep(clock,flags,deadline,remainder);
 }
