@@ -172,13 +172,15 @@ def execute(spec, *, seed, delay_ticks, peer, bind_port, prefix,
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--mode',choices=['lockstep'],default='lockstep')
+    parser.add_argument('--mode',choices=['lockstep','freerun'],default='lockstep')
     parser.add_argument('--scenario',required=True)
     parser.add_argument('--vehicle',required=True)
     parser.add_argument('--bind-port',type=int,default=0)
     parser.add_argument('--seed',type=int,default=1)
     parser.add_argument('--delay-ticks',type=int,choices=(0,1),default=0)
     parser.add_argument('--loss',type=float)
+    parser.add_argument('--ticks',type=int)
+    parser.add_argument('--terminal-copies',type=int,default=12)
     parser.add_argument('--out',required=True); parser.add_argument('--label',required=True)
     parser.add_argument('--test-fail-sensor',type=int); parser.add_argument('--test-drop-actuator',type=int)
     parser.add_argument('--test-kill-at',type=int)
@@ -188,6 +190,16 @@ def main(argv=None):
         parser.error('invalid loopback peer, port or seed')
     spec=scenario.load(args.scenario)
     if args.loss is not None: spec=spec._replace(loss_up=args.loss,loss_down=args.loss)
+    if args.mode == 'freerun':
+        from sim.freerun import execute as execute_free, validate_ticks
+        if args.ticks is not None:
+            spec = spec._replace(ticks=args.ticks)
+        try: validate_ticks(spec.ticks)
+        except ValueError as exc: parser.error(str(exc))
+        return execute_free(spec, seed=args.seed, delay_ticks=args.delay_ticks,
+            peer=(host,int(port)), bind_port=args.bind_port, prefix=Path(args.out)/args.label,
+            terminal_copies=args.terminal_copies, fail_sensor=args.test_fail_sensor, kill_at=args.test_kill_at)
+    if args.ticks is not None: parser.error('ticks override requires freerun')
     return execute(spec,seed=args.seed,delay_ticks=args.delay_ticks,peer=(host,int(port)),
         bind_port=args.bind_port,prefix=Path(args.out)/args.label,
         fail_sensor=args.test_fail_sensor,drop_actuator=args.test_drop_actuator,kill_at=args.test_kill_at)

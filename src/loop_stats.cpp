@@ -150,7 +150,14 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         us(s.exec_p50_ns), us(s.exec_p999_ns), us(s.exec_max_ns));
     if (!telemetry_json.empty())
         std::fprintf(f, ",\n  \"telemetry\": %s", telemetry_json.c_str());
+    if (!extra_json.empty()) std::fputs(extra_json.c_str(), f);
     std::fputs("\n}\n", f);
+    // New runtime metadata requires checked finalization; retain the legacy harness path.
+    if (!extra_json.empty()) {
+        const bool written = !std::ferror(f) && std::fflush(f) == 0;
+        const bool closed = std::fclose(f) == 0;
+        return written && closed;
+    }
     std::fclose(f);
     return true;
 }

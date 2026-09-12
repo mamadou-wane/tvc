@@ -36,6 +36,8 @@ FetchContent_MakeAvailable(hdr_histogram)
 add_executable(tvc_harness
   src/main.cpp
   src/lockstep.cpp
+  src/freerun.cpp
+  src/freerun_admission.cpp
   src/net.cpp
   src/control.cpp
   src/episode.cpp
@@ -136,3 +138,14 @@ target_include_directories(lockstep_faults PRIVATE ${hdr_histogram_SOURCE_DIR}/i
 target_compile_options(lockstep_faults PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 target_link_options(lockstep_faults PRIVATE -fno-fast-math "LINKER:--wrap=send" "LINKER:--wrap=fwrite" "LINKER:--wrap=fclose")
 target_link_libraries(lockstep_faults PRIVATE Threads::Threads hdr_histogram_static m)
+
+add_executable(freerun_faults ${TVC_RUNTIME_SOURCES} tests/cpp/freerun_faults.cpp)
+target_compile_definitions(freerun_faults PRIVATE _GNU_SOURCE)
+target_include_directories(freerun_faults PRIVATE ${hdr_histogram_SOURCE_DIR}/include)
+target_compile_options(freerun_faults PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+target_link_options(freerun_faults PRIVATE -fno-fast-math
+  "LINKER:--wrap=send" "LINKER:--wrap=recvmmsg" "LINKER:--wrap=clock_nanosleep" "LINKER:--wrap=fclose"
+  "LINKER:--wrap=_ZN7episode4stepERKNS_5StateERKNS_6InputsE"
+  "LINKER:--wrap=_ZN7control4stepERNS_5StateERK11Observation"
+  "LINKER:--wrap=_ZN5stats9LoopStats6recordElll")
+target_link_libraries(freerun_faults PRIVATE Threads::Threads hdr_histogram_static m)

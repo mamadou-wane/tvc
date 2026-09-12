@@ -18,6 +18,7 @@
 #include "env_probe.hpp"
 #include "loop_stats.hpp"
 #include "lockstep.hpp"
+#include "freerun.hpp"
 #include "rt_setup.hpp"
 #include "telemetry.hpp"
 
@@ -95,6 +96,8 @@ struct Config {
     std::string mode = "harness";
     std::uint16_t sensor_port = 24000;
     bool auto_arm = false, seen_cycles = false, seen_warmup = false, seen_sensor = false;
+    std::int64_t phase_us = 400, skew_max = 4, terminal_copies = 12;
+    bool seen_free = false;
     std::string label      = "run";
     std::string outdir     = "results";
     double      rate_hz    = 500.0;
@@ -130,9 +133,12 @@ void usage() {
 "  --telemetry         framed telemetry through the SPSC ring (default: <label>.telemetry.tvcrec)\n"
 "  --record=TYPE       v1 | control                          (default: v1)\n"
 "\n"
-"  --mode=MODE        harness | lockstep (freerun not implemented)\n"
-"  --sensor-port=N    lockstep UDP bind port (0 selects an ephemeral port)\n"
-"  --auto-arm         lockstep automatic launch on first admitted sample\n"
+"  --mode=MODE        harness | lockstep | freerun\n"
+"  --sensor-port=N    sensor UDP bind port (0 selects an ephemeral port)\n"
+"  --auto-arm         automatic launch on first admitted sample\n"
+"  --phase-us=N       free-run origin phase (default: 400 us)\n"
+"  --skew-max-ticks=N free-run future bound (default: 4, maximum: 64)\n"
+"  --terminal-copies=N free-run terminal attempts (default: 12)\n"
 "exit codes: 0 ok, 1 usage, 2 mitigation failed, 3 interrupted, 4 write failed, 5 no evidence, 6 link integrity\n"
 "label charset: [A-Za-z0-9._-]\n");
 }
@@ -178,6 +184,18 @@ ParseResult parse(int argc, char** argv, Config& c) {
             std::int64_t port;
             if (!to_i64(v, port) || port < 0 || port > 65535) return ParseResult::Error;
             c.sensor_port = static_cast<std::uint16_t>(port); c.seen_sensor = true;
+        }
+        else if (starts_with(a, "--phase-us=", &v)) {
+            c.seen_free = true;
+            if (!to_i64(v, c.phase_us) || c.phase_us <= 0 || c.phase_us >= 2000) return ParseResult::Error;
+        }
+        else if (starts_with(a, "--skew-max-ticks=", &v)) {
+            c.seen_free = true;
+            if (!to_i64(v, c.skew_max) || c.skew_max < 0 || c.skew_max > 64) return ParseResult::Error;
+        }
+        else if (starts_with(a, "--terminal-copies=", &v)) {
+            c.seen_free = true;
+            if (!to_i64(v, c.terminal_copies) || c.terminal_copies < 1 || c.terminal_copies > 64) return ParseResult::Error;
         }
         else if (starts_with(a, "--label=",  &v)) c.label   = v;
         else if (starts_with(a, "--out=",    &v)) c.outdir  = v;
@@ -225,16 +243,25 @@ ParseResult parse(int argc, char** argv, Config& c) {
         }
         else { std::fprintf(stderr, "unknown argument: %s\n\n", a); usage(); return ParseResult::Error; }
     }
-    if (c.mode != "harness" && c.mode != "lockstep") {
+    if (c.mode != "harness" && c.mode != "lockstep" && c.mode != "freerun") {
         std::fputs("unsupported --mode\n", stderr); return ParseResult::Error;
     }
-    if (c.mode == "lockstep") {
+    if (c.seen_free && c.mode != "freerun") {
+        std::fputs("usage: free-run flags require --mode=freerun\n", stderr); return ParseResult::Error;
+    }
+    if (c.mode == "freerun") {
+        if (c.cycles < 1000 || c.warmup < 0 || !c.telemetry || c.rate_hz != 500.0 ||
+            c.cycles > INT64_MAX / 2000000 - 64 - c.warmup) {
+            std::fputs("usage: freerun requires telemetry, rate 500 and cycles >= 1000 within scheduling range\n", stderr);
+            return ParseResult::Error;
+        }
+    } else if (c.mode == "lockstep") {
         if (c.seen_cycles || (c.seen_warmup && c.warmup != 0) || !c.telemetry || c.rate_hz != 500.0) {
             std::fputs("lockstep requires telemetry, rate 500, no cycles and zero warmup\n", stderr);
             return ParseResult::Error;
         }
     } else if (c.auto_arm || c.seen_sensor) {
-        std::fputs("sensor-port and auto-arm require lockstep\n", stderr); return ParseResult::Error;
+        std::fputs("sensor-port and auto-arm require lockstep or freerun\n", stderr); return ParseResult::Error;
     }
     if (!label_ok(c.label)) { std::fputs("bad --label: must match [A-Za-z0-9._-]\n", stderr); return ParseResult::Error; }
     if (c.rate_hz <= 0) { std::fputs("--rate must be positive\n", stderr); return ParseResult::Error; }
@@ -574,12 +601,16 @@ int main(int argc, char** argv) {
         case ParseResult::Help: return 0;
         case ParseResult::Ok: break;
     }
-    if (cfg.mode == "lockstep") {
+    if (cfg.mode == "lockstep" || cfg.mode == "freerun") {
         struct sigaction action{};
         action.sa_handler = on_signal;
         ::sigemptyset(&action.sa_mask);
         ::sigaction(SIGINT, &action, nullptr);
         ::sigaction(SIGTERM, &action, nullptr);
+        if (cfg.mode == "freerun")
+            return freerun::run({cfg.label, cfg.outdir, cfg.sensor_port, cfg.auto_arm,
+                cfg.mlock, cfg.cpu, cfg.fifo_prio, cfg.alloc_guard, cfg.cycles, cfg.warmup,
+                cfg.phase_us, static_cast<unsigned>(cfg.skew_max), static_cast<unsigned>(cfg.terminal_copies)}, g_stop);
         return lockstep::run({cfg.label, cfg.outdir, cfg.sensor_port, cfg.auto_arm,
                               cfg.mlock, cfg.cpu, cfg.fifo_prio, cfg.alloc_guard}, g_stop);
     }
