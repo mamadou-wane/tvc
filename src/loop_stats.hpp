@@ -27,6 +27,24 @@ struct hdr_histogram;
 
 namespace stats {
 
+// Allocated before RT setup; only record_interval runs on the control thread.
+class Distribution {
+public:
+    Distribution();
+    ~Distribution();
+    Distribution(const Distribution&) = delete;
+    Distribution& operator=(const Distribution&) = delete;
+    void record_interval(std::int64_t start, std::int64_t end) noexcept;
+    std::uint64_t count() const noexcept { return count_; }
+    std::uint64_t dropped() const noexcept { return dropped_; }
+    std::uint64_t sum_ns() const noexcept { return sum_; }
+    std::string json() const;
+    bool write_csv(const std::string& path) const;
+private:
+    hdr_histogram* histogram_{};
+    std::uint64_t count_{}, dropped_{}, sum_{};
+};
+
 struct Summary {
     std::int64_t count          = 0;
     std::int64_t missed         = 0;   // cycles whose deadline had already passed
@@ -60,7 +78,7 @@ public:
     Summary summary() const;
 
     // Full percentile sweeps, one CSV per series, for plotting.
-    bool write_csv(const std::string& dir, const std::string& label) const;
+    bool write_csv(const std::string& dir, const std::string& label, bool checked = false) const;
     // Machine-readable run record for the sweep table. cycles_requested is
     // the configured --cycles value: comparing it against the recorded count
     // is how a stale interrupted/short run is kept out of the table.

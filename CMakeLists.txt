@@ -149,3 +149,13 @@ target_link_options(freerun_faults PRIVATE -fno-fast-math
   "LINKER:--wrap=_ZN7control4stepERNS_5StateERK11Observation"
   "LINKER:--wrap=_ZN5stats9LoopStats6recordElll")
 target_link_libraries(freerun_faults PRIVATE Threads::Threads hdr_histogram_static m)
+
+add_executable(measurement_tests tests/cpp/measurement_tests.cpp src/loop_stats.cpp src/alloc_guard.cpp
+  src/freerun_admission.cpp src/telemetry.cpp)
+target_include_directories(measurement_tests PRIVATE ${hdr_histogram_SOURCE_DIR}/include)
+if(TARGET hdr_histogram_static)
+  target_link_libraries(measurement_tests PRIVATE hdr_histogram_static)
+else()
+  target_link_libraries(measurement_tests PRIVATE hdr_histogram)
+endif()
+target_link_libraries(measurement_tests PRIVATE Threads::Threads m)

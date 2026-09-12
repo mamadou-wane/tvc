@@ -144,7 +144,10 @@ std::optional<SensorClass> Admission::receive(std::span<const unsigned char> byt
     telem::payload::decode_sensor(f.payload.data(), f.payload.size(), f.sample.tick,
         f.sample.send_ns, f.sample.theta, f.sample.omega, f.flags, f.cmd_seq, f.reason);
     if (f.terminal()) ++terminal_counts_.received_raw;
-    else ++cycle_.counts.received;
+    else {
+        ++cycle_.counts.received;
+        if (!last_normal_tick_ || f.sample.tick > *last_normal_tick_) last_normal_tick_ = f.sample.tick;
+    }
 
     // Terminal envelopes have their own partition; their sample usability cannot hide a reason.
     if (!f.terminal() && (f.flags & 1) &&
@@ -214,7 +217,7 @@ const AdmissionCycle& Admission::finish_cycle() noexcept {
 
 bool Admission::identities_hold() const noexcept {
     return !open_ && episode_.closes(0, future_parked()) &&
-        (cycles_ <= warmup_ || recorded_.closes(warmup_occupancy_, future_parked()));
+        (cycles_ <= warmup_ || recorded_.closes(*warmup_occupancy_, future_parked()));
 }
 
 } // namespace freerun

@@ -19,6 +19,7 @@ const bool fail_terminal = std::getenv("TVC_TEST_FAIL_TERMINAL_ALL") != nullptr;
 const bool drop_terminal = std::getenv("TVC_TEST_DROP_TERMINAL_ALL") != nullptr;
 const bool stall = std::getenv("TVC_TEST_STALL") != nullptr;
 const bool fail_summary = std::getenv("TVC_TEST_FAIL_SUMMARY_CLOSE") != nullptr;
+const bool fail_timing = std::getenv("TVC_TEST_FAIL_TIMING_CLOSE") != nullptr;
 const bool remove_summary = std::getenv("TVC_TEST_REMOVE_SUMMARY") != nullptr;
 unsigned episodes{}, pids{}, batches{}, records{}, sends{}, terminal_sends{}, sleeps{};
 bool failed{}, changed{};
@@ -80,7 +81,7 @@ extern "C" int __wrap_fclose(FILE* file) {
     char link[64], path[4096]{};
     std::snprintf(link,sizeof link,"/proc/self/fd/%d",::fileno(file));
     const bool summary = ::readlink(link,path,sizeof path-1)>0 && std::strstr(path,".summary.json");
-    const bool refuse = fail_summary && summary;
+    const bool refuse = (fail_summary && summary) || (fail_timing && std::strstr(path,".jitter.csv"));
     const int result=__real_fclose(file);
     if (remove_summary && summary) ::unlink(path);
     if (refuse) { errno=EIO;return EOF; }

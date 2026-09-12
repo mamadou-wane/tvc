@@ -4,6 +4,9 @@
 
 #include <cstdio>
 #include <cinttypes>
+#include <sstream>
+#include <limits>
+#include <cstring>
 
 namespace {
 // 1 ns .. 10 s, three significant figures. Three figures is the standard
@@ -15,6 +18,35 @@ constexpr int          kSigFigs = 3;
 }  // namespace
 
 namespace stats {
+
+Distribution::Distribution() {
+    if (hdr_init(kLowest, kHighest, kSigFigs, &histogram_) != 0) std::abort();
+}
+Distribution::~Distribution() { hdr_close(histogram_); }
+void Distribution::record_interval(std::int64_t start, std::int64_t end) noexcept {
+    ++count_;
+    if (start < 0 || end < start) { ++dropped_; return; }
+    const auto ns = end - start;
+    if (ns > kHighest || !hdr_record_value(histogram_, ns) ||
+        static_cast<std::uint64_t>(ns) > UINT64_MAX - sum_) { ++dropped_; return; }
+    sum_ += static_cast<std::uint64_t>(ns);
+}
+std::string Distribution::json() const {
+    std::ostringstream out;
+    out << "{\"count\":" << count_ << ",\"dropped\":" << dropped_
+        << ",\"sum_ns\":" << sum_ << ",\"p50\":" << hdr_value_at_percentile(histogram_, 50) / 1000.0
+        << ",\"p99.9\":" << hdr_value_at_percentile(histogram_, 99.9) / 1000.0
+        << ",\"max\":" << hdr_max(histogram_) / 1000.0 << '}';
+    return out.str();
+}
+bool Distribution::write_csv(const std::string& path) const {
+    FILE* file = std::fopen(path.c_str(), "w");
+    if (!file) return false;
+    hdr_percentiles_print(histogram_, file, 5, 1000.0, CSV);
+    const bool written = !std::ferror(file) && std::fflush(file) == 0;
+    const bool closed = std::fclose(file) == 0;
+    return written && closed;
+}
 
 LoopStats::LoopStats(std::int64_t period_ns) : period_ns_(period_ns) {
     if (hdr_init(kLowest, kHighest, kSigFigs, &jitter_raw_) != 0 ||
@@ -81,7 +113,7 @@ Summary LoopStats::summary() const {
     return s;
 }
 
-bool LoopStats::write_csv(const std::string& dir, const std::string& label) const {
+bool LoopStats::write_csv(const std::string& dir, const std::string& label, bool checked) const {
     struct Series { const char* name; hdr_histogram* h; };
     const Series series[] = {
         {"jitter",       jitter_raw_},
@@ -94,7 +126,11 @@ bool LoopStats::write_csv(const std::string& dir, const std::string& label) cons
         if (!f) return false;
         // Emitted in microseconds: value_scale divides the stored ns.
         hdr_percentiles_print(s.h, f, 5, 1000.0, CSV);
-        std::fclose(f);
+        if (checked) {
+            const bool written = !std::ferror(f) && std::fflush(f) == 0;
+            const bool closed = std::fclose(f) == 0;
+            if (!written || !closed) return false;
+        } else std::fclose(f);
     }
     return true;
 }
@@ -121,6 +157,9 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         return result >= 0 && flushed && closed;
     }
     const Summary s = summary();
+    const bool freerun = std::strcmp(mode, "freerun") == 0;
+    const std::string jitter_count = freerun ? "\"count\":" + std::to_string(jitter_raw_->total_count) + "," : "";
+    const std::string exec_count = freerun ? "\"count\":" + std::to_string(exec_->total_count) + "," : "";
     auto us = [](std::int64_t ns) { return static_cast<double>(ns) / 1000.0; };
     std::fprintf(f,
         "{\n"
@@ -135,18 +174,18 @@ bool LoopStats::write_json(const std::string& path, const std::string& label,
         "  \"cycles_requested\": %" PRId64 ",\n"
         "  \"missed_deadlines\": %" PRId64 ",\n"
         "  \"early_wakeups\": %" PRId64 ",\n"
-        "  \"jitter_us\": {\n"
+        "  \"jitter_us\": {%s\n"
         "    \"min\": %.3f, \"mean\": %.3f, \"p50\": %.3f,\n"
         "    \"p99\": %.3f, \"p99.9\": %.3f, \"p99.99\": %.3f, \"max\": %.3f,\n"
         "    \"p99.9_naive\": %.3f\n"
         "  },\n"
         "  \"dropped_samples\": %" PRId64 ",\n"
-        "  \"exec_us\": { \"p50\": %.3f, \"p99.9\": %.3f, \"max\": %.3f }",
+        "  \"exec_us\": {%s \"p50\": %.3f, \"p99.9\": %.3f, \"max\": %.3f }",
         label.c_str(), config.c_str(), mode, applied_json.c_str(), env_json.c_str(), us(period_ns_),
-        s.count, cycles_requested, s.missed, s.early,
+        s.count, cycles_requested, s.missed, s.early, jitter_count.c_str(),
         us(s.min_ns), us(static_cast<std::int64_t>(s.mean_ns)), us(s.p50_ns),
         us(s.p99_ns), us(s.p999_ns), us(s.p9999_ns), us(s.max_ns),
-        us(s.naive_p999_ns), s.dropped,
+        us(s.naive_p999_ns), s.dropped, exec_count.c_str(),
         us(s.exec_p50_ns), us(s.exec_p999_ns), us(s.exec_max_ns));
     if (!telemetry_json.empty())
         std::fprintf(f, ",\n  \"telemetry\": %s", telemetry_json.c_str());

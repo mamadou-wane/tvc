@@ -274,6 +274,19 @@ static void terminal_reordering() {
     CHECK(delayed.finish_cycle().terminal->tick == 2 && delayed.identities_hold());
 }
 
+void empty_recorded_window() {
+    freerun::Admission a(0, 4, 2);
+    CHECK(!a.parked_at_warmup().has_value());
+    CHECK(a.begin_cycle(0)); a.receive(packet(4)); a.finish_cycle();
+    CHECK(a.begin_cycle(1)); a.finish_cycle();
+    CHECK(!a.parked_at_warmup().has_value());
+    CHECK(a.future_parked() == 1 && a.recorded().received == 0 && a.identities_hold());
+    CHECK(a.begin_cycle(2));
+    CHECK(a.parked_at_warmup() == 1);
+    a.finish_cycle();
+    CHECK(a.identities_hold());
+}
+
 int main() {
     const auto initial = episode::initial(true);
     const episode::Inputs input{0, Observation{0, 0.125, 0, true}, true, 0, {}, false, {}, {}};
@@ -283,6 +296,7 @@ int main() {
     guard::set_mode(guard::Mode::Abort);
     {
         guard::Cycle scope;
+        empty_recorded_window();
         ordinary_and_invalid();
         ordered_classes();
         future_and_windows();

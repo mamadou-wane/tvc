@@ -179,6 +179,7 @@ def run_free_case(*, binary, scenario_path, out, label, seed, delay_ticks, loss=
             message = str(exc)
         finally:
             stop_process(sim); stop_process(vehicle)
+    measurement_valid = False
     try:
         report_path = Path(str(prefix)+'.sim-report.json')
         summary_path = Path(str(prefix)+'.summary.json')
@@ -196,12 +197,19 @@ def run_free_case(*, binary, scenario_path, out, label, seed, delay_ticks, loss=
                 raise ValueError('control recording count mismatch')
             Path(str(prefix)+'.vehicle.csv').write_text(vehicle_csv(controls))
             Path(str(prefix)+'.sim.csv').write_text(sim_csv(report['rows']))
+            reconciled = reconcile(summary,report,'freerun',sensors=sensors,controls=controls)
+            measurement_valid = reconciled.get('measurement',{}).get('valid',False)
+            Path(str(prefix)+'.reconcile.json').write_text(json.dumps(reconciled,sort_keys=True)+'\n')
+            Path(str(prefix)+'.replay.json').write_text(json.dumps(report,sort_keys=True)+'\n')
+            if not reconciled['eligible'] and summary['episode']['vehicle_reason'] not in (5,6,8): code = 8
+            if reconciled.get('terminal',{}).get('required_legs_complete') is not True and not code: code = 3
             if report['vehicle_reason_seen'] is None and not code: code = 3
     except (OSError, ValueError, KeyError, TypeError) as exc:
         if not code: code = 4
         message = str(exc) if message is None else message + '; ' + str(exc)
     result = dict(code=code, functional_success=code==0, evidence_eligible=False,
-        validation='measurement and reconciliation pending', message=message,
+        measurement_valid=measurement_valid,
+        validation='functional measurement only; no timing qualification', message=message,
         vehicle_exit=vehicle.returncode if vehicle else None, sim_exit=sim.returncode if sim else None)
     Path(str(prefix)+'.result.json').write_text(json.dumps(result,sort_keys=True)+'\n')
     return result

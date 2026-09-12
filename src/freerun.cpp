@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <limits>
 #include <memory>
+#include <fstream>
 #include <sstream>
 #include <sys/stat.h>
 #include <sys/utsname.h>
@@ -31,14 +32,37 @@ int sleep_to(std::int64_t deadline, const std::atomic<bool>& stop) noexcept {
     return error;
 }
 
+std::string clock_domain() {
+    std::ifstream boot("/proc/sys/kernel/random/boot_id");
+    std::string id;
+    char ns[128]{};
+    if (!(boot >> id)) return "";
+    const auto size = ::readlink("/proc/self/ns/time", ns, sizeof ns - 1);
+    if (size <= 0) return "";
+    return "linux-monotonic:" + id + ":" + ns;
+}
+
+struct Window {
+    std::array<std::uint64_t, 4> ladder{};
+    std::uint64_t sent{}, failed{}, served{};
+    void record(unsigned rung, bool terminal, bool success, bool fresh) noexcept {
+        ++ladder[rung];
+        if (!terminal) { if (success) ++sent; else ++failed; }
+        if (fresh && success) ++served;
+    }
+};
+
 struct Runtime {
     explicit Runtime(bool auto_arm) : state(episode::initial(auto_arm)) {}
     Admission admission{0};
+    Window episode_window, recorded_window;
+    stats::Distribution served, discarded, uplink_wait, compute;
     episode::State state;
     std::uint64_t tick_base{}, cycles{}, receive_batches{}, pid_calls{}, pushed{}, terminal_cycle{};
     std::uint64_t normal_sent{}, normal_failed{}, term_attempts{}, term_sent{}, term_failed{};
-    std::uint64_t receive_errors{}, peer_refused{};
-    std::int64_t arrival{}, origin{}, receive_open{}, receive_closed{}, term_first{}, term_last{};
+    std::uint64_t receive_errors{}, peer_refused{}, terminal_received_recorded{};
+    bool first_terminal_tx_ok{};
+    std::int64_t arrival{}, origin{}, receive_open{}, receive_closed{}, term_first{}, term_last{}, termination_ns{}, termination_before_ns{};
     std::optional<std::uint32_t> sim_seen;
     episode::Reason failure = episode::Reason::NONE;
     int receive_errno{}, sleep_error{};
@@ -66,15 +90,19 @@ void run_freerun(const Config& cfg, int fd, const net::Datagram& carry, Runtime&
             if (received_errno == ECONNREFUSED) ++r.peer_refused;
         }
         const auto tick = r.tick_base + n;
+        const auto terminal_received_before = r.admission.terminal_counts().received_raw;
         r.admission.begin_cycle(tick);
         if (n == 0) r.admission.receive({carry.bytes.data(), carry.size}, carry.truncated());
         for (int i = 0; i < count; ++i)
             r.admission.receive({batch[i].bytes.data(), batch[i].size}, batch[i].truncated());
         const auto& admitted = r.admission.finish_cycle();
+        if (n >= static_cast<std::uint64_t>(cfg.warmup))
+            r.terminal_received_recorded += r.admission.terminal_counts().received_raw - terminal_received_before;
         std::optional<Observation> held;
         if (const auto& sample = r.admission.held())
             held = Observation{sample->tick, sample->theta, sample->omega, true};
         if (admitted.terminal) r.sim_seen = admitted.terminal->reason;
+        const auto policy_started = now_ns();
         const auto result = episode::step(r.state, {tick, held, admitted.fresh.has_value(),
             admitted.staleness, {}, n + 1 == total, r.sim_seen,
             stop.load(std::memory_order_relaxed) ? std::optional{episode::Reason::SIGNAL} : std::nullopt});
@@ -82,6 +110,7 @@ void run_freerun(const Config& cfg, int fd, const net::Datagram& carry, Runtime&
         ++r.cycles;
         if (admitted.fresh && r.state.mode == episode::Mode::FLYING) ++r.pid_calls;
         const bool terminal = r.state.mode == episode::Mode::TERMINATED;
+        if (terminal) { r.termination_before_ns = policy_started; r.termination_ns = now_ns(); }
         const unsigned rung = admitted.staleness >= 21 ? 3 : admitted.fresh ? 0 : admitted.staleness <= 8 ? 1 : 2;
         telem::ControlRecord record{};
         record.tick = tick; record.deadline_ns = deadline; record.woke_ns = woke; record.rx_ns = rx;
@@ -109,6 +138,7 @@ void run_freerun(const Config& cfg, int fd, const net::Datagram& carry, Runtime&
         record.tx_ns = tx;
         if (success) record.flags |= 2;
         if (terminal) {
+            r.first_terminal_tx_ok = success;
             r.terminal_cycle = 1; r.term_attempts = 1; r.term_first = before_send; r.term_last = tx;
             if (success) ++r.term_sent; else ++r.term_failed;
         } else {
@@ -117,7 +147,16 @@ void run_freerun(const Config& cfg, int fd, const net::Datagram& carry, Runtime&
         record.done_ns = now_ns();
         record.drops = ring.drops();
         if (ring.try_push(record)) ++r.pushed;
+        r.episode_window.record(rung, terminal, success, admitted.fresh.has_value());
         if (n >= static_cast<std::uint64_t>(cfg.warmup)) {
+            r.recorded_window.record(rung, terminal, success, admitted.fresh.has_value());
+            if ((record.flags & 3) == 3) {
+                r.served.record_interval(record.sensor_send_ns, record.tx_ns);
+                r.uplink_wait.record_interval(record.sensor_send_ns, record.rx_ns);
+                r.compute.record_interval(record.rx_ns, record.tx_ns);
+            }
+            for (unsigned i = 0; i < admitted.discard_count; ++i)
+                r.discarded.record_interval(admitted.discards[i].send_ns, rx);
             stats.record(woke - deadline, previous_woke ? woke - previous_woke - kPeriodNs : 0,
                          record.done_ns - woke);
             if (record.done_ns > deadline + kPeriodNs) stats.note_missed();
@@ -140,7 +179,7 @@ void resend_terminal(const Config& cfg, int fd, Runtime& r, const std::atomic<bo
     }
 }
 
-std::string counters(const AdmissionCounts& c) {
+std::string counters(const AdmissionCounts& c, const Window& window) {
     std::ostringstream out;
     out << "{\"received\":" << c.received << ",\"consumed\":" << c.consumed
         << ",\"discarded_old\":" << c.old << ",\"discarded_superseded\":" << c.superseded
@@ -149,7 +188,11 @@ std::string counters(const AdmissionCounts& c) {
         << ",\"discarded_invalid\":" << c.invalid << ",\"future_expired\":" << c.future_expired
         << ",\"bad_sync\":" << c.bad_sync << ",\"bad_version\":" << c.bad_version
         << ",\"bad_type\":" << c.bad_type << ",\"bad_length\":" << c.bad_length
-        << ",\"bad_crc\":" << c.bad_crc << '}';
+        << ",\"bad_crc\":" << c.bad_crc
+        << ",\"fresh\":" << window.ladder[0] << ",\"coast\":" << window.ladder[1]
+        << ",\"neutral\":" << window.ladder[2] << ",\"lost\":" << window.ladder[3]
+        << ",\"actuator_transmitted\":" << window.sent << ",\"actuator_tx_fail\":" << window.failed
+        << ",\"served\":" << window.served << '}';
     return out.str();
 }
 } // namespace
@@ -211,7 +254,13 @@ int run(const Config& cfg, std::atomic<bool>& stop) {
         r.state.terminal ? r.state.terminal->reason : episode::Reason::INTERNAL;
     const auto& tc = r.admission.terminal_counts();
     std::ostringstream extra;
-    extra << ",\"timing_qualified\":false,\"measurement_validation\":\"pending\",\"latency_us\":null,\"discard_age_us\":null"
+    extra << ",\"timing_qualified\":false"
+        << ",\"latency_us\":" << r.served.json() << ",\"discard_age_us\":" << r.discarded.json()
+        << ",\"uplink_wait_us\":" << r.uplink_wait.json() << ",\"vehicle_compute_us\":" << r.compute.json()
+        << ",\"clock_domain\":\"" << clock_domain() << "\",\"termination_ns\":" << r.termination_ns
+        << ",\"termination_before_ns\":" << r.termination_before_ns
+        << ",\"termination_source\":\"" << (r.sim_seen ? "simulator" : "local") << '"'
+        << ",\"last_received_tick\":" << (r.admission.last_received_tick() ? std::to_string(*r.admission.last_received_tick()) : "null")
         << ",\"total_cycles\":" << r.cycles << ",\"warmup\":" << cfg.warmup
         << ",\"phase_us\":" << cfg.phase_us << ",\"skew_max_ticks\":" << cfg.skew_max
         << ",\"terminal_copies\":" << cfg.terminal_copies
@@ -219,12 +268,15 @@ int run(const Config& cfg, std::atomic<bool>& stop) {
         << ",\"episode\":{\"state\":3,\"vehicle_reason\":" << static_cast<unsigned>(reason)
         << ",\"reason_tick\":" << (r.state.terminal ? r.state.terminal->tick : r.tick_base)
         << ",\"tick_base\":" << r.tick_base << ",\"sim_reason_seen\":" << (r.sim_seen ? std::to_string(*r.sim_seen) : "null") << '}'
-        << ",\"link\":" << counters(r.admission.episode()) << ",\"link_recorded\":" << counters(r.admission.recorded())
-        << ",\"future_parked\":" << r.admission.future_parked() << ",\"future_parked_at_warmup\":" << r.admission.parked_at_warmup()
+        << ",\"link\":" << counters(r.admission.episode(), r.episode_window) << ",\"link_recorded\":" << counters(r.admission.recorded(), r.recorded_window)
+        << ",\"future_parked_at_end\":" << r.admission.future_parked()
+        << ",\"future_parked\":" << r.admission.future_parked() << ",\"future_parked_at_warmup\":" << (r.admission.parked_at_warmup() ? std::to_string(*r.admission.parked_at_warmup()) : "null")
         << ",\"actuator\":{\"generated\":" << r.cycles - r.terminal_cycle << ",\"transmitted\":" << r.normal_sent
         << ",\"tx_fail\":" << r.normal_failed << '}'
         << ",\"terminal\":{\"cycle\":" << r.terminal_cycle << ",\"down_attempts\":" << r.term_attempts
         << ",\"down_transmitted\":" << r.term_sent << ",\"down_tx_fail\":" << r.term_failed
+        << ",\"first_tx_ok\":" << (r.terminal_cycle ? (r.first_terminal_tx_ok ? "true" : "false") : "null")
+        << ",\"up_received_raw_recorded\":" << r.terminal_received_recorded
         << ",\"up_received_raw\":" << tc.received_raw << ",\"up_tick_conflict\":" << tc.conflict
         << ",\"up_duplicate\":" << tc.duplicate << ",\"up_skew_excess\":" << tc.skew_excess
         << ",\"up_future_expired\":" << tc.future_expired << ",\"up_illegal_reason\":" << tc.illegal_reason
@@ -242,7 +294,10 @@ int run(const Config& cfg, std::atomic<bool>& stop) {
     const std::string telemetry = "{\"records\":" + std::to_string(drain.records_written()) + ",\"dropped\":" + std::to_string(ring->drops()) + '}';
     const bool wrote = stats.write_json(prefix + ".summary.json", cfg.label, "mode:freerun record:control",
         applied, env, cfg.cycles, telemetry, "freerun", true, extra.str());
-    if (!wrote || drain.write_failed() || ring->drops()) return 4;
+    const bool csvs = stats.write_csv(cfg.outdir, cfg.label, true) &&
+        r.served.write_csv(prefix + ".latency.csv") && r.discarded.write_csv(prefix + ".discard_age.csv") &&
+        r.uplink_wait.write_csv(prefix + ".uplink_wait.csv") && r.compute.write_csv(prefix + ".vehicle_compute.csv");
+    if (!wrote || !csvs || drain.write_failed() || ring->drops()) return 4;
     if (stop.load()) return 3;
     if (!rt_ok) return 2;
     if (r.admission.integrity_failed() || !r.admission.identities_hold()) return 6;

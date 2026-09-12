@@ -38,6 +38,7 @@ class FreeModel(unittest.TestCase):
         self.assertEqual(model.loss('up',11),(False,True))
         self.assertIsNone(model.receive([reply(1),reply(19)],10))
         self.assertEqual(model.draws,[1,2])
+        self.assertEqual(model.down['last_received_tick'],19)
         self.assertEqual(model.down['intentionally_lost'],2)
         self.assertEqual(model.receive([reply(1)],12),0.12)
         self.assertEqual(model.draws,[1,3])
@@ -91,3 +92,46 @@ class FreeModel(unittest.TestCase):
         terminal=Model(spec(),1,0)
         terminal.receive([wire.encode_frame(5,0,wire.encode_payload(5,value))],0)
         self.assertEqual(terminal.vehicle_seen,1)
+
+class RoundTrip(unittest.TestCase):
+    def test_literal_simulator_clock_endpoint_and_exclusions(self):
+        from sim.freerun import roundtrip_ns
+        def packet(status=2,echo=1000,delta=0):
+            return wire.encode_frame(5,0,wire.encode_payload(5,dict(tick=0,veh_tick=0,
+                t_sensor_send_ns=echo,t_veh_send_ns=999999999,delta=delta,status=status,staleness=0)))
+        self.assertEqual(roundtrip_ns(packet(),4500),3500)
+        for frame in (b'bad',packet(status=259),packet(status=2+(1<<16)),packet(echo=0)):
+            self.assertIsNone(roundtrip_ns(frame,4500))
+        m=Model(spec(loss_down=1),1,0)
+        frame=packet()
+        self.assertEqual(roundtrip_ns(frame,4500),3500)
+        m.receive([frame],0)
+        self.assertEqual(m.down['intentionally_lost'],1)
+
+    def test_terminal_send_lifetime_encloses_delayed_syscall(self):
+        import socket
+        import tempfile
+        import time
+        import json
+        from pathlib import Path
+        from unittest.mock import patch
+        from sim.freerun import execute
+        original=socket.socket; completed=[]
+        class Delayed:
+            def __init__(self,*args,**kwargs):self.inner=original(*args,**kwargs)
+            def __getattr__(self,name):return getattr(self.inner,name)
+            def send(self,data,flags):
+                _,_,payload=wire.decode_datagram(data,{4})
+                terminal=bool(wire.decode_payload(4,payload)['flags']&2)
+                if terminal:time.sleep(.02)
+                result=self.inner.send(data,flags)
+                if terminal:completed.append(time.monotonic_ns())
+                return result
+        with original(socket.AF_INET,socket.SOCK_DGRAM) as peer,tempfile.TemporaryDirectory() as directory:
+            peer.bind(('127.0.0.1',0));prefix=Path(directory)/'run'
+            with patch('sim.freerun.socket.socket',Delayed):
+                self.assertEqual(execute(spec(ticks=2),seed=1,delay_ticks=0,peer=peer.getsockname(),
+                                         bind_port=0,prefix=prefix,terminal_copies=1),3)
+            report=json.loads(Path(str(prefix)+'.sim-report.json').read_text())
+            self.assertEqual(len(completed),1)
+            self.assertGreaterEqual(report['terminal_send_last_ns'],completed[0])

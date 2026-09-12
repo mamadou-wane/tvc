@@ -72,7 +72,8 @@ public:
     const TerminalCounts& terminal_counts() const noexcept { return terminal_counts_; }
     std::uint64_t future_parked() const noexcept;
     std::uint64_t total_parked() const noexcept;
-    std::uint64_t parked_at_warmup() const noexcept { return warmup_occupancy_; }
+    std::optional<std::uint64_t> parked_at_warmup() const noexcept { return warmup_occupancy_; }
+    std::optional<std::uint64_t> last_received_tick() const noexcept { return last_normal_tick_; }
     bool identities_hold() const noexcept;
     bool integrity_failed() const noexcept { return integrity_; }
 
@@ -92,7 +93,8 @@ private:
     void discard(SensorClass, const Frame&) noexcept;
     void expire(const Frame&) noexcept;
 
-    std::uint64_t tick_base_, warmup_, expected_{}, cycles_{}, warmup_occupancy_{};
+    std::uint64_t tick_base_, warmup_, expected_{}, cycles_{};
+    std::optional<std::uint64_t> warmup_occupancy_, last_normal_tick_;
     unsigned skew_max_;
     bool open_{}, integrity_{}, valid_;
     std::array<std::optional<Frame>, kMaxSkew + 1> future_{};

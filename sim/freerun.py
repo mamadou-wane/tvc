@@ -39,6 +39,39 @@ def sleep_until(deadline, stopped, sleep):
     raise InterruptedError('simulator interrupted')
 
 
+def clock_domain():
+    try:
+        boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+        namespace = os.readlink('/proc/self/ns/time')
+        return 'linux-monotonic:' + boot + ':' + namespace
+    except OSError:
+        return ''
+
+
+def diagnostic_distribution(values):
+    ordered = sorted(values)
+    def percentile(p):
+        return ordered[max(0, math.ceil(p * len(ordered)) - 1)] / 1000 if ordered else 0
+    return dict(count=len(values), sum_ns=sum(values), p50=percentile(.5),
+                **{'p99.9': percentile(.999)}, max=max(values, default=0)/1000)
+
+
+def roundtrip_observation(data, received_ns):
+    try:
+        _, _, payload = wire.decode_datagram(data, {5})
+        value = wire.decode_payload(5, payload)
+    except ValueError:
+        return None
+    if value['status'] & 255 == 3 or (value['status'] >> 16) & 255 != 0 or not value['t_sensor_send_ns']:
+        return None
+    return dict(received_ns=received_ns,sensor_send_ns=value['t_sensor_send_ns'],status=value['status'])
+
+
+def roundtrip_ns(data, received_ns):
+    sample = roundtrip_observation(data, received_ns)
+    return sample['received_ns']-sample['sensor_send_ns'] if sample else None
+
+
 def validate_ticks(ticks):
     if isinstance(ticks, bool) or not isinstance(ticks, int) or ticks < 2:
         raise ValueError('freerun requires ticks >= 2')
@@ -65,6 +98,7 @@ class Model:
         self.term = dict.fromkeys(('up_attempts', 'up_intentionally_lost', 'up_tx_fail', 'up_transmitted',
                                   'down_received_raw', 'down_intentionally_lost', 'down_survived'), 0)
         self.events = dict.fromkeys(('plant_steps', 'actuator_updates', 'fifo_advances', 'sensor_observations'), 0)
+        self.down['last_received_tick'] = None
         self.reason = None
         self.vehicle_seen = None
 
@@ -92,6 +126,8 @@ class Model:
                 self.term['down_intentionally_lost' if drop else 'down_survived'] += 1
             else:
                 self.down['received'] += 1
+                last = self.down['last_received_tick']
+                self.down['last_received_tick'] = value['tick'] if last is None else max(last, value['tick'])
                 if drop: self.down['intentionally_lost'] += 1
             if drop: continue
             if not terminal and not math.isfinite(value['delta']):
@@ -140,7 +176,8 @@ def execute(spec, *, seed, delay_ticks, peer, bind_port, prefix, terminal_copies
         nonlocal stopped
         stopped = True
     previous = {sig: signal.signal(sig, on_signal) for sig in (signal.SIGINT, signal.SIGTERM)}
-    rows, steps, roundtrips = [], [], []
+    rows, steps, roundtrips, roundtrip_samples = [], [], [], []
+    termination_ns = 0; termination_before_ns = 0; termination_source = None
     error = None; code = 0; origin = 0; receive_open = time.monotonic_ns(); receive_closed = 0
     first_terminal_send = last_terminal_send = 0
     cached_terminal = None; terminal_logged = False; terminal_tick = None
@@ -156,11 +193,10 @@ def execute(spec, *, seed, delay_ticks, peer, bind_port, prefix, terminal_copies
                     except BlockingIOError: break
                 received = time.monotonic_ns()
                 for data in packets:
-                    try:
-                        _, _, payload = wire.decode_datagram(data, {5}); value = wire.decode_payload(5, payload)
-                    except ValueError: continue
-                    if value['status'] & 255 != 3 and (value['status'] >> 16) & 255 == 0 and value['t_sensor_send_ns']:
-                        roundtrips.append(received - value['t_sensor_send_ns'])
+                    sample = roundtrip_observation(data, received)
+                    if sample is not None:
+                        roundtrips.append(sample['received_ns']-sample['sensor_send_ns'])
+                        roundtrip_samples.append(sample)
                 return packets
 
             def offer(tick, terminal=False, prologue=False):
@@ -189,12 +225,14 @@ def execute(spec, *, seed, delay_ticks, peer, bind_port, prefix, terminal_copies
                     return
                 if terminal:
                     if not first_terminal_send: first_terminal_send = sent_ns
-                    last_terminal_send = sent_ns
                 try:
                     if tick == fail_sensor and (not terminal or model.term['up_attempts'] == 1):
                         raise BlockingIOError(errno.EAGAIN, 'injected sensor send refusal')
-                    if sock.send(frame, socket.MSG_DONTWAIT) != len(frame): raise OSError('short UDP send')
+                    sent_size = sock.send(frame, socket.MSG_DONTWAIT)
+                    if terminal: last_terminal_send = time.monotonic_ns()
+                    if sent_size != len(frame): raise OSError('short UDP send')
                 except OSError:
+                    if terminal: last_terminal_send = time.monotonic_ns()
                     if terminal: model.term['up_tx_fail'] += 1
                     else: model.up['sensor_tx_fail'] += 1
                     if prologue: raise
@@ -213,15 +251,22 @@ def execute(spec, *, seed, delay_ticks, peer, bind_port, prefix, terminal_copies
             for k in range(spec.ticks - 1):
                 if k == kill_at: os.kill(os.getpid(), signal.SIGKILL)
                 sleep_until(origin + k*PERIOD_NS, lambda: stopped, absolute_sleep)
-                selected = model.receive(drain(), k)
-                if model.vehicle_seen is not None: break
+                packets = drain()
+                decision_started = time.monotonic_ns()
+                selected = model.receive(packets, k)
+                if model.vehicle_seen is not None:
+                    termination_ns = time.monotonic_ns(); termination_before_ns = decision_started; termination_source = 'vehicle'
+                    break
+                decision_started = time.monotonic_ns()
                 arriving = model.advance(k, selected)
+                terminal = model.reason is not None
+                if terminal:
+                    termination_ns = time.monotonic_ns(); termination_before_ns = decision_started; termination_source = 'local'
                 row = dict(tick=k+1, has_sample=1, applied=int(arriving is not None),
                     theta_bits=word(model.truth.theta), omega_bits=word(model.truth.omega),
                     cmd_applied_bits=word(model.act.applied))
                 rows.append(row)
                 steps.append(dict(row, deadline_ns=origin+k*PERIOD_NS, selected_delta=selected))
-                terminal = model.reason is not None
                 offer(k+1, terminal=terminal)
                 if terminal:
                     terminal_tick = k
@@ -241,7 +286,8 @@ def execute(spec, *, seed, delay_ticks, peer, bind_port, prefix, terminal_copies
         receive_closed = time.monotonic_ns(); sock.close()
         for sig, handler in previous.items(): signal.signal(sig, handler)
     if model.reason is None: model.reason = episode.SimReason.SIM_PEER_LOST
-    report = dict(mode='freerun', sim_reason=int(model.reason), sim_reason_name=model.reason.name,
+    report = dict(clock_domain=clock_domain(), termination_ns=termination_ns, termination_before_ns=termination_before_ns, termination_source=termination_source,
+        seed=seed, delay_ticks=delay_ticks, ticks=spec.ticks, mode='freerun', sim_reason=int(model.reason), sim_reason_name=model.reason.name,
         vehicle_reason_seen=model.vehicle_seen, origin_ns=origin, rate_hz=500, period_ns=PERIOD_NS,
         terminal_handshake='answered' if model.vehicle_seen is not None else 'unanswered',
         transmission=model.up, actuator_receipt=model.down, terminal=model.term, events=model.events,
@@ -249,6 +295,7 @@ def execute(spec, *, seed, delay_ticks, peer, bind_port, prefix, terminal_copies
         receive_open_ns=receive_open, receive_closed_ns=receive_closed, rows=rows, steps=steps,
         rng=dict(up_draws=model.draws[0], down_draws=model.draws[1],
                  up_state=model.streams[0].state, down_state=model.streams[1].state),
-        latency_roundtrip_ns=roundtrips, error=error)
+        latency_roundtrip_ns=roundtrips, roundtrip_samples=roundtrip_samples,
+        latency_roundtrip_us=diagnostic_distribution(roundtrips), error=error)
     Path(str(prefix)+'.sim-report.json').write_text(json.dumps(report, sort_keys=True, allow_nan=False)+'\n')
     return code
