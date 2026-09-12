@@ -18,7 +18,7 @@ from scripts.golden_csv import sim_csv,vehicle_csv
 from scripts.reconcile import reconcile
 
 
-def ready_line(process):
+def ready_line(process, mode="lockstep"):
     selector=selectors.DefaultSelector();selector.register(process.stdout,selectors.EVENT_READ)
     data=b'';deadline=time.monotonic()+10
     try:
@@ -34,7 +34,7 @@ def ready_line(process):
                 fields=dict(word.split('=',1) for word in line.split()[1:])
                 if not {'mode','sensor_port','command_port','pid','bin','consts'} <= fields.keys():
                     raise RuntimeError('incomplete ready line')
-                if fields.get('mode')!='lockstep' or fields.get('command_port')!='0' or int(fields['pid'])!=process.pid:
+                if fields.get('mode')!=mode or fields.get('command_port')!='0' or int(fields['pid'])!=process.pid:
                     raise RuntimeError('invalid ready identity')
                 if not 0<int(fields['sensor_port'])<=65535: raise RuntimeError('invalid bound sensor port')
                 return fields
@@ -133,6 +133,88 @@ def run_case(*,binary,scenario_path,out,label,seed,delay_ticks,loss=None,sim_arg
     return result
 
 
+def run_free_case(*, binary, scenario_path, out, label, seed, delay_ticks, loss=None,
+                  cycles=1000, warmup=0, phase_us=400, skew_max=4, terminal_copies=12,
+                  ticks=None, sim_args=(), vehicle_env=None):
+    from sim.freerun import validate_ticks
+    spec = load(scenario_path)
+    validate_ticks(spec.ticks if ticks is None else ticks)
+    # Pass-through hooks cannot override the configuration already checked by the runner.
+    for arg in sim_args:
+        if arg.partition('=')[0] not in ('--test-fail-sensor', '--test-kill-at') or '=' not in arg:
+            raise ValueError('freerun --sim-arg accepts fault hooks only; use --ticks for frame count')
+    if spec.commands: raise ValueError('live command-bearing freerun scenarios are unsupported')
+    out = Path(out).resolve(); out.mkdir(parents=True, exist_ok=True)
+    if any(out.glob(label+'.*')): raise ValueError('output label already exists')
+    prefix = out/label; vehicle = sim = None; code = 0; message = None
+    argv = [str(Path(binary).resolve()), '--mode=freerun', '--telemetry', '--record=control',
+        '--sensor-port=0', '--out='+str(out), '--label='+label, '--alloc-guard=abort',
+        '--cycles='+str(cycles), '--warmup='+str(warmup), '--phase-us='+str(phase_us),
+        '--skew-max-ticks='+str(skew_max), '--terminal-copies='+str(terminal_copies)]
+    if spec.auto_arm: argv.append('--auto-arm')
+    with open(str(prefix)+'.vehicle.log','wb') as vlog, open(str(prefix)+'.sim.log','wb') as slog:
+        try:
+            vehicle = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=vlog, env=vehicle_env)
+            ready = ready_line(vehicle, mode='freerun')
+            if ready['consts'] != '0xe77201ca':
+                code = 7
+                raise ValueError('controller constants mismatch')
+            args = [sys.executable, '-B', '-m', 'sim.run_sim', '--mode=freerun',
+                '--scenario='+str(Path(scenario_path).resolve()), '--seed='+str(seed),
+                '--vehicle=127.0.0.1:'+ready['sensor_port'], '--delay-ticks='+str(delay_ticks),
+                '--terminal-copies='+str(terminal_copies), '--out='+str(out), '--label='+label]
+            if loss is not None: args.append('--loss='+str(loss))
+            if ticks is not None: args.append('--ticks='+str(ticks))
+            args.extend(sim_args)
+            sim = subprocess.Popen(args, cwd=ROOT, stdout=slog, stderr=subprocess.STDOUT)
+            limit = max(ticks or spec.ticks, cycles+warmup)*0.002 + 12
+            sim.wait(timeout=limit)
+            vehicle.wait(timeout=5)
+            if sim.returncode: code = 3
+            elif vehicle.returncode: code = 2
+        except TimeoutError as exc:
+            code = 6; message = str(exc)
+        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
+            if not code: code = 2 if vehicle is not None and vehicle.poll() is not None else 3
+            message = str(exc)
+        finally:
+            stop_process(sim); stop_process(vehicle)
+    measurement_valid = False
+    try:
+        report_path = Path(str(prefix)+'.sim-report.json')
+        summary_path = Path(str(prefix)+'.summary.json')
+        if not report_path.exists() or not summary_path.exists():
+            raise ValueError('missing simulator or vehicle report')
+        if report_path.exists() and summary_path.exists():
+            report = json.loads(report_path.read_text()); summary = json.loads(summary_path.read_text())
+            _, sensors, input_counters = wire.read_typed_recording(Path(str(prefix)+'.inputs.tvcrec'), expected_type=4)
+            if any(v for k,v in input_counters.items() if k not in ('frames_ok','lost')):
+                raise ValueError('incomplete input recording')
+            _, controls, counters = wire.read_typed_recording(Path(str(prefix)+'.control.tvcrec'), expected_type=6)
+            if any(v for k,v in counters.items() if k!='frames_ok') or summary['telemetry']['dropped']:
+                raise ValueError('incomplete control recording')
+            if len(controls) != summary['total_cycles'] or len(controls) != summary['telemetry']['records']:
+                raise ValueError('control recording count mismatch')
+            Path(str(prefix)+'.vehicle.csv').write_text(vehicle_csv(controls))
+            Path(str(prefix)+'.sim.csv').write_text(sim_csv(report['rows']))
+            reconciled = reconcile(summary,report,'freerun',sensors=sensors,controls=controls)
+            measurement_valid = reconciled.get('measurement',{}).get('valid',False)
+            Path(str(prefix)+'.reconcile.json').write_text(json.dumps(reconciled,sort_keys=True)+'\n')
+            Path(str(prefix)+'.replay.json').write_text(json.dumps(report,sort_keys=True)+'\n')
+            if not reconciled['eligible'] and summary['episode']['vehicle_reason'] not in (5,6,8): code = 8
+            if reconciled.get('terminal',{}).get('required_legs_complete') is not True and not code: code = 3
+            if report['vehicle_reason_seen'] is None and not code: code = 3
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        if not code: code = 4
+        message = str(exc) if message is None else message + '; ' + str(exc)
+    result = dict(code=code, functional_success=code==0, evidence_eligible=False,
+        measurement_valid=measurement_valid,
+        validation='functional measurement only; no timing qualification', message=message,
+        vehicle_exit=vehicle.returncode if vehicle else None, sim_exit=sim.returncode if sim else None)
+    Path(str(prefix)+'.result.json').write_text(json.dumps(result,sort_keys=True)+'\n')
+    return result
+
+
 class Arguments(argparse.ArgumentParser):
     def error(self,message):
         self.print_usage(sys.stderr)
@@ -141,12 +223,18 @@ class Arguments(argparse.ArgumentParser):
 
 def main(argv=None):
     parser=Arguments(description=__doc__)
-    parser.add_argument('--mode',choices=['lockstep'],default='lockstep')
+    parser.add_argument('--mode',choices=['lockstep','freerun'],default='lockstep')
     parser.add_argument('--binary',default=str(ROOT/'build/tvc_harness'))
     parser.add_argument('--scenario',required=True);parser.add_argument('--out',required=True)
     parser.add_argument('--label');parser.add_argument('--seed',type=int,default=1)
     parser.add_argument('--delay-ticks',type=int,choices=(0,1),default=0)
     parser.add_argument('--loss',type=float);parser.add_argument('--sim-arg',action='append',default=[])
+    parser.add_argument('--cycles',type=int)
+    parser.add_argument('--warmup',type=int)
+    parser.add_argument('--phase-us',type=int)
+    parser.add_argument('--skew-max-ticks',type=int)
+    parser.add_argument('--terminal-copies',type=int)
+    parser.add_argument('--ticks',type=int)
     args=parser.parse_args(argv)
     path=Path(args.scenario)
     if not path.suffix: path=ROOT/'sim/scenarios'/(args.scenario+'.json')
@@ -154,8 +242,15 @@ def main(argv=None):
     if not label or any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-' for c in label):
         parser.error('invalid label')
     try:
-        result=run_case(binary=args.binary,scenario_path=path,out=args.out,label=label,
-                        seed=args.seed,delay_ticks=args.delay_ticks,loss=args.loss,sim_args=args.sim_arg)
+        options = dict(binary=args.binary,scenario_path=path,out=args.out,label=label,
+                       seed=args.seed,delay_ticks=args.delay_ticks,loss=args.loss,sim_args=args.sim_arg)
+        extra = dict(cycles=args.cycles,warmup=args.warmup,phase_us=args.phase_us,
+                     skew_max=args.skew_max_ticks,terminal_copies=args.terminal_copies,ticks=args.ticks)
+        if args.mode == 'freerun':
+            result = run_free_case(**options, **{k:v for k,v in extra.items() if v is not None})
+        else:
+            if any(v is not None for v in extra.values()): parser.error('free-run options require freerun')
+            result = run_case(**options)
     except OSError as exc:
         print(f'output: {exc}',file=sys.stderr)
         return 4

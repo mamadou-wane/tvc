@@ -36,6 +36,8 @@ FetchContent_MakeAvailable(hdr_histogram)
 add_executable(tvc_harness
   src/main.cpp
   src/lockstep.cpp
+  src/freerun.cpp
+  src/freerun_admission.cpp
   src/net.cpp
   src/control.cpp
   src/episode.cpp
@@ -78,6 +80,17 @@ target_link_options(episode_tests PRIVATE -fno-fast-math
 # Call observation needs external references to the real controller definitions.
 # Mangled symbols and interposition are test-only, not production contracts.
 set_target_properties(episode_tests PROPERTIES
+  INTERPROCEDURAL_OPTIMIZATION FALSE UNITY_BUILD OFF)
+
+add_executable(admission_tests tests/cpp/admission_tests.cpp src/freerun_admission.cpp
+  src/telemetry.cpp src/alloc_guard.cpp src/episode.cpp src/control.cpp)
+target_compile_definitions(admission_tests PRIVATE _GNU_SOURCE)
+target_compile_options(admission_tests PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+target_link_options(admission_tests PRIVATE -fno-fast-math
+  "LINKER:--wrap=_ZN7episode4stepERKNS_5StateERKNS_6InputsE"
+  "LINKER:--wrap=_ZN7control4stepERNS_5StateERK11Observation")
+target_link_libraries(admission_tests PRIVATE Threads::Threads)
+set_target_properties(admission_tests PROPERTIES
   INTERPROCEDURAL_OPTIMIZATION FALSE UNITY_BUILD OFF)
 
 add_executable(wire_tests tests/cpp/wire_tests.cpp src/telemetry.cpp)
@@ -125,3 +138,24 @@ target_include_directories(lockstep_faults PRIVATE ${hdr_histogram_SOURCE_DIR}/i
 target_compile_options(lockstep_faults PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 target_link_options(lockstep_faults PRIVATE -fno-fast-math "LINKER:--wrap=send" "LINKER:--wrap=fwrite" "LINKER:--wrap=fclose")
 target_link_libraries(lockstep_faults PRIVATE Threads::Threads hdr_histogram_static m)
+
+add_executable(freerun_faults ${TVC_RUNTIME_SOURCES} tests/cpp/freerun_faults.cpp)
+target_compile_definitions(freerun_faults PRIVATE _GNU_SOURCE)
+target_include_directories(freerun_faults PRIVATE ${hdr_histogram_SOURCE_DIR}/include)
+target_compile_options(freerun_faults PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+target_link_options(freerun_faults PRIVATE -fno-fast-math
+  "LINKER:--wrap=send" "LINKER:--wrap=recvmmsg" "LINKER:--wrap=clock_nanosleep" "LINKER:--wrap=fclose"
+  "LINKER:--wrap=_ZN7episode4stepERKNS_5StateERKNS_6InputsE"
+  "LINKER:--wrap=_ZN7control4stepERNS_5StateERK11Observation"
+  "LINKER:--wrap=_ZN5stats9LoopStats6recordElll")
+target_link_libraries(freerun_faults PRIVATE Threads::Threads hdr_histogram_static m)
+
+add_executable(measurement_tests tests/cpp/measurement_tests.cpp src/loop_stats.cpp src/alloc_guard.cpp
+  src/freerun_admission.cpp src/telemetry.cpp)
+target_include_directories(measurement_tests PRIVATE ${hdr_histogram_SOURCE_DIR}/include)
+if(TARGET hdr_histogram_static)
+  target_link_libraries(measurement_tests PRIVATE hdr_histogram_static)
+else()
+  target_link_libraries(measurement_tests PRIVATE hdr_histogram)
+endif()
+target_link_libraries(measurement_tests PRIVATE Threads::Threads m)
