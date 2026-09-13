@@ -16,6 +16,8 @@ struct Config {
     guard::Mode alloc_guard = guard::Mode::Off;
     std::int64_t cycles = 300000, warmup = 5000, phase_us = 400;
     unsigned skew_max = 4, terminal_copies = 12;
+    std::string ground_host;
+    std::uint16_t ground_port = 0;
 };
 
 // Setup owns the single bounded origin receive; the scheduled body cannot call it.

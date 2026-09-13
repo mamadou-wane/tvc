@@ -28,6 +28,7 @@ python3 -B tests/check_pid_corpus.py ./build/control_tests
 ./build/rt_setup_tests
 ./build/env_probe_tests
 ./build/ring_stress
+./build/drain_tests
 if [ -d tests/unit ]; then python3 -m unittest discover -s tests/unit -v; fi
 if [ -d tests/functional ]; then
   TVC_BIN="$PWD/build/tvc_harness" python3 -m unittest discover -s tests/functional -v
@@ -49,8 +50,10 @@ python3 -B tests/check_pid_corpus.py ./build-asan/control_tests
 ./build-asan/rt_setup_tests
 ./build-asan/env_probe_tests
 ./build-asan/ring_stress
+./build-asan/drain_tests
 cmake -S . -B build-tsan -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DCMAKE_CXX_FLAGS="-fsanitize=thread"
-cmake --build build-tsan --target ring_stress -j
+cmake --build build-tsan --target ring_stress drain_tests -j
 ./build-tsan/ring_stress
+./build-tsan/drain_tests
 echo "ci.sh: all green"

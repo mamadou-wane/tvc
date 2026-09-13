@@ -1,5 +1,9 @@
 #include "telemetry.hpp"
 #include "wire.hpp"
+#include "net.hpp"
+#include <cerrno>
+#include <system_error>
+#include <new>
 
 #include <array>
 #include <cstring>
@@ -351,6 +355,33 @@ void Drain<T>::start(std::FILE* f) {
 }
 
 template<class T>
+bool Drain<T>::start(std::FILE* f, const sockaddr_in& endpoint)
+    requires std::is_same_v<T, ControlRecord> {
+    sockaddr_in local{}, bound{};
+    local.sin_family = AF_INET;
+    ground_fd_ = net::open_udp(local, bound);
+    if (ground_fd_ < 0) return false;
+    if (net::connect_udp(ground_fd_, endpoint) < 0) {
+        const int error = errno;
+        net::close_udp(ground_fd_);
+        errno = error;
+        return false;
+    }
+    try { start(f); }
+    catch (const std::bad_alloc&) {
+        net::close_udp(ground_fd_);
+        errno = ENOMEM;
+        return false;
+    }
+    catch (const std::system_error& error) {
+        net::close_udp(ground_fd_);
+        errno = error.code().value();
+        return false;
+    }
+    return true;
+}
+
+template<class T>
 void Drain<T>::stop() {
     stop_.store(true, std::memory_order_release);
     thread_.join();
@@ -383,6 +414,18 @@ void Drain<T>::run() {
             if (std::fwrite(frame, 1, len, file_) != len)
                 write_failed_.store(true, std::memory_order_relaxed);
             else { ++records_; bytes_ += len; }
+            if constexpr (!legacy) {
+                if (ground_fd_ >= 0) {
+                    ++ground_.attempted;
+                    const auto sent = net::send_frame(ground_fd_, frame, len);
+                    if (sent == static_cast<ssize_t>(len)) ++ground_.sent;
+                    else {
+                        ++ground_.send_errors;
+                        ground_.last_errno = sent < 0 ? errno : EIO;
+                        if (sent >= 0) ++ground_.short_sends;
+                    }
+                }
+            }
         }
         if (n == 0) {
             if (stop_seen) break;
@@ -398,7 +441,10 @@ void Drain<T>::run() {
     }
     if (std::fflush(file_) != 0)
         write_failed_.store(true, std::memory_order_relaxed);
-    std::fclose(file_);
+    // File-only modes retain their existing close-error behavior.
+    if (std::fclose(file_) != 0 && ground_fd_ >= 0)
+        write_failed_.store(true, std::memory_order_relaxed);
+    if constexpr (!legacy) net::close_udp(ground_fd_);
 }
 
 template class Drain<Record>;

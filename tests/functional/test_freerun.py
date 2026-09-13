@@ -215,7 +215,7 @@ class FreeRun(unittest.TestCase):
                 self.assertEqual(summary['terminal']['down_attempts'],0)
             finally:
                 stop_process(process);process.stderr.close()
-            for flag in ('--ground=127.0.0.1:1234','--command-port=1234'):
+            for flag in ('--command-port=1234',):
                 run=subprocess.run([str(BIN),'--mode=freerun','--telemetry',flag],capture_output=True)
                 self.assertEqual(run.returncode,1)
 

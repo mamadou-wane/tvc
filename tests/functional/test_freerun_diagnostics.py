@@ -82,7 +82,7 @@ class SchedulingDiagnostics(unittest.TestCase):
                     peer.send(runtime.sensor_frame(0));peer.send(runtime.sensor_frame(1,2,1))
                     self.assertEqual(process.wait(timeout=5),0,process.stderr.read())
                     s=json.loads((out/'run.summary.json').read_text())
-                    self.assertEqual(s['applied'],dict(mlock=False,cpu=pin,fifo=False,telemetry=True,link=True))
+                    self.assertEqual(s['applied'],dict(mlock=False,cpu=pin,fifo=False,telemetry=True,link=True,ground=False))
                 finally:stop_process(process);process.stderr.close()
 
     def test_terminal_resend_stall_has_no_control_work(self):
