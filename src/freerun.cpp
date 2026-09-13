@@ -7,6 +7,8 @@
 #include "rt_setup.hpp"
 #include "wire.hpp"
 #include <cerrno>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <cstdio>
 #include <limits>
 #include <memory>
@@ -215,12 +217,33 @@ int run(const Config& cfg, std::atomic<bool>& stop) {
     auto runtime = std::make_unique<Runtime>(cfg.auto_arm);
     auto& r = *runtime;
     stats::LoopStats stats(kPeriodNs);
-    telem::Drain<telem::ControlRecord> drain(*ring); drain.start(file);
-    const bool memory_ok = !cfg.mlock || rt::lock_memory(8u << 20, 64u << 20).ok;
-    const bool cpu_ok = cfg.cpu < 0 || rt::pin_to_cpu(cfg.cpu).ok;
-    const bool fifo_ok = cfg.fifo_prio <= 0 || rt::set_fifo_priority(cfg.fifo_prio).ok;
+    telem::Drain<telem::ControlRecord> drain(*ring);
+    const bool ground_requested = !cfg.ground_host.empty();
+    int ground_setup_errno = 0, resolver_error = 0;
+    std::string ground_endpoint;
+    bool started = false;
+    if (ground_requested) {
+        addrinfo hints{}, *addresses = nullptr;
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_DGRAM;
+        hints.ai_flags = AI_NUMERICSERV;
+        resolver_error = ::getaddrinfo(cfg.ground_host.c_str(),
+            std::to_string(cfg.ground_port).c_str(), &hints, &addresses);
+        if (resolver_error == 0) {
+            const auto endpoint = *reinterpret_cast<const sockaddr_in*>(addresses->ai_addr);
+            char address[INET_ADDRSTRLEN]{};
+            ::inet_ntop(AF_INET, &endpoint.sin_addr, address, sizeof address);
+            ground_endpoint = std::string(address) + ":" + std::to_string(cfg.ground_port);
+            ::freeaddrinfo(addresses);
+            started = drain.start(file, endpoint);
+            if (!started) ground_setup_errno = errno;
+        } else if (resolver_error == EAI_SYSTEM) ground_setup_errno = errno;
+    } else { drain.start(file); started = true; }
+    if (started) lockstep::ready("freerun", ntohs(bound.sin_port));
+    const bool memory_ok = started && (!cfg.mlock || rt::lock_memory(8u << 20, 64u << 20).ok);
+    const bool cpu_ok = started && (cfg.cpu < 0 || rt::pin_to_cpu(cfg.cpu).ok);
+    const bool fifo_ok = started && (cfg.fifo_prio <= 0 || rt::set_fifo_priority(cfg.fifo_prio).ok);
     const bool rt_ok = memory_ok && cpu_ok && fifo_ok;
-    lockstep::ready("freerun", ntohs(bound.sin_port));
     net::Datagram carry{};
     bool acquired = false;
     if (rt_ok) {
@@ -249,7 +272,10 @@ int run(const Config& cfg, std::atomic<bool>& stop) {
     if (!rt_ok) r.failure = episode::Reason::INTERNAL;
     if (!r.receive_closed) r.receive_closed = now_ns();
     guard::set_mode(guard::Mode::Off);
-    drain.stop(); net::close_udp(fd);
+    bool startup_close_failed = false;
+    if (started) drain.stop();
+    else startup_close_failed = std::fclose(file) != 0;
+    net::close_udp(fd);
     const auto reason = r.failure != episode::Reason::NONE ? r.failure :
         r.state.terminal ? r.state.terminal->reason : episode::Reason::INTERNAL;
     const auto& tc = r.admission.terminal_counts();
@@ -287,8 +313,15 @@ int run(const Config& cfg, std::atomic<bool>& stop) {
         << ",\"records_pushed\":" << r.pushed << ",\"histogram_records\":" << stats.summary().count << '}'
         << ",\"receive_errno\":" << r.receive_errno << ",\"receive_errors\":" << r.receive_errors
         << ",\"sleep_error\":" << r.sleep_error;
+    const auto& ground = drain.ground();
+    extra << ",\"ground\":{\"requested\":" << (ground_requested ? "true" : "false")
+        << ",\"endpoint\":" << (ground_endpoint.empty() ? "null" : "\"" + ground_endpoint + "\"")
+        << ",\"setup_errno\":" << ground_setup_errno << ",\"resolver_error\":" << resolver_error
+        << ",\"attempted\":" << ground.attempted << ",\"sent\":" << ground.sent
+        << ",\"send_errors\":" << ground.send_errors << ",\"last_errno\":" << ground.last_errno
+        << ",\"short_sends\":" << ground.short_sends << '}';
     const auto yes = [](bool value) { return value ? "true" : "false"; };
-    const std::string applied = std::string("{\"mlock\":") + yes(cfg.mlock && memory_ok) + ",\"cpu\":" + yes(cfg.cpu >= 0 && cpu_ok) + ",\"fifo\":" + yes(cfg.fifo_prio > 0 && fifo_ok) + ",\"telemetry\":true,\"link\":true}";
+    const std::string applied = std::string("{\"mlock\":") + yes(cfg.mlock && memory_ok) + ",\"cpu\":" + yes(cfg.cpu >= 0 && cpu_ok) + ",\"fifo\":" + yes(cfg.fifo_prio > 0 && fifo_ok) + ",\"telemetry\":true,\"link\":true,\"ground\":" + yes(ground_requested && started) + "}";
     utsname un{}; ::uname(&un);
     const std::string env = std::string("{\"machine\":\"") + un.machine + "\",\"kernel\":\"" + un.release + "\"}";
     const std::string telemetry = "{\"records\":" + std::to_string(drain.records_written()) + ",\"dropped\":" + std::to_string(ring->drops()) + '}';
@@ -297,7 +330,7 @@ int run(const Config& cfg, std::atomic<bool>& stop) {
     const bool csvs = stats.write_csv(cfg.outdir, cfg.label, true) &&
         r.served.write_csv(prefix + ".latency.csv") && r.discarded.write_csv(prefix + ".discard_age.csv") &&
         r.uplink_wait.write_csv(prefix + ".uplink_wait.csv") && r.compute.write_csv(prefix + ".vehicle_compute.csv");
-    if (!wrote || !csvs || drain.write_failed() || ring->drops()) return 4;
+    if (!wrote || !csvs || drain.write_failed() || startup_close_failed || ring->drops()) return 4;
     if (stop.load()) return 3;
     if (!rt_ok) return 2;
     if (r.admission.integrity_failed() || !r.admission.identities_hold()) return 6;

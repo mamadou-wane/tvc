@@ -12,6 +12,8 @@
 #include <type_traits>
 #include <vector>
 
+struct sockaddr_in;
+
 namespace telem {
 
 // One control cycle in the ring. The drain encodes its fields explicitly;
@@ -253,6 +255,11 @@ std::size_t encode_recording_header(std::int64_t mono_ns,
                                     unsigned char* out,
                                     std::uint32_t schema_hash = kSchemaHash) noexcept;
 
+struct GroundCounters {
+    std::uint64_t attempted{}, sent{}, send_errors{}, short_sends{};
+    int last_errno{};
+};
+
 // Start before RT setup to inherit ordinary scheduling/affinity; the consumer may allocate.
 // The drain owns/closes its file; read counters only after stop() joins the thread.
 template<class T = Record>
@@ -260,6 +267,10 @@ class Drain {
 public:
     explicit Drain(SpscRing<T>& ring) : ring_(ring) {}
     void start(std::FILE* f);
+    // On failure, errno is set and the caller still owns f; no thread is running.
+    bool start(std::FILE* f, const sockaddr_in& endpoint)
+        requires std::is_same_v<T, ControlRecord>;
+    const GroundCounters& ground() const noexcept { return ground_; }
     void stop();
     bool write_failed() const noexcept {
         return write_failed_.load(std::memory_order_relaxed);
@@ -277,6 +288,8 @@ private:
     std::uint64_t records_ = 0;   // thread-owned; read after stop()
     std::uint64_t bytes_ = 0;
     std::uint32_t seq_ = 0;
+    int ground_fd_ = -1;
+    GroundCounters ground_;
 };
 
 extern template class Drain<Record>;

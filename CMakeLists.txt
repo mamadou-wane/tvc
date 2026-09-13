@@ -83,7 +83,7 @@ set_target_properties(episode_tests PROPERTIES
   INTERPROCEDURAL_OPTIMIZATION FALSE UNITY_BUILD OFF)
 
 add_executable(admission_tests tests/cpp/admission_tests.cpp src/freerun_admission.cpp
-  src/telemetry.cpp src/alloc_guard.cpp src/episode.cpp src/control.cpp)
+  src/telemetry.cpp src/net.cpp src/alloc_guard.cpp src/episode.cpp src/control.cpp)
 target_compile_definitions(admission_tests PRIVATE _GNU_SOURCE)
 target_compile_options(admission_tests PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 target_link_options(admission_tests PRIVATE -fno-fast-math
@@ -93,7 +93,7 @@ target_link_libraries(admission_tests PRIVATE Threads::Threads)
 set_target_properties(admission_tests PROPERTIES
   INTERPROCEDURAL_OPTIMIZATION FALSE UNITY_BUILD OFF)
 
-add_executable(wire_tests tests/cpp/wire_tests.cpp src/telemetry.cpp)
+add_executable(wire_tests tests/cpp/wire_tests.cpp src/telemetry.cpp src/net.cpp)
 target_compile_definitions(wire_tests PRIVATE _GNU_SOURCE)
 target_compile_options(wire_tests PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(wire_tests PRIVATE Threads::Threads)
@@ -115,7 +115,7 @@ target_compile_definitions(env_probe_tests PRIVATE _GNU_SOURCE)
 target_compile_options(env_probe_tests PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(env_probe_tests PRIVATE Threads::Threads)
 
-add_executable(ring_stress tests/cpp/ring_stress.cpp src/telemetry.cpp)
+add_executable(ring_stress tests/cpp/ring_stress.cpp src/telemetry.cpp src/net.cpp)
 target_compile_definitions(ring_stress PRIVATE _GNU_SOURCE)
 target_compile_options(ring_stress PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(ring_stress PRIVATE Threads::Threads)
@@ -144,6 +144,8 @@ target_compile_definitions(freerun_faults PRIVATE _GNU_SOURCE)
 target_include_directories(freerun_faults PRIVATE ${hdr_histogram_SOURCE_DIR}/include)
 target_compile_options(freerun_faults PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 target_link_options(freerun_faults PRIVATE -fno-fast-math
+    "LINKER:--wrap=getaddrinfo" "LINKER:--wrap=socket" "LINKER:--wrap=connect" "LINKER:--wrap=close"
+    "LINKER:--wrap=mlockall" "LINKER:--wrap=_ZN8lockstep5readyEPKcj"
   "LINKER:--wrap=send" "LINKER:--wrap=recvmmsg" "LINKER:--wrap=clock_nanosleep" "LINKER:--wrap=fclose"
   "LINKER:--wrap=_ZN7episode4stepERKNS_5StateERKNS_6InputsE"
   "LINKER:--wrap=_ZN7control4stepERNS_5StateERK11Observation"
@@ -151,7 +153,7 @@ target_link_options(freerun_faults PRIVATE -fno-fast-math
 target_link_libraries(freerun_faults PRIVATE Threads::Threads hdr_histogram_static m)
 
 add_executable(measurement_tests tests/cpp/measurement_tests.cpp src/loop_stats.cpp src/alloc_guard.cpp
-  src/freerun_admission.cpp src/telemetry.cpp)
+  src/freerun_admission.cpp src/telemetry.cpp src/net.cpp)
 target_include_directories(measurement_tests PRIVATE ${hdr_histogram_SOURCE_DIR}/include)
 if(TARGET hdr_histogram_static)
   target_link_libraries(measurement_tests PRIVATE hdr_histogram_static)
@@ -159,3 +161,12 @@ else()
   target_link_libraries(measurement_tests PRIVATE hdr_histogram)
 endif()
 target_link_libraries(measurement_tests PRIVATE Threads::Threads m)
+
+add_executable(drain_tests tests/cpp/drain_tests.cpp src/telemetry.cpp src/net.cpp)
+target_compile_definitions(drain_tests PRIVATE _GNU_SOURCE)
+target_compile_options(drain_tests PRIVATE -Wall -Wextra -Wpedantic)
+target_link_options(drain_tests PRIVATE
+    "LINKER:--wrap=socket"
+    "LINKER:--wrap=send" "LINKER:--wrap=fwrite" "LINKER:--wrap=fflush"
+    "LINKER:--wrap=fclose" "LINKER:--wrap=clock_nanosleep")
+target_link_libraries(drain_tests PRIVATE Threads::Threads)

@@ -98,6 +98,8 @@ struct Config {
     bool auto_arm = false, seen_cycles = false, seen_warmup = false, seen_sensor = false;
     std::int64_t phase_us = 400, skew_max = 4, terminal_copies = 12;
     bool seen_free = false;
+    std::string ground_host;
+    std::uint16_t ground_port = 0;
     std::string label      = "run";
     std::string outdir     = "results";
     double      rate_hz    = 500.0;
@@ -136,6 +138,7 @@ void usage() {
 "  --mode=MODE        harness | lockstep | freerun\n"
 "  --sensor-port=N    sensor UDP bind port (0 selects an ephemeral port)\n"
 "  --auto-arm         automatic launch on first admitted sample\n"
+"  --ground=HOST:PORT optional free-run control-record destination\n"
 "  --phase-us=N       free-run origin phase (default: 400 us)\n"
 "  --skew-max-ticks=N free-run future bound (default: 4, maximum: 64)\n"
 "  --terminal-copies=N free-run terminal attempts (default: 12)\n"
@@ -180,6 +183,20 @@ ParseResult parse(int argc, char** argv, Config& c) {
         if (!std::strcmp(a, "--help") || !std::strcmp(a, "-h")) { usage(); return ParseResult::Help; }
         else if (starts_with(a, "--mode=", &v)) c.mode = v;
         else if (!std::strcmp(a, "--auto-arm")) c.auto_arm = true;
+        else if (starts_with(a, "--ground=", &v)) {
+            c.seen_free = true;
+            const char* colon = std::strchr(v, ':');
+            if (!colon || colon == v || !colon[1] || std::strchr(colon + 1, ':')) {
+                std::fputs("usage: --ground requires HOST:PORT\n", stderr);
+                return ParseResult::Error;
+            }
+            for (const char* digit = colon + 1; *digit; ++digit)
+                if (*digit < '0' || *digit > '9') return ParseResult::Error;
+            std::int64_t port;
+            if (!to_i64(colon + 1, port) || port < 1 || port > 65535) return ParseResult::Error;
+            c.ground_host.assign(v, colon - v);
+            c.ground_port = static_cast<std::uint16_t>(port);
+        }
         else if (starts_with(a, "--sensor-port=", &v)) {
             std::int64_t port;
             if (!to_i64(v, port) || port < 0 || port > 65535) return ParseResult::Error;
@@ -610,7 +627,8 @@ int main(int argc, char** argv) {
         if (cfg.mode == "freerun")
             return freerun::run({cfg.label, cfg.outdir, cfg.sensor_port, cfg.auto_arm,
                 cfg.mlock, cfg.cpu, cfg.fifo_prio, cfg.alloc_guard, cfg.cycles, cfg.warmup,
-                cfg.phase_us, static_cast<unsigned>(cfg.skew_max), static_cast<unsigned>(cfg.terminal_copies)}, g_stop);
+                cfg.phase_us, static_cast<unsigned>(cfg.skew_max), static_cast<unsigned>(cfg.terminal_copies),
+                cfg.ground_host, cfg.ground_port}, g_stop);
         return lockstep::run({cfg.label, cfg.outdir, cfg.sensor_port, cfg.auto_arm,
                               cfg.mlock, cfg.cpu, cfg.fifo_prio, cfg.alloc_guard}, g_stop);
     }

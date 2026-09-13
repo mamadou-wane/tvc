@@ -3,6 +3,9 @@
 #include "../../src/loop_stats.hpp"
 #include "../../src/wire.hpp"
 #include <array>
+#include <netdb.h>
+#include <fcntl.h>
+#include <thread>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
@@ -27,6 +30,13 @@ const char* gate_value = std::getenv("TVC_TEST_GATE_CYCLE");
 const unsigned gate_cycle = gate_value ? std::strtoul(gate_value, nullptr, 10) : 1;
 const int ready_fd = ready_value ? std::atoi(ready_value) : -1;
 const int release_fd = release_value ? std::atoi(release_value) : -1;
+const auto control_thread = std::this_thread::get_id();
+const char* ground_fault = std::getenv("TVC_TEST_GROUND_SEND");
+const char* setup_fault = std::getenv("TVC_TEST_GROUND_SETUP");
+const bool ready_order = std::getenv("TVC_TEST_READY_ORDER") != nullptr;
+unsigned ground_sends{}, ground_closes{}, socket_calls{}, resolver_calls{}, ready_calls{}, mitigation_calls{};
+int ground_fd = -1;
+bool ground_connected{};
 unsigned episodes{}, pids{}, batches{}, records{}, sends{}, terminal_sends{}, sleeps{};
 bool failed{}, changed{};
 std::array<unsigned char, 62> terminal_bytes{};
@@ -36,8 +46,11 @@ struct Proof {
         FILE* f = std::fopen(proof_path, "w");
         if (!f) return;
         std::fprintf(f, "{\"episodes\":%u,\"pids\":%u,\"batches\":%u,\"histograms\":%u,"
-            "\"sends\":%u,\"terminal_sends\":%u,\"terminal_bytes_changed\":%s}\n",
-            episodes, pids, batches, records, sends, terminal_sends, changed ? "true" : "false");
+            "\"sends\":%u,\"terminal_sends\":%u,\"terminal_bytes_changed\":%s,"
+            "\"ground_sends\":%u,\"ground_closes\":%u,\"socket_calls\":%u,"
+            "\"resolver_calls\":%u,\"ready_calls\":%u,\"mitigation_calls\":%u}\n",
+            episodes, pids, batches, records, sends, terminal_sends, changed ? "true" : "false",
+            ground_sends, ground_closes, socket_calls, resolver_calls, ready_calls, mitigation_calls);
         std::fclose(f);
     }
 } proof;
@@ -60,9 +73,21 @@ extern "C" int __wrap_recvmmsg(int fd,mmsghdr* messages,unsigned count,int flags
 }
 extern "C" ssize_t __real_send(int,const void*,std::size_t,int);
 extern "C" ssize_t __wrap_send(int fd,const void* bytes,std::size_t count,int flags) {
-    ++sends;
     const auto* p = static_cast<const unsigned char*>(bytes);
-    if (count == 62 && p[3] == 5) {
+    if (count == 142 && p[3] == 6) {
+        if (std::this_thread::get_id() == control_thread || fd != ground_fd || flags != MSG_DONTWAIT) std::abort();
+        ++ground_sends;
+        const bool terminal = p[134] == 3;
+        if (ground_fault && (!std::strcmp(ground_fault,"all") ||
+            (!std::strcmp(ground_fault,"terminal") ? terminal : wire::get_u32_le(p,6) == 1))) {
+            if (!std::strcmp(ground_fault,"short")) return 141;
+            errno = !std::strcmp(ground_fault,"eintr") ? EINTR :
+                    !std::strcmp(ground_fault,"refused") ? ECONNREFUSED : EAGAIN;
+            return -1;
+        }
+    } else if (count == 62 && p[3] == 5) {
+        if (std::this_thread::get_id() != control_thread || fd == ground_fd) std::abort();
+        ++sends;
         if (flags != MSG_DONTWAIT) std::abort();
         if (p[50] == 3) {
             if (terminal_sends && std::memcmp(terminal_bytes.data(),p,count)) changed = true;
@@ -97,4 +122,54 @@ extern "C" int __wrap_fclose(FILE* file) {
     if (remove_summary && summary) ::unlink(path);
     if (refuse) { errno=EIO;return EOF; }
     return result;
+}
+
+extern "C" int __real_getaddrinfo(const char*,const char*,const addrinfo*,addrinfo**);
+extern "C" int __wrap_getaddrinfo(const char* host,const char* service,const addrinfo* hints,addrinfo** out) {
+    if (std::this_thread::get_id() != control_thread || ready_calls || hints->ai_family != AF_INET) std::abort();
+    ++resolver_calls;
+    if (setup_fault && !std::strcmp(setup_fault,"resolve")) return EAI_NONAME;
+    return __real_getaddrinfo(host,service,hints,out);
+}
+extern "C" int __real_socket(int,int,int);
+extern "C" int __wrap_socket(int domain,int type,int protocol) {
+    ++socket_calls;
+    if (socket_calls == 2 && setup_fault && !std::strcmp(setup_fault,"socket")) { errno=EMFILE; return -1; }
+    int fd=__real_socket(domain,type,protocol);
+    if (socket_calls == 2) {
+        ground_fd=fd;
+        if (fd>=0 && !(::fcntl(fd,F_GETFL)&O_NONBLOCK)) std::abort();
+    }
+    return fd;
+}
+extern "C" int __real_connect(int,const sockaddr*,socklen_t);
+extern "C" int __wrap_connect(int fd,const sockaddr* addr,socklen_t len) {
+    if (fd == ground_fd && setup_fault && !std::strcmp(setup_fault,"connect")) { errno=ECONNREFUSED; return -1; }
+    int result=__real_connect(fd,addr,len);
+    if (fd==ground_fd && result==0) ground_connected=true;
+    return result;
+}
+extern "C" int __real_close(int);
+extern "C" int __wrap_close(int fd) {
+    if (fd==ground_fd && fd>=0) {
+        if (ground_connected && std::this_thread::get_id()==control_thread) std::abort();
+        ++ground_closes;
+    }
+    return __real_close(fd);
+}
+extern "C" void real_ready(const char*,unsigned) asm("__real__ZN8lockstep5readyEPKcj");
+extern "C" void wrapped_ready(const char*,unsigned) asm("__wrap__ZN8lockstep5readyEPKcj");
+extern "C" void wrapped_ready(const char* mode,unsigned port) {
+    if (ground_fd>=0 && !ground_connected) std::abort();
+    ++ready_calls;
+    real_ready(mode,port);
+}
+extern "C" int __real_mlockall(int);
+extern "C" int __wrap_mlockall(int flags) {
+    if (ready_order) {
+        if (ready_calls != 1) std::abort();
+        ++mitigation_calls;
+        errno=EPERM; return -1;
+    }
+    return __real_mlockall(flags);
 }
