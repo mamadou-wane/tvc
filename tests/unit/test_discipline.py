@@ -149,12 +149,12 @@ class RosterMetadata(unittest.TestCase):
                  '--cycles=1000','--warmup=10','--rate=500','--sensor-port=0','--phase-us=400',
                  '--skew-max-ticks=4','--terminal-copies=12','--label=L8','--out=/fixture']
         peer=['/bin/python3','-B','-m','sim.run_sim','--mode=freerun','--scenario=/fixture/S1-hold.json',
-              '--seed=1','--loss=0.0','--delay-ticks=0','--ticks=1043','--vehicle=127.0.0.1:12345',
+              '--seed=1','--loss=0.0','--delay-ticks=1','--ticks=1043','--vehicle=127.0.0.1:12345',
               '--bind-port=0','--terminal-copies=12','--label=L8','--out=/fixture']
         row=dict(level='L8',label='L8',repeat=1,phase_us=400,cycles=1000,warmup=10,rate=500,
                  complete=True,vehicle_exit=0,sim_exit=0,vehicle_argv=vehicle,sim_argv=peer,
                  ready=dict(mode='freerun',command_port='0',sensor_port='12345',consts='0xe77201ca'))
-        replay=dict(vehicle_argv=vehicle,sim_argv=peer,seed=1,delay_ticks=0,ticks=1043,
+        replay=dict(vehicle_argv=vehicle,sim_argv=peer,seed=1,delay_ticks=1,ticks=1043,
                     ticks_declared=10000,ticks_resolved=1043,scenario='S1-hold',rate_hz=500,
                     period_ns=2000000,loss=dict(p_up=0.0,p_down=0.0))
         return summary,row,replay

@@ -337,7 +337,7 @@ def l8_configuration(row, summary, replay):
     if vehicle.get('--rate') not in ('500','500.0') or not vehicle.get('--out'):
         raise ValueError('missing L8 rate/output argv')
     ticks = row['cycles'] + row['warmup'] + 33
-    expected_peer = {'--mode':'freerun', '--seed':'1', '--loss':'0.0', '--delay-ticks':'0',
+    expected_peer = {'--mode':'freerun', '--seed':'1', '--loss':'0.0', '--delay-ticks':'1',
                      '--ticks':str(ticks), '--bind-port':'0', '--terminal-copies':'12',
                      '--label':row['label'], '--out':vehicle['--out']}
     if set(peer) != set(expected_peer) | {'--scenario','--vehicle'} or any(peer.get(k) != v for k,v in expected_peer.items()):
@@ -349,7 +349,7 @@ def l8_configuration(row, summary, replay):
     if (not isinstance(ready, dict) or ready.get('mode') != 'freerun' or ready.get('command_port') != '0'
             or ready.get('consts') != '0xe77201ca' or ready.get('sensor_port') != endpoint[1]):
         raise ValueError('peer endpoint does not match bound ready state')
-    expected_replay = dict(seed=1, delay_ticks=0, ticks=ticks, ticks_declared=10000,
+    expected_replay = dict(seed=1, delay_ticks=1, ticks=ticks, ticks_declared=10000,
                            ticks_resolved=ticks, scenario='S1-hold', rate_hz=500, period_ns=2000000,
                            loss=dict(p_up=0.0,p_down=0.0))
     if any(k not in replay or type(replay[k]) is not type(v) or replay[k] != v for k,v in expected_replay.items()):
@@ -480,7 +480,7 @@ def run_row(plan, binary, outdir):
                 ticks = plan['cycles'] + plan['warmup'] + 33
                 scenario = ROOT / 'sim/scenarios/S1-hold.json'
                 sim_argv = [sys.executable, '-B', '-m', 'sim.run_sim', '--mode=freerun',
-                    '--scenario='+str(scenario), '--seed=1', '--loss=0.0', '--delay-ticks=0',
+                    '--scenario='+str(scenario), '--seed=1', '--loss=0.0', '--delay-ticks=1',
                     '--ticks='+str(ticks), '--vehicle=127.0.0.1:'+ready['sensor_port'],
                     '--bind-port=0', '--terminal-copies=12', '--out='+str(outdir), '--label='+plan['label']]
                 plan['sim_argv'] = sim_argv

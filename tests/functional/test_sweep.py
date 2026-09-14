@@ -41,6 +41,7 @@ class SweepProcesses(unittest.TestCase):
             self.assertEqual((plan['vehicle_exit'],plan['sim_exit']),(0,0))
             self.assertIn('--ticks=1038',plan['sim_argv'])
             self.assertIn('--loss=0.0',plan['sim_argv'])
+            self.assertIn('--delay-ticks=1',plan['sim_argv'])
             self.assertIn('--bind-port=0',plan['sim_argv'])
             self.assertIn('--sensor-port=0',plan['vehicle_argv'])
             destination=next(a for a in plan['sim_argv'] if a.startswith('--vehicle='))
@@ -59,6 +60,7 @@ class SweepProcesses(unittest.TestCase):
             replay=json.loads((p/'L8.replay.json').read_text())
             self.assertEqual((replay['ticks_declared'],replay['ticks_resolved']),(10000,1038))
             self.assertEqual(replay['sim_argv'],plan['sim_argv'])
+            self.assertEqual(replay['delay_ticks'],1)
             (p/'L8.reconcile.json').write_text('{}')
             with self.assertRaises(ValueError):sweep.audit_freerun(p/'L8')
 

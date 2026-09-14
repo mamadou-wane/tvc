@@ -248,9 +248,11 @@ def execute(spec, *, seed, delay_ticks, peer, bind_port, prefix, terminal_copies
             offer(0, prologue=True)
             rows.append(dict(tick=0, has_sample=1, applied=0, theta_bits=word(model.truth.theta),
                 omega_bits=word(model.truth.omega), cmd_applied_bits=word(model.act.applied)))
+            # Body k runs one period after the prologue so frame k+1 reaches the vehicle
+            # inside the cycle that consumes it; the one-tick control delay is the FIFO.
             for k in range(spec.ticks - 1):
                 if k == kill_at: os.kill(os.getpid(), signal.SIGKILL)
-                sleep_until(origin + k*PERIOD_NS, lambda: stopped, absolute_sleep)
+                sleep_until(origin + (k+1)*PERIOD_NS, lambda: stopped, absolute_sleep)
                 packets = drain()
                 decision_started = time.monotonic_ns()
                 selected = model.receive(packets, k)
@@ -266,14 +268,14 @@ def execute(spec, *, seed, delay_ticks, peer, bind_port, prefix, terminal_copies
                     theta_bits=word(model.truth.theta), omega_bits=word(model.truth.omega),
                     cmd_applied_bits=word(model.act.applied))
                 rows.append(row)
-                steps.append(dict(row, deadline_ns=origin+k*PERIOD_NS, selected_delta=selected))
+                steps.append(dict(row, deadline_ns=origin+(k+1)*PERIOD_NS, selected_delta=selected))
                 offer(k+1, terminal=terminal)
                 if terminal:
                     terminal_tick = k
                     break
             if terminal_tick is not None:
                 for offset in range(1, terminal_copies + GRACE_TICKS):
-                    sleep_until(origin + (terminal_tick+offset)*PERIOD_NS, lambda: stopped, absolute_sleep)
+                    sleep_until(origin + (terminal_tick+1+offset)*PERIOD_NS, lambda: stopped, absolute_sleep)
                     # Terminal traffic never consults an out-of-horizon scenario tick.
                     model.receive(drain(), terminal_tick)
                     if model.vehicle_seen is not None: break

@@ -135,3 +135,27 @@ class RoundTrip(unittest.TestCase):
             report=json.loads(Path(str(prefix)+'.sim-report.json').read_text())
             self.assertEqual(len(completed),1)
             self.assertGreaterEqual(report['terminal_send_last_ns'],completed[0])
+
+
+class BodySchedule(unittest.TestCase):
+    def test_body_k_runs_one_period_after_the_prologue_and_grace_follows(self):
+        import socket
+        import tempfile
+        import json
+        from pathlib import Path
+        from sim.freerun import execute, PERIOD_NS
+        with socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as peer,tempfile.TemporaryDirectory() as directory:
+            peer.bind(('127.0.0.1',0));prefix=Path(directory)/'run'
+            # Four ticks: bodies 0..2, horizon at body 2; the silent peer leaves the grace loop to expire.
+            self.assertEqual(execute(spec(ticks=4),seed=1,delay_ticks=1,peer=peer.getsockname(),
+                                     bind_port=0,prefix=prefix,terminal_copies=3),3)
+            report=json.loads(Path(str(prefix)+'.sim-report.json').read_text())
+            origin=report['origin_ns']
+            self.assertEqual([s['deadline_ns'] for s in report['steps']],[origin+(k+1)*PERIOD_NS for k in range(3)])
+            _,frames,_=wire.read_typed_recording(Path(str(prefix)+'.inputs.tvcrec'),expected_type=4)
+            sends={f['tick']:f['t_send_ns'] for f in frames}
+            self.assertEqual(sends[0],origin)
+            for tick in (1,2,3):
+                self.assertGreaterEqual(sends[tick],origin+tick*PERIOD_NS,tick)
+            self.assertGreaterEqual(report['terminal_send_first_ns'],origin+3*PERIOD_NS)
+            self.assertGreaterEqual(report['terminal_send_last_ns'],origin+5*PERIOD_NS)
