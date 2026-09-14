@@ -10822,7 +10822,7 @@
   "passed": 400,
   "run_identity": {
     "command": "python3 scripts/run_campaign.py --scenario S2-gust --loss 0.30 --seeds 1-200 --delay-ticks 0,1 --check",
-    "implementation_source_sha256": "e27061c14616c8145d7eaad16d0e04ce36c9258ed303e91161688092e1b7af67",
+    "implementation_source_sha256": "f11e2bf2023c9ed5aff06ad31a5e9a9ff51a1edd0d241dd371c248f37501b633",
     "sim_sha256": "a10d3635dd74a80c81ee431b424713adea6ead179dc146e54b957812a685feaa",
     "toolchain": {
       "cmake": "cmake version 4.2.3",
@@ -10838,7 +10838,7 @@
       "platform": "linux/amd64",
       "python": "3.14.4"
     },
-    "vehicle_sha256": "f52c6ae2f84c91829831e369c7a495e0ff869593398e5acbdba81351f239a33b"
+    "vehicle_sha256": "107582dda29d1eaf9c9095cead1d3442e60ebc4d1923e7e46efa1fe114f7e49a"
   },
   "scenario": "S2-gust",
   "scenario_sha256": "62aff02bfc1d06c440da48777e56fd505b7333a5f17dc5e7912f6ec07c32264e",

@@ -153,9 +153,33 @@ void test_timer_migration_sentinel() {
     CHECK(env_probe::timer_migration(root + "timer_migration") == -1);
 }
 
+void test_exposing_population_is_not_disabled_population() {
+    const std::string root = make_root();
+    write_driver(root, "acpi_idle");
+    for (int cpu = 0; cpu < 16; ++cpu) {
+        write_state(root, cpu, 0, "POLL", 0, cpu == 6 || cpu == 7 ? "1" : "0");
+    }
+    CHECK(env_probe::cpuidle_json(root) ==
+        "{ \"driver\": \"acpi_idle\", \"cpus\": 16, \"states\": [ "
+        "{ \"name\": \"POLL\", \"latency_us\": 0, \"disabled\": 2 } ] }");
+}
+
+void test_ac_status_and_sentinel() {
+    const std::string root = make_root();
+    CHECK(env_probe::ac_online_json(root) == "\"unknown\"");
+    write_file(root + "AC/online", "1\n");
+    CHECK(env_probe::ac_online_json(root) == "true");
+    write_file(root + "AC/online", "0\n");
+    CHECK(env_probe::ac_online_json(root) == "false");
+    write_file(root + "AC/online", "invalid\n");
+    CHECK(env_probe::ac_online_json(root) == "\"unknown\"");
+}
+
 }  // namespace
 
 int main() {
+    test_exposing_population_is_not_disabled_population();
+    test_ac_status_and_sentinel();
     test_uniform_two_cpus_three_states();
     test_divergent_disable();
     test_empty_root();

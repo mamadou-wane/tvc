@@ -1,4 +1,6 @@
 #include "freerun.hpp"
+#include "env_probe.hpp"
+#include <sched.h>
 #include "freerun_admission.hpp"
 #include "episode.hpp"
 #include "lockstep.hpp"
@@ -323,9 +325,21 @@ int run(const Config& cfg, std::atomic<bool>& stop) {
     const auto yes = [](bool value) { return value ? "true" : "false"; };
     const std::string applied = std::string("{\"mlock\":") + yes(cfg.mlock && memory_ok) + ",\"cpu\":" + yes(cfg.cpu >= 0 && cpu_ok) + ",\"fifo\":" + yes(cfg.fifo_prio > 0 && fifo_ok) + ",\"telemetry\":true,\"link\":true,\"ground\":" + yes(ground_requested && started) + "}";
     utsname un{}; ::uname(&un);
-    const std::string env = std::string("{\"machine\":\"") + un.machine + "\",\"kernel\":\"" + un.release + "\"}";
+    const int cpu_end = ::sched_getcpu();
+    const std::string cpufreq = "/sys/devices/system/cpu/cpu" + std::to_string(cpu_end) + "/cpufreq/";
+    const std::string env = std::string("{\"machine\":\"") + un.machine + "\",\"kernel\":\"" + un.release +
+        "\",\"cpu_end\":" + std::to_string(cpu_end) + ",\"ac_online\":" + env_probe::ac_online_json() +
+        ",\"governor\":\"" + env_probe::sysfs_or_unknown(cpufreq + "scaling_governor") +
+        "\",\"epp\":\"" + env_probe::sysfs_or_unknown(cpufreq + "energy_performance_preference") +
+        "\",\"cpuidle\":" + env_probe::cpuidle_json() +
+        ",\"timer_migration\":" + std::to_string(env_probe::timer_migration()) + "}";
+    std::string config = "mode:freerun abs-deadline";
+    if (cfg.mlock) config += " mlock";
+    if (cfg.fifo_prio > 0) config += " fifo:" + std::to_string(cfg.fifo_prio);
+    if (cfg.cpu >= 0) config += " cpu:" + std::to_string(cfg.cpu);
+    config += " telemetry record:control";
     const std::string telemetry = "{\"records\":" + std::to_string(drain.records_written()) + ",\"dropped\":" + std::to_string(ring->drops()) + '}';
-    const bool wrote = stats.write_json(prefix + ".summary.json", cfg.label, "mode:freerun record:control",
+    const bool wrote = stats.write_json(prefix + ".summary.json", cfg.label, config,
         applied, env, cfg.cycles, telemetry, "freerun", true, extra.str());
     const bool csvs = stats.write_csv(cfg.outdir, cfg.label, true) &&
         r.served.write_csv(prefix + ".latency.csv") && r.discarded.write_csv(prefix + ".discard_age.csv") &&

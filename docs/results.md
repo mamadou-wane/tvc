@@ -220,10 +220,11 @@ The CDF is unchanged within run-to-run variation: 48 nanoseconds of
 difference at pooled p99.9, and no threshold where the telemetry arm
 systematically exceeds the quiet one. A rank test across the sixteen
 per-run p99.9 values agrees (Mann-Whitney U, p = 0.44). The 3-repeat
-median check was the wrong instrument at this floor; the v0.2b check
-will interleave the two arms within one campaign and judge pooled
-exceedance counts, so run-scale environment noise cancels instead of
-deciding the verdict.
+median check was the wrong instrument at this floor; the planned v0.2b comparison
+will use eight interleaved L7/L8 pairs, treating each run as the
+experimental unit. It will compare per-run p99.9 values through paired
+L8 minus L7 differences, with acceptance at a median difference of
+<= +2.0 us. The sign test will be supplemental, not the decision rule.
 
 The recording side held its contract in every run: 305,000 records per
 run, zero ring drops across all eight telemetry runs, every recording
