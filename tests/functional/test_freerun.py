@@ -104,7 +104,7 @@ class FreeRun(unittest.TestCase):
                 spec = scenario.load(spec_path)
                 truth = spec.initial; act = actuator.initial(); fifo = [None]*delay
                 for k, row in enumerate(report['steps']):
-                    self.assertEqual(row['deadline_ns'], report['origin_ns'] + k*2000000)
+                    self.assertEqual(row['deadline_ns'], report['origin_ns'] + (k+1)*2000000)
                     fifo.append(row['selected_delta']); arriving = fifo.pop(0)
                     act = actuator.step(act, arriving)
                     truth = plant.step(truth, act, environment.fixed(),

@@ -168,6 +168,15 @@ operation provided by [run_campaign.py](scripts/run_campaign.py).
 
 </details>
 
+## Documentation
+
+- [Measurement methodology](docs/methodology.md): what the timing harness measures and how the machine is prepared.
+- [Platform qualification](docs/qualification.md): the measured record of the reference machine.
+- [Results](docs/results.md): published timing findings.
+- [ADR-001](docs/adr/001-operating-modes.md): why TVC has three operating modes.
+- [ADR-002](docs/adr/002-freerun-phase-alignment.md): how the free-run schedule aligns the control delay.
+- [Engineering reports](docs/reports/phase-calibration-report.md): the phase-offset calibration of 2026-09-14.
+
 ## Repository map
 
 ```text
@@ -178,7 +187,7 @@ scripts/     Process runners, evidence validation and timing tools
 tests/       Component tests, fault tests and frozen evidence
 docker/      Development and canonical toolchain definitions
 baselines/   Historical timing-campaign data
-docs/        Timing findings, methodology and platform qualification
+docs/        Methodology, qualification, results, decision records and reports
 ```
 
 For questions or bug reports, open an
