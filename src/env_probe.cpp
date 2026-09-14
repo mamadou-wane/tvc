@@ -80,6 +80,20 @@ std::string cpuidle_json(const std::string& cpu_root) {
         ", \"states\": [" + (states.empty() ? "" : " " + states + " ") + "] }";
 }
 
+std::string ac_online_json(const std::string& supply_root) {
+    glob_t g{};
+    std::string token = "\"unknown\"";
+    if (glob((supply_root + "*/online").c_str(), GLOB_NOSORT, nullptr, &g) == 0) {
+        for (std::size_t i = 0; i < g.gl_pathc; ++i) {
+            const std::string v = env_probe::read_sysfs_line(g.gl_pathv[i]);
+            if (v == "1") { token = "true"; break; }
+            if (v == "0") { token = "false"; break; }
+        }
+    }
+    globfree(&g);
+    return token;
+}
+
 int timer_migration(const std::string& path) {
     std::int64_t v = 0;
     if (!to_i64(read_sysfs_line(path).c_str(), v)) return -1;

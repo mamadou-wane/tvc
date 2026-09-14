@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
+#include <cstring>
+#include <vector>
 #include "../../src/freerun_admission.hpp"
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr,"FAIL %d: %s\n",__LINE__,#x); std::exit(1); } } while (0)
 
@@ -33,7 +35,31 @@ void classified_discard_ages() {
     CHECK(ages.count()==4 && ages.sum_ns()==14000 && admission.identities_hold());
 }
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc == 2 && std::strcmp(argv[1], "--statistics-fixtures") == 0) {
+        std::vector<std::vector<std::int64_t>> cases = {
+            {}, {0}, {1, 1023, 1024, 2047, 2048, 2049, 4095, 4096},
+            {999423}, {999424}, {999999}, {1000000},
+            {1999999, 2000000, 2000001, 3000000}, {10000000000LL}};
+        for (unsigned count : {499u, 500u, 501u, 1000u}) {
+            cases.emplace_back(count, 1);
+            cases.back().back() = 3000000;
+        }
+        for (unsigned shift = 11; shift <= 33; ++shift) {
+            const std::int64_t value = 1LL << shift;
+            cases.push_back({value - 1, value, value + 1});
+        }
+        std::puts("[");
+        bool comma = false;
+        for (const auto& values : cases) {
+            stats::Distribution distribution;
+            for (auto value : values) distribution.record_interval(0, value);
+            std::printf("%s%s", comma ? ",\n" : "", distribution.json().c_str());
+            comma = true;
+        }
+        std::puts("\n]");
+        return 0;
+    }
     classified_discard_ages();
     stats::Distribution served, discard;
     CHECK(served.count() == 0 && served.sum_ns() == 0);

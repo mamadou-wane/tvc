@@ -20,6 +20,10 @@ std::string sysfs_or_unknown(const std::string& path);
 std::string cpuidle_json(
     const std::string& cpu_root = "/sys/devices/system/cpu/");
 
+// First readable power-supply online value; unknown when unavailable.
+std::string ac_online_json(
+    const std::string& supply_root = "/sys/class/power_supply/");
+
 // kernel.timer_migration as written in the file at path: 0 or 1, -1 when
 // the file is absent (CI container) or holds anything else. Recorded
 // because the sysctl decides whether the loop's wakeup timer stays on the

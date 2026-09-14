@@ -297,17 +297,7 @@ ParseResult parse(int argc, char** argv, Config& c) {
 // JSON literal: true, false, or "unknown". First power_supply/*/online that
 // reads 1 or 0 wins.
 std::string ac_online_json() {
-    glob_t g{};
-    std::string token = "\"unknown\"";
-    if (glob("/sys/class/power_supply/*/online", GLOB_NOSORT, nullptr, &g) == 0) {
-        for (std::size_t i = 0; i < g.gl_pathc; ++i) {
-            const std::string v = env_probe::read_sysfs_line(g.gl_pathv[i]);
-            if (v == "1") { token = "true"; break; }
-            if (v == "0") { token = "false"; break; }
-        }
-    }
-    globfree(&g);
-    return token;
+    return env_probe::ac_online_json();
 }
 
 // hwmon whose name is "k10temp" -> temp1_input / 1000, integer Celsius.

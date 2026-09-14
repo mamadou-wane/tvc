@@ -1,6 +1,6 @@
 {
   "format": "tvc-lockstep-goldens-1",
-  "implementation_source_sha256": "e27061c14616c8145d7eaad16d0e04ce36c9258ed303e91161688092e1b7af67",
+  "implementation_source_sha256": "f11e2bf2023c9ed5aff06ad31a5e9a9ff51a1edd0d241dd371c248f37501b633",
   "scenarios": [
     {
       "consumed_ticks": 10000,

@@ -117,6 +117,24 @@ been established.
 [Measurement definitions](docs/methodology.md) ·
 [Platform configuration](docs/qualification.md)
 
+## Demo
+
+![Deterministic pitch, requested gimbal, and link/state history](docs/demo.gif)
+
+One synthetic lockstep run of `demo-loss30`: seed 20260902, with 30%
+modeled loss in each direction from tick 200. It ends stabilized.
+Regenerate it with Python 3 and Docker using the existing canonical image:
+
+```bash
+bash scripts/demo.sh
+```
+
+The command checks the vehicle CSV and recordings against the
+[scenario manifest](tests/golden/lockstep/manifest.json) before writing
+`docs/demo.gif`. Use `--out results/demo-again` for another run.
+The GIF illustrates this fixed scenario; it is not timing evidence,
+a general loss-tolerance guarantee, or physical vehicle validation.
+
 ## Build and verify
 
 Run the development gate using the image built above:

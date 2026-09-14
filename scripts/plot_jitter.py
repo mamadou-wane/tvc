@@ -23,7 +23,10 @@ import json
 import pathlib
 import sys
 
-import sweep
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from scripts import sweep
 
 try:
     import matplotlib
@@ -72,7 +75,97 @@ def series_label(filename):
     return filename.split(".")[0]
 
 
-def main() -> int:
+LATENCY_POPULATIONS = (
+    ('latency', 'served sensor-to-actuator latency'),
+    ('uplink_wait', 'uplink wait (served observations)'),
+    ('vehicle_compute', 'vehicle compute (served observations)'),
+    ('discard_age', 'discard age (unserved observations)'),
+)
+
+
+def latency_series(directory):
+    import math
+    rows = []
+    for meta in sorted(pathlib.Path(directory).glob('*.summary.json')):
+        summary = sweep.read_json(meta)
+        mode, _ = sweep.summary_mode(summary)
+        if mode in ('harness', 'lockstep'):
+            continue
+        name = meta.name[:-len('.summary.json')]
+        served_counts = []
+        for population, title in LATENCY_POPULATIONS:
+            distribution = summary.get(population+'_us')
+            if distribution is None and population == 'discard_age':
+                continue
+            if not isinstance(distribution, dict) or type(distribution.get('count')) is not int or distribution['count'] < 0:
+                raise ValueError(str(meta)+': invalid '+population+' population')
+            count = distribution['count']
+            if population != 'discard_age':
+                served_counts.append(count)
+            if not count:
+                continue
+            p999 = distribution.get('p99.9')
+            if type(p999) not in (int,float) or not math.isfinite(p999) or p999 < 0:
+                raise ValueError(str(meta)+': invalid '+population+' percentile')
+            path = meta.with_name(name+'.'+population+'.csv')
+            xs, ys = [], []
+            last_value, last_percentile, last_count = -1, -1, 0
+            with path.open(newline='') as stream:
+                reader = csv.DictReader(stream)
+                if not {'Value','Percentile','TotalCount'} <= set(reader.fieldnames or []):
+                    raise ValueError(str(path)+': invalid histogram columns')
+                for point in reader:
+                    if (point.get('Value') or '').startswith('#'):
+                        continue
+                    value = float(point['Value']); percentile = float(point['Percentile']); total = int(point['TotalCount'])
+                    if (not math.isfinite(value) or not math.isfinite(percentile)
+                            or value < last_value or value < 0 or not last_percentile <= percentile <= 1
+                            or percentile < 0 or not last_count <= total <= count):
+                        raise ValueError(str(path)+': invalid histogram ordering/population')
+                    last_value, last_percentile, last_count = value, percentile, total
+                    if percentile < 1:
+                        xs.append(value); ys.append(1-percentile)
+            if last_count != count or last_percentile != 1 or not xs:
+                raise ValueError(str(path)+': incomplete histogram population')
+            mode_label = mode or 'mode unknown'
+            rows.append(dict(population=population,count=count,p999_us=p999,xs=xs,ys=ys,
+                             title=title,label=f'{name} ({mode_label}, diagnostic)'))
+        if len(set(served_counts)) > 1:
+            raise ValueError(str(meta)+': served component populations differ')
+    if not rows:
+        raise ValueError('no latency populations to plot')
+    return rows
+
+
+def plot_latency(directory, output=None):
+    rows = latency_series(directory)
+    fig, axes = plt.subplots(2,2,figsize=(12,8))
+    try:
+        for ax,(population,title) in zip(axes.flat,LATENCY_POPULATIONS):
+            selected = [r for r in rows if r['population']==population]
+            for r in selected:
+                ax.plot(r['xs'],r['ys'],label=f"{r['label']}; n={r['count']}; p99.9 observed {r['p999_us']:g} us")
+            ax.set_title(title); ax.set_xlabel('microseconds'); ax.set_ylabel('fraction worse')
+            ax.set_yscale('log')
+            if selected:
+                ax.set_ylim(y_floor([r['count'] for r in selected]),1.1)
+                ax.legend(fontsize=7)
+            else:
+                ax.text(.1,.5,'no recorded population',transform=ax.transAxes)
+            ax.grid(True,alpha=.3)
+        fig.suptitle('Latency populations: diagnostic rendering, qualification must be checked separately')
+        fig.tight_layout()
+        out = pathlib.Path(output) if output else pathlib.Path(directory)/'latency.svg'
+        out.parent.mkdir(parents=True,exist_ok=True)
+        fig.savefig(out,bbox_inches='tight')
+        fig.savefig(out.with_suffix('.png'),dpi=170,bbox_inches='tight')
+        print(f'wrote {out} and {out.with_suffix(".png")} (diagnostic)')
+        return 0
+    finally:
+        plt.close(fig)
+
+
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--results", default="results")
     ap.add_argument("--out", default=None, help="default: <results>/jitter.svg")
@@ -80,7 +173,16 @@ def main() -> int:
                     help="plot the self-referenced naive-measurement series (CO demo)")
     ap.add_argument("--target-us", type=float, default=100.0,
                     help="p99.9 deadline target marker (default: 100)")
-    args = ap.parse_args()
+    ap.add_argument('--latency',action='store_true',help='plot served s2a, components and discard age')
+    args = ap.parse_args(argv)
+    if args.latency and args.naive:
+        ap.error('--latency and --naive are distinct populations')
+    if args.latency:
+        try:
+            return plot_latency(args.results,args.out)
+        except (OSError,ValueError,TypeError,KeyError) as error:
+            print(error,file=sys.stderr)
+            return 1
 
     rdir = pathlib.Path(args.results)
     series = "jitter_naive" if args.naive else "jitter"
@@ -101,7 +203,8 @@ def main() -> int:
             print(f"skipping {label}: no summary.json to verify config against")
             continue
         d = json.loads(meta.read_text())
-        problem = sweep.row_problem(d)
+        mode, mode_problem = sweep.summary_mode(d)
+        problem = sweep.row_problem(d) if mode_problem is None else None
         if problem:
             print(f"skipping {label}: {problem}")
             continue
@@ -112,7 +215,8 @@ def main() -> int:
         lo, hi = min(lo, min(xs)), max(hi, max(xs))
 
         p999 = d["jitter_us"]["p99.9_naive" if args.naive else "p99.9"]
-        legend = f"{label}  ·  p99.9 {p999:,.0f} µs  ·  {d['config']}"
+        legend = f"{label}  ·  p99.9 {p999:,.0f} µs  ·  {d['config']}" + (
+            " · mode unknown, diagnostic" if mode_problem else "")
         counts.append(d.get("cycles", 0))
 
         ax.plot(xs, ys, lw=1.9, color=SERIES_COLORS[i % len(SERIES_COLORS)],
