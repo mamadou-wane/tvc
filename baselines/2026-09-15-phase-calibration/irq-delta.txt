@@ -1,0 +1,13 @@
+=== per-IRQ delta, interrupts-before.txt (12:08:49) -> interrupts-after.txt (13:42:48); every line with nonzero delta on cpu6 or cpu7, plus irq 55/56 always, plus LOC/RES/CAL/TLB/IWI/NMI ===
+  irq     cpu6     cpu7     cpu11  source
+   55        0        0         0  IR-PCI-MSIX-0000:03:00.0 3-edge nvme0q3
+   56        0        0         0  IR-PCI-MSIX-0000:03:00.0 4-edge nvme0q4
+  NMI        0        0       943  Non-maskable interrupts
+  LOC     1997  5478725  11860025  Local timer interrupts
+  IWI       15       34         0  IRQ work interrupts
+  RES        0        9       184  Rescheduling interrupts
+  CAL        1        8      3250  Function call interrupts
+  TLB        0        0       794  TLB shootdowns
+  MCP       17       17        17  Machine check polls
+device IRQ lines with nonzero delta on cpu6/cpu7: none
+LOC cpu7 5478725 over 9 x 305000 cycles = 1.996 per cycle (window includes between-row gaps)
