@@ -10,7 +10,7 @@ from scripts import run_scenario, sweep
 
 def args(**values):
     result = dict(cpu=7, only=['L5','L7','L8'], repeat=2, interleave=True,
-                  phase_us='400', cycles=1000, warmup=10, rate=500)
+                  phase_us='400', cycles=1000, warmup=10, rate=500, peer_cpu=None)
     result.update(values)
     return SimpleNamespace(**result)
 
@@ -34,14 +34,15 @@ class RunPlan(unittest.TestCase):
         self.assertEqual([p['label'] for p in plans],['L5.r1','L5.r2','L7.r1','L7.r2','L8.r1','L8.r2'])
 
     def test_grid_names_and_refusals(self):
-        plans,_=sweep.plan_runs(args(only=['L8'],repeat=3,phase_us='200,400,800'))
+        plans,_=sweep.plan_runs(args(only=['L8'],repeat=3,phase_us='200,400,800',peer_cpu=11))
         self.assertEqual([p['label'] for p in plans],[
             'L8.phase200.r1','L8.phase400.r1','L8.phase800.r1',
             'L8.phase200.r2','L8.phase400.r2','L8.phase800.r2',
             'L8.phase200.r3','L8.phase400.r3','L8.phase800.r3'])
         for values in (dict(phase_us='200,400,800'),dict(only=['L9']),dict(repeat=0),dict(cycles=0),
                        dict(rate=1000),dict(phase_us='0'),dict(phase_us='2000'),
-                       dict(phase_us='200,400,400',only=['L8'],repeat=3)):
+                       dict(phase_us='200,400,400',only=['L8'],repeat=3,peer_cpu=11),
+                       dict(phase_us='200,400,800',only=['L8'],repeat=3)):
             with self.subTest(values=values),self.assertRaises(ValueError):sweep.plan_runs(args(**values))
         plans,stopped=sweep.plan_runs(args(cpu=None,only=None))
         self.assertEqual({p['level'] for p in plans},{'L0','L1','L2','L3'})
@@ -61,7 +62,8 @@ class FakeProcess:
 class PeerDeadline(unittest.TestCase):
     """The bounded process deadline belongs to the L8 peer lifecycle only."""
     def run_row(self, level, polls):
-        plans,_ = sweep.plan_runs(args(only=[level], repeat=1, interleave=False, cycles=300000, warmup=5000))
+        # Development length: the deadline arithmetic is clock-patched, and a qualified-length L8 plan needs a declared peer CPU.
+        plans,_ = sweep.plan_runs(args(only=[level], repeat=1, interleave=False, cycles=1000, warmup=10))
         plan = plans[0]; launched = []
         def launch(argv, **kw):
             launched.append(FakeProcess(polls)); return launched[-1]

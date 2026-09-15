@@ -56,6 +56,25 @@ class Discipline(unittest.TestCase):
         s=good();del s['mode']
         self.assertEqual(bench_gate.discipline_problem(s),'summary has no mode field')
 
+    def test_declared_peer_session_expects_the_pair_plus_the_peer(self):
+        def disabled(count, mode='harness'):
+            s=good(mode)
+            for state in s['env']['cpuidle']['states']: state['disabled']=count
+            return s
+        for mode in ('harness','freerun'):
+            with self.subTest(mode=mode):
+                self.assertIsNone(bench_gate.discipline_problem(disabled(2,mode)))
+                self.assertIsNone(bench_gate.discipline_problem(disabled(2,mode),None))
+                self.assertIn('cpuidle',bench_gate.discipline_problem(disabled(3,mode)))
+                self.assertIsNone(bench_gate.discipline_problem(disabled(3,mode),11))
+                self.assertIn('cpuidle',bench_gate.discipline_problem(disabled(2,mode),11))
+                self.assertIn('cpuidle',bench_gate.discipline_problem(disabled(4,mode),11))
+        s=disabled(3);s['env']['cpuidle']['states'][1]['disabled']=2
+        self.assertIn('cpuidle',bench_gate.discipline_problem(s,11))
+        for bad in (-1,True,'11',11.0):
+            with self.subTest(peer=bad):
+                self.assertIsNotNone(bench_gate.discipline_problem(disabled(3),bad))
+
     def test_optional_ground_is_not_a_mitigation_or_an_unconditional_exemption(self):
         for requested,applied,valid in ((False,False,True),(True,True,True),
                                          (True,False,False),(False,True,False)):
@@ -153,10 +172,11 @@ class RosterMetadata(unittest.TestCase):
               '--bind-port=0','--terminal-copies=12','--label=L8','--out=/fixture']
         row=dict(level='L8',label='L8',repeat=1,phase_us=400,cycles=1000,warmup=10,rate=500,
                  complete=True,vehicle_exit=0,sim_exit=0,vehicle_argv=vehicle,sim_argv=peer,
-                 ready=dict(mode='freerun',command_port='0',sensor_port='12345',consts='0xe77201ca'))
+                 ready=dict(mode='freerun',command_port='0',sensor_port='12345',consts='0xe77201ca'),
+                 peer_cpu=None,peer=None)
         replay=dict(vehicle_argv=vehicle,sim_argv=peer,seed=1,delay_ticks=1,ticks=1043,
                     ticks_declared=10000,ticks_resolved=1043,scenario='S1-hold',rate_hz=500,
-                    period_ns=2000000,loss=dict(p_up=0.0,p_down=0.0))
+                    period_ns=2000000,loss=dict(p_up=0.0,p_down=0.0),peer_cpu=None,peer=None)
         return summary,row,replay
 
     def write(self,p,s,row,replay):
@@ -168,7 +188,7 @@ class RosterMetadata(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d);s,row,replay=self.fixture(p);self.write(p,s,row,replay)
             self.assertEqual(sweep.roster_row(p/'L8'),row)
-            for key in ('vehicle_argv','sim_argv','level','repeat','phase_us','cycles','warmup','rate','ready'):
+            for key in ('vehicle_argv','sim_argv','level','repeat','phase_us','cycles','warmup','rate','ready','peer_cpu','peer'):
                 s,row,replay=self.fixture(p);row.pop(key);replay.pop(key,None)
                 self.write(p,s,row,replay)
                 with self.subTest(missing=key),self.assertRaises(ValueError):sweep.roster_row(p/'L8')

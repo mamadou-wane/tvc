@@ -15,7 +15,7 @@ BIN=Path(os.environ['TVC_BIN']).resolve()
 
 
 def functional_plan():
-    return dict(level='L8',label='L8',repeat=1,phase_us=400,
+    return dict(level='L8',label='L8',repeat=1,phase_us=400,peer_cpu=None,
                 flags=['--mode=freerun','--auto-arm','--abs-deadline','--telemetry','--record=control','--alloc-guard=abort'],
                 cycles=1000,warmup=5,rate=500)
 
@@ -61,6 +61,8 @@ class SweepProcesses(unittest.TestCase):
             self.assertEqual((replay['ticks_declared'],replay['ticks_resolved']),(10000,1038))
             self.assertEqual(replay['sim_argv'],plan['sim_argv'])
             self.assertEqual(replay['delay_ticks'],1)
+            self.assertEqual((plan['peer_cpu'],plan['peer'],replay['peer_cpu'],replay['peer']),(None,None,None,None))
+            self.assertEqual(sweep.read_json(p/'L8.result.json'),plan)   # the row artifact the session corroboration compares
             (p/'L8.reconcile.json').write_text('{}')
             with self.assertRaises(ValueError):sweep.audit_freerun(p/'L8')
 

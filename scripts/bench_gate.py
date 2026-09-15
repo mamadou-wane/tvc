@@ -40,7 +40,13 @@ def legacy_baseline(path):
 NO_BASELINE_LEVELS = ('L7', 'L8')
 
 
-def discipline_problem(summary):
+def discipline_problem(summary, peer_cpu=None):
+    """peer_cpu is the session's declared free-run peer CPU (sweep.session_peer):
+    the idle-state discipline is the isolated pair alone, or the pair plus that
+    peer, for every row the session collected."""
+    if peer_cpu is not None and (type(peer_cpu) is not int or peer_cpu < 0):
+        return 'invalid declared peer CPU'
+    expected_disabled = 2 if peer_cpu is None else 3
     problem = sweep.row_problem(summary)
     if problem:
         return problem + ' (cycles)' if problem.startswith('incomplete run') else problem
@@ -80,7 +86,7 @@ def discipline_problem(summary):
             if (not isinstance(state, dict) or not isinstance(state.get('name'), str)
                     or state['name'] in ('', 'unknown') or type(state.get('latency_us')) is not int
                     or state['latency_us'] < 0 or type(state.get('disabled')) is not int
-                    or state['disabled'] != 2 or state['disabled'] > idle['cpus']):
+                    or state['disabled'] != expected_disabled or state['disabled'] > idle['cpus']):
                 return 'discipline cpuidle state/disabled population'
     except (KeyError, TypeError, ValueError, OverflowError) as error:
         return 'invalid discipline fields: ' + str(error)
@@ -139,6 +145,16 @@ def candidate_rows(directory):
     paths = sorted(pathlib.Path(directory).rglob('*.summary.json'))
     if not paths:
         raise ValueError('no candidate summaries')
+    # One declared machine state per results root: a nested directory with its
+    # own roster, or none, may not pool rows taken under another discipline.
+    sessions = {}
+    for parent in sorted({path.parent for path in paths}):
+        try:
+            sessions[parent] = sweep.session_peer(parent)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise ValueError(f'{parent / "sweep.json"}: {error}') from error
+    if len(set(sessions.values())) > 1:
+        raise ValueError('mixed peer CPU declarations under one results root')
     rows = []
     for path in paths:
         try:
@@ -146,11 +162,12 @@ def candidate_rows(directory):
             label = path.name.split('.')[0]
             if not re.fullmatch(r'L[0-8]', label):
                 raise ValueError('unknown sweep level ' + label)
-            problem = level_problem(summary, label) or discipline_problem(summary) or profile_problem(summary, label)
+            peer_cpu = sessions[path.parent]
+            problem = level_problem(summary, label) or discipline_problem(summary, peer_cpu) or profile_problem(summary, label)
             if problem:
                 raise ValueError(problem)
             prefix = path.with_name(path.name[:-len('.summary.json')])
-            item = dict(prefix=prefix,summary=summary,run=None)
+            item = dict(prefix=prefix,summary=summary,run=None,peer_cpu=peer_cpu)
             if label == 'L8':
                 item['run'] = sweep.roster_row(prefix)
                 sweep.audit_freerun(prefix)

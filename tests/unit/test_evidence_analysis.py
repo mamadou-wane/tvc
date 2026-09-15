@@ -34,7 +34,7 @@ def row(level='L8', repeat=1, phase=400, calibration=False, coverage=1.0, jitter
             '--warmup=5000','--rate=500','--abs-deadline','--mlock','--fifo=80','--cpu=7',
             '--no-naive-log','--alloc-guard=abort']
         if level=='L7':plan['vehicle_argv']+=['--telemetry','--record=control']
-    return dict(prefix=Path('/synthetic')/label,summary=s,replay=replay,reconciliation=recon,run=plan)
+    return dict(prefix=Path('/synthetic')/label,summary=s,replay=replay,reconciliation=recon,run=plan,peer_cpu=None)
 
 
 def calibration_rows(coverages=None):
@@ -56,6 +56,22 @@ class LatencyPolicy(unittest.TestCase):
         self.assertEqual(result['problems'],[])
         self.assertEqual(result['served_coverage'],.99)
         self.assertEqual(result['observation_coverage'],1.0)
+
+    def test_declared_peer_session_rule_is_inherited_not_reinterpreted(self):
+        def item(level='L8',disabled=3,peer_cpu=11):
+            it=row(level);it['peer_cpu']=peer_cpu
+            for state in it['summary']['env']['cpuidle']['states']: state['disabled']=disabled
+            return it
+        self.assertEqual(latency.evidence_checks(item())['problems'],[])
+        self.assertTrue(any('cpuidle' in p for p in latency.evidence_checks(item(peer_cpu=None))['problems']))
+        self.assertTrue(any('cpuidle' in p for p in latency.evidence_checks(item(disabled=2))['problems']))
+        for level in ('L7','L8'):
+            self.assertEqual(latency.experiment_row(item(level),level,1,level+'.r1')['cpu'],'7')
+            for it in (item(level,peer_cpu=None),item(level,disabled=2),item(level,disabled=4)):
+                with self.subTest(level=level,peer=it['peer_cpu'],disabled=it['summary']['env']['cpuidle']['states'][0]['disabled']),self.assertRaises(ValueError):
+                    latency.experiment_row(it,level,1,level+'.r1')
+        it=item();del it['peer_cpu']
+        with self.assertRaises(ValueError):latency.evidence_checks(it)
 
     def test_each_policy_clause_isolated(self):
         cases=[(('summary','mode'),'harness','freerun'),
