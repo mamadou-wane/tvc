@@ -1,0 +1,21 @@
+{
+  "label": "L8.phase200.r2",
+  "config": "mode:freerun abs-deadline mlock fifo:80 cpu:7 telemetry record:control",
+  "mode": "freerun",
+  "timing_valid": true,
+  "applied": {"mlock":true,"cpu":true,"fifo":true,"telemetry":true,"link":true,"ground":false},
+  "env": {"machine":"x86_64","kernel":"7.0.0-30-generic","cpu_end":7,"ac_online":true,"governor":"performance","epp":"performance","cpuidle":{ "driver": "acpi_idle", "cpus": 16, "states": [ { "name": "POLL", "latency_us": 0, "disabled": 3 }, { "name": "C1", "latency_us": 1, "disabled": 3 }, { "name": "C2", "latency_us": 18, "disabled": 3 }, { "name": "C3", "latency_us": 350, "disabled": 3 } ] },"timer_migration":0},
+  "period_us": 2000.000,
+  "cycles": 300000,
+  "cycles_requested": 300000,
+  "missed_deadlines": 0,
+  "early_wakeups": 0,
+  "jitter_us": {"count":300000,
+    "min": 3.077, "mean": 12.845, "p50": 12.815,
+    "p99": 14.903, "p99.9": 17.615, "p99.99": 24.671, "max": 77.055,
+    "p99.9_naive": 9.215
+  },
+  "dropped_samples": 0,
+  "exec_us": {"count":300000, "p50": 7.447, "p99.9": 17.503, "max": 65.535 },
+  "telemetry": {"records":305000,"dropped":0},"timing_qualified":false,"latency_us":{"count":299940,"dropped":0,"sum_ns":59422282019,"p50":199.423,"p99.9":206.335,"max":2103.3},"discard_age_us":{"count":60,"dropped":0,"sum_ns":115445379,"p50":2004.99,"p99.9":2197.5,"max":2197.5},"uplink_wait_us":{"count":299940,"dropped":0,"sum_ns":57691660772,"p50":193.791,"p99.9":196.863,"max":2065.41},"vehicle_compute_us":{"count":299940,"dropped":0,"sum_ns":1730621247,"p50":5.643,"p99.9":13.687,"max":54.015},"clock_domain":"linux-monotonic:31f8baf5-828b-4b67-a122-1ba22a017c4e:time:[4026531834]","termination_ns":9750848556047,"termination_before_ns":9750848555666,"termination_source":"local","last_received_tick":304999,"total_cycles":305000,"warmup":5000,"phase_us":200,"skew_max_ticks":4,"terminal_copies":12,"first_frame_arrival_ns":9140850340798,"origin_ns":9140850540798,"episode":{"state":3,"vehicle_reason":1,"reason_tick":304999,"tick_base":0,"sim_reason_seen":null},"link":{"received":305000,"consumed":304936,"discarded_old":0,"discarded_superseded":64,"discarded_nonfinite":0,"discarded_skew_excess":0,"discarded_duplicate":0,"discarded_tick_conflict":0,"discarded_invalid":0,"future_expired":0,"bad_sync":0,"bad_version":0,"bad_type":0,"bad_length":0,"bad_crc":0,"fresh":304936,"coast":64,"neutral":0,"lost":0,"actuator_transmitted":304999,"actuator_tx_fail":0,"served":304936},"link_recorded":{"received":300000,"consumed":299940,"discarded_old":0,"discarded_superseded":60,"discarded_nonfinite":0,"discarded_skew_excess":0,"discarded_duplicate":0,"discarded_tick_conflict":0,"discarded_invalid":0,"future_expired":0,"bad_sync":0,"bad_version":0,"bad_type":0,"bad_length":0,"bad_crc":0,"fresh":299940,"coast":60,"neutral":0,"lost":0,"actuator_transmitted":299999,"actuator_tx_fail":0,"served":299940},"future_parked_at_end":0,"future_parked":0,"future_parked_at_warmup":0,"actuator":{"generated":304999,"transmitted":304999,"tx_fail":0},"terminal":{"cycle":1,"down_attempts":12,"down_transmitted":7,"down_tx_fail":5,"first_tx_ok":true,"up_received_raw_recorded":0,"up_received_raw":0,"up_tick_conflict":0,"up_duplicate":0,"up_skew_excess":0,"up_future_expired":0,"up_illegal_reason":0,"send_first_ns":9750848556087,"send_last_ns":9750870572981,"receive_open_ns":9140814289879,"receive_closed_ns":9750848561227},"events":{"episode_transitions":305000,"pid_calls":304935,"receive_batches":305000,"record_attempts":305000,"records_pushed":305000,"histogram_records":300000},"receive_errno":0,"receive_errors":0,"sleep_error":0,"ground":{"requested":false,"endpoint":null,"setup_errno":0,"resolver_error":0,"attempted":0,"sent":0,"send_errors":0,"last_errno":0,"short_sends":0}
+}

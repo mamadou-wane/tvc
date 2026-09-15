@@ -484,6 +484,45 @@ tolerance 50 percent (limit 24.8). A run with timer migration on reads
 own C-state exits and fails; the 7.5 us configuration passes, as it
 should, since it is a legitimate discipline with a stated cost.
 
+## Free-run phase calibration (tier 3, calibration evidence)
+
+The free-run mode schedules the vehicle's control cycle a fixed phase
+offset after the simulator's observation frame arrives (ADR-002). The
+offset was calibrated on the qualified machine on 2026-09-15 by a
+predeclared experiment: a fixed grid of 200, 400 and 800 us, three
+interleaved runs of 300,000 recorded cycles per offset at 500 Hz, the
+simulator peer disciplined on CPU 11 (qualification.md, simulator peer
+CPU), and a selection rule frozen before the first run: an offset
+qualifies when every run holds served coverage at or above 0.99,
+median coverage at or above 0.995, zero actuator send failures, clean
+reconciliation and integrity, zero malformed traffic, served latency
+p99.9 at or below 1000 us and max at or below 2000 us, under the
+complete qualified discipline; the smallest qualifying offset wins.
+No threshold, grid entry, run count or ordering changed after a result
+was seen, and no run was repeated.
+
+| Offset | Median served coverage | Served latency p99.9 / max (us) | Qualifies |
+|---|---|---|---|
+| 200 us | 0.99980 | 206 to 208 / 2102 to 2146 | no: every run exceeds the 2000 us maximum |
+| 400 us | 0.99997 | 403 to 504 / 446 to 550 | yes |
+| 800 us | 0.99996 | 808 to 812 / 845 to 872 | yes |
+
+Selected offset: 400 us, solely because it is the smallest qualifying
+offset. The analyzer (`scripts/latency.py --calibration`) and an
+independent recomputation from the raw control recordings agree on
+every offset and every run. The runtime default was already 400 us, so
+no source changed and the source identity is unchanged.
+
+These nine runs are calibration evidence, not release-campaign
+evidence: they fix one parameter and make no timing claim. Compact
+record: baselines/2026-09-15-phase-calibration (roster, summaries, run
+results, reconciliation, analyzer verdict, session captures, and the
+hash inventory of the raw evidence retained on the measurement
+machine). Non-gating context from the same runs: vehicle wakeup p99.9
+17.6 to 18.3 us on every row, and one 400 us run with served p50 at
+496 us against 395 to 400 us on the other two, recorded without a
+cause being assigned.
+
 ## Regression gate
 
 scripts/bench_gate.py compares a fresh campaign directory against the

@@ -1,0 +1,285 @@
+=== PRE-RUN VERIFICATION (owner applied discipline-71.sh ~12:08; preflight-68.sh, unprivileged) ===
+=== PHASE-1 PREFLIGHT 2026-09-15T12:08:41-04:00 ===
+PASS  kernel: 7.0.0-30-generic
+PASS  cmdline: isolcpus=domain,managed_irq,6,7 nohz_full=6,7 rcu_nocbs=6,7
+PASS  isolated: 6-7
+PASS  cpu7_governor: performance
+PASS  epp: 16 performance
+PASS  ac_online: 1
+PASS  default_smp_affinity: ff3f
+PASS  cpuidle_uniq: 52 0 | 12 1
+PASS  cpu6_idle: 1 1 1 1
+PASS  cpu7_idle: 1 1 1 1
+PASS  cpu11_idle: 1 1 1 1
+PASS  timer_migration: 0
+PASS  ppd: inactive
+PASS  irqbalance: inactive
+PASS  sched_affinity: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+PASS  ulimit_r: 99
+PASS  ulimit_l: unlimited
+PASS  HEAD: 91869099b5740fdac925d2e2e042f5cc0d25339f
+PASS  branch: ## feat/68-phase-calibration
+PASS  index_empty: 
+PASS  check_current: campaign evidence current: 0294935f67fc7ea62de83689f2eb3d50009a7dae6c2e71f7242c22b60c7300fd
+PASS  irq_non_ff3f_set: 0 2 26 27 28 29 30 31 47 48 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68
+irq 48 = amd_gpio 8 SYNA3120:00 (SYNA3120 touchpad, was irq 50 before the 2026-09-15 reboot)
+k10temp 73250  acpitz 72000
+uptime -s 2026-09-15 10:07:49
+=== PREFLIGHT: ALL PASS ===
+
+launch 2026-09-15T12:08:54-04:00
+
+=== PEER PLACEMENT during L8.phase200.r1, 2026-09-15T12:09:54-04:00 ===
+sweep pid: 18762; harness: 18875 psr 7 FF Cpus_allowed_list 7
+$ ps -o pid,psr,cls,comm -p 18877
+    PID PSR CLS COMMAND
+  18877  11  TS python3
+$ grep Cpus_allowed_list /proc/18877/status
+Cpus_allowed_list:	11
+$ sim argv:
+/home/<user>/.pyenv/versions/3.12.13/bin/python3 -B -m sim.run_sim --mode=freerun --scenario=/home/<user>/tvc/sim/scenarios/S1-hold.json --seed=1 --loss=0.0 --delay-ticks=1 --ticks=305033 --vehicle=127.0.0.1:54358 --bind-port=0 --terminal-copies=12 --out=/home/<user>/tvc/results/2026-09-15-phase-cal-peer-disciplined --label=L8.phase200.r1 
+cpu11 idle flags now: 1111
+
+=== /proc/timer_list samples (owner, sudo, 3 x 0.5 s apart, during L8.phase200.r1) — raw 'cpu: 7' blocks ===
+--- sample 1, file mtime 2026-09-15 12:12:15.438; now at: now at 7465509301979 nsecs ---
+cpu: 7
+ clock 0:
+  .base:       000000002dfb35f7
+  .index:      0
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ #0: <000000000f016901>, hrtimer_wakeup, S:01
+ # expires at 7465510413940-7465510413940 nsecs [in 1111961 to 1111961 nsecs]
+ #1: <00000000555f7305>, dl_task_timer, S:01
+ # expires at 7466418425950-7466418425950 nsecs [in 909123971 to 909123971 nsecs]
+ #2: <000000002d3a821e>, tick_nohz_handler, S:01
+ # expires at 7541818000000-7541818000000 nsecs [in 76308698021 to 76308698021 nsecs]
+ clock 1:
+  .base:       00000000577f810e
+  .index:      1
+  .resolution: 1 nsecs
+  .offset:     1789481269928658129 nsecs
+active timers:
+ clock 2:
+  .base:       00000000f2e46673
+  .index:      2
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ clock 3:
+  .base:       00000000e3bec5d9
+  .index:      3
+  .resolution: 1 nsecs
+  .offset:     1789481306928658129 nsecs
+active timers:
+ clock 4:
+  .base:       000000005978c434
+  .index:      4
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ clock 5:
+  .base:       0000000098078c1b
+  .index:      5
+  .resolution: 1 nsecs
+  .offset:     1789481269928658129 nsecs
+active timers:
+ clock 6:
+  .base:       0000000076366582
+  .index:      6
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ clock 7:
+  .base:       0000000096fc2dac
+  .index:      7
+  .resolution: 1 nsecs
+  .offset:     1789481306928658129 nsecs
+active timers:
+  .expires_next   : 7465510413940 nsecs
+  .hres_active    : 1
+  .nr_events      : 413030
+  .nr_retries     : 688
+  .nr_hangs       : 0
+  .max_hang_time  : 0
+  .nohz           : 1
+  .highres        : 1
+  .last_tick      : 4887479000000 nsecs
+  .tick_stopped   : 1
+  .idle_jiffies   : 4296528814
+  .idle_calls     : 59697233
+  .idle_sleeps    : 59697233
+  .idle_entrytime : 7465508483528 nsecs
+  .idle_waketime  : 7465508413272 nsecs
+  .idle_exittime  : 7465508421588 nsecs
+  .idle_sleeptime : 7462312934090 nsecs
+  .iowait_sleeptime: 13476324 nsecs
+  .last_jiffies   : 4302132715
+  .next_timer     : 7541818000000
+  .idle_expires   : 7541818000000 nsecs
+jiffies: 4302132715
+
+--- sample 2, file mtime 2026-09-15 12:12:15.954; now at: now at 7466025312195 nsecs ---
+cpu: 7
+ clock 0:
+  .base:       000000002dfb35f7
+  .index:      0
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ #0: <00000000b45fcadd>, hrtimer_wakeup, S:01
+ # expires at 7466026413940-7466026413940 nsecs [in 1101745 to 1101745 nsecs]
+ #1: <00000000555f7305>, dl_task_timer, S:01
+ # expires at 7466938425842-7466938425842 nsecs [in 913113647 to 913113647 nsecs]
+ #2: <000000002d3a821e>, tick_nohz_handler, S:01
+ # expires at 7541818000000-7541818000000 nsecs [in 75792687805 to 75792687805 nsecs]
+ clock 1:
+  .base:       00000000577f810e
+  .index:      1
+  .resolution: 1 nsecs
+  .offset:     1789481269928658129 nsecs
+active timers:
+ clock 2:
+  .base:       00000000f2e46673
+  .index:      2
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ clock 3:
+  .base:       00000000e3bec5d9
+  .index:      3
+  .resolution: 1 nsecs
+  .offset:     1789481306928658129 nsecs
+active timers:
+ clock 4:
+  .base:       000000005978c434
+  .index:      4
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ clock 5:
+  .base:       0000000098078c1b
+  .index:      5
+  .resolution: 1 nsecs
+  .offset:     1789481269928658129 nsecs
+active timers:
+ clock 6:
+  .base:       0000000076366582
+  .index:      6
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ clock 7:
+  .base:       0000000096fc2dac
+  .index:      7
+  .resolution: 1 nsecs
+  .offset:     1789481306928658129 nsecs
+active timers:
+  .expires_next   : 7466026413940 nsecs
+  .hres_active    : 1
+  .nr_events      : 413544
+  .nr_retries     : 688
+  .nr_hangs       : 0
+  .max_hang_time  : 0
+  .nohz           : 1
+  .highres        : 1
+  .last_tick      : 4887479000000 nsecs
+  .tick_stopped   : 1
+  .idle_jiffies   : 4296528814
+  .idle_calls     : 59705231
+  .idle_sleeps    : 59705231
+  .idle_entrytime : 7466024448366 nsecs
+  .idle_waketime  : 7466024424179 nsecs
+  .idle_exittime  : 7466024426844 nsecs
+  .idle_sleeptime : 7462825316454 nsecs
+  .iowait_sleeptime: 13476324 nsecs
+  .last_jiffies   : 4302133231
+  .next_timer     : 7541818000000
+  .idle_expires   : 7541818000000 nsecs
+jiffies: 4302133231
+
+--- sample 3, file mtime 2026-09-15 12:12:16.470; now at: now at 7466541553770 nsecs ---
+cpu: 7
+ clock 0:
+  .base:       000000002dfb35f7
+  .index:      0
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ #0: <00000000f032b0ce>, hrtimer_wakeup, S:01
+ # expires at 7466542413940-7466542413940 nsecs [in 860170 to 860170 nsecs]
+ #1: <00000000555f7305>, dl_task_timer, S:01
+ # expires at 7467458425524-7467458425524 nsecs [in 916871754 to 916871754 nsecs]
+ #2: <000000002d3a821e>, tick_nohz_handler, S:01
+ # expires at 7541818000000-7541818000000 nsecs [in 75276446230 to 75276446230 nsecs]
+ clock 1:
+  .base:       00000000577f810e
+  .index:      1
+  .resolution: 1 nsecs
+  .offset:     1789481269928658129 nsecs
+active timers:
+ clock 2:
+  .base:       00000000f2e46673
+  .index:      2
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ clock 3:
+  .base:       00000000e3bec5d9
+  .index:      3
+  .resolution: 1 nsecs
+  .offset:     1789481306928658129 nsecs
+active timers:
+ clock 4:
+  .base:       000000005978c434
+  .index:      4
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ clock 5:
+  .base:       0000000098078c1b
+  .index:      5
+  .resolution: 1 nsecs
+  .offset:     1789481269928658129 nsecs
+active timers:
+ clock 6:
+  .base:       0000000076366582
+  .index:      6
+  .resolution: 1 nsecs
+  .offset:     0 nsecs
+active timers:
+ clock 7:
+  .base:       0000000096fc2dac
+  .index:      7
+  .resolution: 1 nsecs
+  .offset:     1789481306928658129 nsecs
+active timers:
+  .expires_next   : 7466542413940 nsecs
+  .hres_active    : 1
+  .nr_events      : 414059
+  .nr_retries     : 689
+  .nr_hangs       : 0
+  .max_hang_time  : 0
+  .nohz           : 1
+  .highres        : 1
+  .last_tick      : 4887479000000 nsecs
+  .tick_stopped   : 1
+  .idle_jiffies   : 4296528814
+  .idle_calls     : 59713232
+  .idle_sleeps    : 59713232
+  .idle_entrytime : 7466540445927 nsecs
+  .idle_waketime  : 7466540423934 nsecs
+  .idle_exittime  : 7466540426499 nsecs
+  .idle_sleeptime : 7463337837927 nsecs
+  .iowait_sleeptime: 13476324 nsecs
+  .last_jiffies   : 4302133747
+  .next_timer     : 7541818000000
+  .idle_expires   : 7541818000000 nsecs
+jiffies: 4302133747
+
+--- hrtimer_wakeup expiry vs now, per sample ---
+sample 1: now=7465509301979 hrtimer_wakeup expires=7465510413940 delta_us=1111
+sample 2: now=7466025312195 hrtimer_wakeup expires=7466026413940 delta_us=1101
+sample 3: now=7466541553770 hrtimer_wakeup expires=7466542413940 delta_us=860
+mid-session k10temp 75375 at 2026-09-15T12:12:38-04:00
