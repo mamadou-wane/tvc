@@ -258,6 +258,80 @@ tick during the session. The local-timer handler on CPU 7 runs 0.87 us
 at the median and 40 us at worst (osnoise-A-pair), so the tick is not a
 far-tail candidate either way.
 
+## Simulator peer CPU (selected 2026-09-14)
+
+The free-run peer needs one housekeeping CPU with its idle states
+disabled (methodology.md, discipline the free-run peer). Selection by
+audit, not by assumption. This is this machine's choice from this audit;
+another machine needs its own.
+
+Every one of the 16 CPUs carries one kernel-managed NVMe queue with a
+single-CPU effective affinity, the isolated pair included (nvme0q3 on
+CPU 6, nvme0q4 on CPU 7; both delivered zero interrupts during every
+measurement). Excluded: CPU 7 (control loop), CPU 6 (its sibling), core
+0 (default housekeeping and IRQ load), CPUs 4 and 5 (nvme0q13 29,854 and
+nvme0q14 6,434 since boot), CPUs 8 and 9 (mt7921e wifi 1,416,173 and
+amdgpu 934,843 since boot), CPUs 12 to 15 (xhci queues on 12, 13 and 14;
+15 is the sibling of 14).
+Eligible: CPUs 2, 3, 10 and 11. Over a 120 s idle window the device plus
+local-timer interrupt counts were 26,286 on CPU 2, 11,712 on CPU 3,
+5,460 on CPU 10 and 511 on CPU 11; CPU 11 also has the smallest NVMe
+queue count since boot of any CPU (4,408), and core 5 (CPUs 10 and 11)
+carries no non-NVMe device interrupt on either thread.
+
+Wake lateness of a 2 ms absolute clock_nanosleep schedule under
+SCHED_OTHER, 30,000 cycles per row, three interleaved repeats, governor
+and EPP performance, power-profiles-daemon masked, timer_migration 0
+(session 21:07 to 21:18 local, rows A1 B1 C1 A2 B2 C2 A3 B3 C3):
+
+```
+arm                          p50 (us)   p99         p99.9        max          cycles > 200 us
+A unpinned, idle enabled     60 to 87   154 to 612  705 to 981   1019 to 2068 221 / 444 / 1587
+B pinned to 11, idle enabled 87 to 89   223 to 359  690 to 875   1071 to 3510 341 / 343 / 437
+C pinned to 11, idle off     54         61 to 62    72 to 80     204 to 518   1 / 1 / 6
+```
+
+The unpinned rows ran on 11 to 12 different CPUs each (190 to 464
+migrations per row) and never on CPU 6 or 7. Pinning alone leaves the
+idle-exit quantum in place; disabling the CPU's idle states removes it.
+Package temperature stayed at 71 to 74 C with one more thread polling.
+
+For a free-run session the discipline block gains one line, and the
+sweep carries the declaration:
+
+```
+$ sudo cpupower -c 11 idle-set -D 0
+$ cat /sys/devices/system/cpu/cpu11/cpuidle/state*/disable
+1
+1
+1
+1
+$ python3 scripts/sweep.py --cpu 7 --peer-cpu 11 ...
+$ sudo cpupower -c 11 idle-set -E        # after the session
+```
+
+The sweep refuses the row unless every state reads 1 at launch time,
+re-reads them when the row ends, and records them in the roster and
+replay.
+
+The discipline predicate (scripts/bench_gate.py, inherited unchanged by
+the latency analyzer and the arm comparison) reads the per-state
+disable count in each summary's env block and scopes it to the sweep
+session. A session whose roster declares no peer CPU must show exactly
+2 on every state, the isolated pair. A session whose roster declares
+one must show exactly 3 on every row it collected, harness levels
+included, because the peer's idle states stay disabled for the whole
+session. The roster binds the third CPU to the declared peer through
+the verified record on each L8 row, corroborated by that row's own
+result and replay; a harness row's third CPU is inferred from the
+session declaration, not verified at that row. A roster whose L8 rows
+disagree about the peer, or that declares one without its record,
+fails every row of the session, and directories under one results
+root may not mix declarations. Two or three is never accepted on its
+own. Re-enable the peer CPU's idle states before running harness
+levels on their own: a harness-only sweep cannot declare a peer, so
+its rows must show the pair alone.
+
 ## Pending
 
 - The 12.7 us median on a polling core woken by its own timer

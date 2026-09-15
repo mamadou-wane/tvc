@@ -177,7 +177,7 @@ def evidence_checks(item, *, coverage_min=.99, p999_max=1000.0, latency_max=2000
         problems = []
         if s.get('mode') != 'freerun':
             problems.append('freerun mode required')
-        problem = bench_gate.discipline_problem(s)
+        problem = bench_gate.discipline_problem(s, item['peer_cpu'])
         if problem:
             problems.append(problem)
         loss = replay['loss']
@@ -263,7 +263,7 @@ def ordered_results(directory):
 def experiment_row(item, level, repeat, label):
     from scripts import bench_gate, sweep
     s, run = item['summary'], item['run']
-    problem = bench_gate.level_problem(s, level) or bench_gate.discipline_problem(s) or bench_gate.profile_problem(s, level)
+    problem = bench_gate.level_problem(s, level) or bench_gate.discipline_problem(s, item['peer_cpu']) or bench_gate.profile_problem(s, level)
     if problem:
         raise ValueError(label + ': ' + problem)
     if (run.get('label') != label or s.get('label') != label or item['prefix'].name != label

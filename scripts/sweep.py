@@ -6,8 +6,8 @@ Each level adds exactly one mitigation to the one before it, so the difference
 between two adjacent runs is attributable to a single change. That property is
 the entire value of the exercise; resist the urge to batch them.
 
-    ./scripts/sweep.py --cpu 3
-    ./scripts/sweep.py --cpu 3 --cycles 600000     # 20 min per level at 500 Hz
+    ./scripts/sweep.py --cpu 3 --peer-cpu 11       # L8 at the qualified length needs a declared peer CPU
+    ./scripts/sweep.py --cpu 3 --peer-cpu 11 --cycles 600000     # 20 min per level at 500 Hz
     ./scripts/sweep.py --only L0 L1                # re-run two levels
 
 Levels above L2 need privileges. Without them the harness exits nonzero, the
@@ -29,6 +29,11 @@ import signal
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+SYSFS_CPU = "/sys/devices/system/cpu"
+# The qualified L8 window (docs/qualification.md, docs/methodology.md): a run of
+# this length must declare the peer CPU whose idle states the runner verifies.
+QUALIFIED_CYCLES = 300_000
 
 # (label, description, extra flags, peer). Cumulative by construction.
 LEVELS = [
@@ -244,6 +249,88 @@ def affinity_problem(affinity, online, isolated):
     return reason
 
 
+def read_cpu_list_file(path):
+    """CPU set from a sysfs list file, None when unreadable."""
+    try:
+        with open(path) as f:
+            return parse_cpu_list(f.read())
+    except (OSError, ValueError):
+        return None
+
+
+def idle_states(cpu, sysfs=SYSFS_CPU):
+    """[{name, disable}] for the CPU's cpuidle states in state order; empty
+    when the directory is absent or any state is unreadable."""
+    base = pathlib.Path(sysfs) / f"cpu{cpu}" / "cpuidle"
+    try:
+        states = sorted(base.glob("state[0-9]*"), key=lambda s: int(s.name[5:]))
+        return [dict(name=(s / "name").read_text().strip(),
+                     disable=int((s / "disable").read_text().strip())) for s in states]
+    except (OSError, ValueError):
+        return []
+
+
+def peer_cpu_problem(cpu, vehicle_cpu, affinity, sysfs=SYSFS_CPU):
+    """None when the declared free-run peer CPU is admissible, else the reason.
+    The runner verifies the idle-state discipline; it never applies it."""
+    if type(cpu) is not int or cpu < 0:
+        return "invalid peer CPU"
+    online, isolated = read_online_isolated(sysfs)
+    if cpu not in online:
+        return f"peer CPU {cpu} is not online"
+    if cpu not in affinity:
+        return f"peer CPU {cpu} is outside the inherited affinity {sorted(affinity)}"
+    if vehicle_cpu is None:
+        return "a peer CPU requires a pinned vehicle CPU (--cpu)"
+    if cpu == vehicle_cpu:
+        return f"peer CPU {cpu} is the vehicle CPU"
+    siblings = read_cpu_list_file(pathlib.Path(sysfs) / f"cpu{vehicle_cpu}" / "topology" / "thread_siblings_list")
+    if siblings is None:
+        return f"cannot read the SMT siblings of vehicle CPU {vehicle_cpu}"
+    if cpu in siblings:
+        return f"peer CPU {cpu} is an SMT sibling of vehicle CPU {vehicle_cpu}"
+    if cpu in isolated:
+        return f"peer CPU {cpu} is isolated"
+    states = idle_states(cpu, sysfs)
+    if not states:
+        return f"no cpuidle states visible for peer CPU {cpu}"
+    for state in states:
+        if state["disable"] != 1:
+            return (f"idle state {state['name']} of peer CPU {cpu} is enabled; disable every "
+                    f"state with cpupower -c {cpu} idle-set -D 0")
+    return None
+
+
+def peer_provenance(cpu, sysfs=SYSFS_CPU):
+    """The verified peer-CPU condition as recorded in the roster and replay."""
+    siblings = read_cpu_list_file(pathlib.Path(sysfs) / f"cpu{cpu}" / "topology" / "thread_siblings_list")
+    if siblings is None:
+        raise ValueError(f"cannot read the SMT siblings of peer CPU {cpu}")
+    return dict(cpu=cpu, siblings=sorted(siblings), idle_states=idle_states(cpu, sysfs))
+
+
+def launch_peer(argv, cpu, **popen):
+    """Start the peer with affinity exactly {cpu} and verify it on the child.
+    The mask is applied in the child between fork and exec, so it precedes
+    any simulator work; a failure there surfaces from Popen. The launcher is
+    single-threaded, which is the precondition for preexec_fn."""
+    import os
+    try:
+        process = subprocess.Popen(argv, preexec_fn=lambda: os.sched_setaffinity(0, {cpu}), **popen)
+    except subprocess.SubprocessError as error:
+        raise ValueError(f"peer affinity {{{cpu}}} not established: {error}") from error
+    try:
+        affinity = os.sched_getaffinity(process.pid)
+        policy = os.sched_getscheduler(process.pid)
+    except OSError as error:
+        process.kill(); process.wait()
+        raise ValueError("cannot verify peer scheduling: " + str(error)) from error
+    if affinity != {cpu} or policy != os.SCHED_OTHER:
+        process.kill(); process.wait()
+        raise ValueError(f"peer affinity {sorted(affinity)} or policy {policy} not established")
+    return process, dict(affinity=[cpu], policy="SCHED_OTHER")
+
+
 def plan_runs(args):
     if (type(args.cycles) is not int or args.cycles <= 0 or args.warmup < 0
             or args.repeat <= 0 or not math.isfinite(args.rate) or args.rate <= 0):
@@ -262,6 +349,9 @@ def plan_runs(args):
     grid = len(phases) > 1
     if grid and (phases != [200,400,800] or args.only != ['L8'] or args.repeat != 3 or not args.interleave):
         raise ValueError('phase grid requires 200,400,800, only L8, repeat 3 and interleave')
+    peer_cpu = args.peer_cpu
+    if peer_cpu is not None and (type(peer_cpu) is not int or peer_cpu < 0):
+        raise ValueError('invalid peer CPU')
     runnable, stopped = plan_levels(LEVELS, args.cpu)
     plans, flags = [], []
     for level, desc, add, peer in runnable:
@@ -272,8 +362,16 @@ def plan_runs(args):
                               or args.cycles + args.warmup > (2**63-1)//2000000 - 64):
             raise ValueError('L8 requires rate 500 and cycles >= 1000 within scheduling range')
         for phase in phases if level == 'L8' else [None]:
-            plans.append(dict(level=level, description=desc, flags=list(flags), phase_us=phase,
-                              cycles=args.cycles, warmup=args.warmup, rate=args.rate))
+            plan = dict(level=level, description=desc, flags=list(flags), phase_us=phase,
+                        cycles=args.cycles, warmup=args.warmup, rate=args.rate)
+            if level == 'L8':
+                plan['peer_cpu'] = peer_cpu
+            plans.append(plan)
+    planned_l8 = any(p['level'] == 'L8' for p in plans)
+    if peer_cpu is None and planned_l8 and (grid or args.cycles >= QUALIFIED_CYCLES):
+        raise ValueError('qualified L8 requires --peer-cpu')
+    if peer_cpu is not None and not planned_l8:
+        raise ValueError('--peer-cpu applies only to L8')
     order = ([(r,p) for r in range(1,args.repeat+1) for p in plans] if args.interleave else
              [(r,p) for p in plans for r in range(1,args.repeat+1)])
     runs = []
@@ -354,6 +452,93 @@ def l8_configuration(row, summary, replay):
                            loss=dict(p_up=0.0,p_down=0.0))
     if any(k not in replay or type(replay[k]) is not type(v) or replay[k] != v for k,v in expected_replay.items()):
         raise ValueError('resolved peer configuration does not match replay')
+    peer_discipline(row, replay, fields.get('cpu'))
+
+
+def peer_discipline(row, replay, vehicle_cpu):
+    """Roster/replay provenance of the declared peer CPU: absent only on a
+    development row shorter than the qualified window."""
+    if 'peer_cpu' not in row or 'peer' not in row:
+        raise ValueError('missing peer provenance')
+    if any(k not in replay or replay[k] != row[k] for k in ('peer_cpu', 'peer')):
+        raise ValueError('peer provenance does not match replay')
+    cpu, record = row['peer_cpu'], row['peer']
+    if cpu is None:
+        if record is not None:
+            raise ValueError('peer provenance without a declared peer CPU')
+        if row['cycles'] >= QUALIFIED_CYCLES:
+            raise ValueError('qualified L8 run without a declared peer CPU')
+        return
+    problem = peer_record_problem(cpu, record)
+    if problem:
+        raise ValueError(problem)
+    if vehicle_cpu is not None and (cpu == int(vehicle_cpu) or int(vehicle_cpu) in record['siblings']):
+        raise ValueError('peer CPU shares the vehicle core')
+
+
+def peer_record_problem(cpu, record):
+    """None when the recorded peer condition verifies the declared CPU."""
+    if type(cpu) is not int or cpu < 0 or not isinstance(record, dict):
+        return 'invalid peer provenance'
+    states = record.get('idle_states')
+    if (record.get('cpu') != cpu or record.get('affinity') != [cpu] or record.get('policy') != 'SCHED_OTHER'
+            or not isinstance(states, list) or not states
+            or any(not isinstance(s, dict) or not isinstance(s.get('name'), str) or s.get('disable') != 1 for s in states)):
+        return 'peer CPU discipline not verified'
+    siblings = record.get('siblings')
+    if not isinstance(siblings, list) or any(type(s) is not int for s in siblings):
+        return 'invalid peer siblings'
+    return None
+
+
+def session_peer_cpu(roster):
+    """The peer CPU a sweep session declares: the single peer_cpu of its L8
+    rows, each bound to a verified record; None when no row declares one.
+    The declaration is session-wide, so every row the session collected,
+    harness levels included, shares the machine state it describes."""
+    runs = roster.get('runs') if isinstance(roster, dict) else None
+    if not isinstance(runs, list) or any(not isinstance(r, dict) for r in runs):
+        raise ValueError('invalid sweep roster')
+    rows = [r for r in runs if r.get('level') == 'L8']
+    declared = set()
+    for row in rows:
+        cpu = row.get('peer_cpu')
+        if cpu is not None and (type(cpu) is not int or cpu < 0):
+            raise ValueError('invalid peer CPU declaration')
+        declared.add(cpu)
+    if len(declared) > 1:
+        raise ValueError('inconsistent peer CPU declaration across the session')
+    cpu = declared.pop() if declared else None
+    if cpu is None:
+        return None
+    for row in rows:
+        problem = peer_record_problem(cpu, row.get('peer'))
+        if problem:
+            raise ValueError(problem)
+    return cpu
+
+
+def session_peer(directory):
+    """Declared peer CPU of the sweep session in directory; None without a roster.
+    The roster alone binds nothing: each declared L8 row's own result and
+    replay, written by the runner, must carry the same provenance."""
+    directory = pathlib.Path(directory)
+    path = directory / 'sweep.json'
+    if not path.is_file():
+        return None
+    roster = read_json(path)
+    cpu = session_peer_cpu(roster)
+    if cpu is None:
+        return None
+    for row in roster['runs']:
+        if row.get('level') != 'L8':
+            continue
+        base = directory / str(row.get('label'))
+        replay = read_json(str(base) + '.replay.json')
+        if (row != read_json(str(base) + '.result.json') or not isinstance(replay, dict)
+                or any(replay.get(k) != row[k] for k in ('peer_cpu', 'peer'))):
+            raise ValueError('peer declaration not corroborated by the row artifacts: ' + str(row.get('label')))
+    return cpu
 
 
 def harness_configuration(row, summary):
@@ -458,6 +643,8 @@ def run_row(plan, binary, outdir):
     outdir = pathlib.Path(outdir)
     prefix = outdir / plan['label']
     plan.update(complete=False, error=None, vehicle_exit=None, sim_exit=None, sim_argv=[])
+    if plan['level'] == 'L8':
+        plan['peer'] = None
     if any(outdir.glob(plan['label'] + '.*')):
         plan['error'] = 'output label already exists'
         return 1
@@ -484,7 +671,21 @@ def run_row(plan, binary, outdir):
                     '--ticks='+str(ticks), '--vehicle=127.0.0.1:'+ready['sensor_port'],
                     '--bind-port=0', '--terminal-copies=12', '--out='+str(outdir), '--label='+plan['label']]
                 plan['sim_argv'] = sim_argv
-                peer = subprocess.Popen(sim_argv, cwd=ROOT, stdout=plog, stderr=subprocess.STDOUT)
+                peer_cpu = plan.get('peer_cpu')
+                if peer_cpu is None:
+                    peer = subprocess.Popen(sim_argv, cwd=ROOT, stdout=plog, stderr=subprocess.STDOUT)
+                else:
+                    # Verified immediately before the spawn: the idle discipline must hold
+                    # for the measurement window, not only at campaign start.
+                    import os
+                    vehicle_cpu = argv_options(argv, 1).get('--cpu')
+                    problem = peer_cpu_problem(peer_cpu, int(vehicle_cpu) if vehicle_cpu else None,
+                                               set(os.sched_getaffinity(0)))
+                    if problem:
+                        raise ValueError(problem)
+                    provenance = peer_provenance(peer_cpu)
+                    peer, verified = launch_peer(sim_argv, peer_cpu, cwd=ROOT, stdout=plog, stderr=subprocess.STDOUT)
+                    plan['peer'] = dict(provenance, **verified)
             # Only the L8 peer lifecycle is bounded; harness levels keep their historical untimed run.
             deadline = time.monotonic() + (plan['cycles']+plan['warmup']+33)/plan['rate'] + 12 if peer else None
             while True:
@@ -497,11 +698,15 @@ def run_row(plan, binary, outdir):
                 if deadline is not None and time.monotonic() >= deadline:
                     raise TimeoutError('process deadline expired')
                 time.sleep(0.01)
+            if plan.get('peer') is not None and idle_states(plan['peer_cpu']) != plan['peer']['idle_states']:
+                # The recorded condition must hold for the whole window, not only at launch.
+                raise ValueError('peer CPU idle states changed during the run')
         if peer:
             report = read_json(str(prefix)+'.sim-report.json')
             replay = dict(report, vehicle_argv=argv, sim_argv=plan['sim_argv'],
                           ticks_declared=load(scenario).ticks, ticks_resolved=ticks,
-                          loss=dict(p_up=0.0,p_down=0.0), scenario='S1-hold')
+                          loss=dict(p_up=0.0,p_down=0.0), scenario='S1-hold',
+                          peer_cpu=plan.get('peer_cpu'), peer=plan['peer'])
             pathlib.Path(str(prefix)+'.replay.json').write_text(json.dumps(replay,sort_keys=True,allow_nan=False)+'\n')
             summary = audit_freerun(prefix, write=True)
         else:
@@ -552,6 +757,9 @@ def main(argv=None) -> int:
                          "(taskset, cpuset)")
     ap.add_argument("--interleave", action="store_true")
     ap.add_argument("--phase-us", default="400")
+    ap.add_argument("--peer-cpu", type=int, default=None,
+                    help="housekeeping CPU for the L8 simulator peer; required at the "
+                         "qualified run length; its idle states must already be disabled")
     args = ap.parse_args(argv)
     try:
         plans, stopped = plan_runs(args)
@@ -599,6 +807,14 @@ def main(argv=None) -> int:
         if args.cpu is not None and isolated and args.cpu not in isolated:
             print(f"note: --cpu {args.cpu} is not in the isolated set "
                   f"{sorted(isolated)}", file=sys.stderr)
+        if args.peer_cpu is not None:
+            problem = peer_cpu_problem(args.peer_cpu, args.cpu, affinity)
+            if problem:
+                print(problem, file=sys.stderr)
+                return 1
+    elif args.peer_cpu is not None:
+        print("--peer-cpu needs the Linux scheduler API", file=sys.stderr)
+        return 1
 
     outdir = pathlib.Path(args.out).resolve()
     rows, excluded = [], []

@@ -6,7 +6,7 @@ Everything is off by default. The default build is the naive loop, and that is t
 
 ```
 cmake -S . -B build && cmake --build build -j
-./scripts/sweep.py --cpu 3
+./scripts/sweep.py --cpu 3 --peer-cpu 11     # see host preparation for the peer CPU
 ./scripts/plot_jitter.py --results results
 ```
 
@@ -151,6 +151,38 @@ expiring within one period sits under the isolated CPU. LOC in
 higher count means something else drives its local timer, and a lower
 one means the timer left. The sysctl is machine-wide and resets on
 reboot.
+
+**Discipline the free-run peer.** The free-run level runs against a
+simulator peer, CPython under SCHED_OTHER, that sleeps to an absolute
+2 ms grid between bodies. Left to the launcher's inherited mask it runs
+on whichever housekeeping CPU the scheduler picks and pays that CPU's
+idle exit on every wake: 60 to 87 us at the median and 705 to 981 us
+at p99.9 on the reference machine, and pinning it to one housekeeping
+CPU leaves both in the same band (87 to 89 and 690 to 875). With that
+CPU's idle states disabled the same schedule wakes 54 us late at the
+median and 72 to 80 us at p99.9 (qualification.md, simulator peer
+CPU). Every frame later than the phase offset plus the prologue
+transport misses its control cycle, so the peer's wake tail is the
+sensor-coverage floor. Declare the peer CPU with `--peer-cpu=N` on
+the sweep: a housekeeping CPU, online and inside the launcher's mask,
+not isolated, neither the vehicle CPU nor its SMT sibling, chosen by
+an interrupt audit of the housekeeping set, and with every idle state
+disabled for the session
+(`cpupower -c N idle-set -D 0`, one more thread polling). The sweep
+verifies every one of those but the audit immediately before each peer
+launch, starts the peer with affinity exactly {N} before it runs any
+simulator work, checks the child's mask and policy, re-reads the idle
+states when the row ends, and records the CPU and the verified
+idle-state condition in the roster and replay; it refuses the row
+otherwise and never applies the setting itself. The declaration is
+required at the qualified run length; a short development row may run
+undeclared and its roster says so. The discipline predicate then
+expects three idle-disabled CPUs on every row of that session, harness
+levels included, and two on a session without a declared peer
+(qualification.md, simulator peer CPU). The peer stays SCHED_OTHER;
+its remaining floor of about 50 us matches the default timer slack of
+a non-RT task, an interpretation consistent with the measurement
+rather than a measured quantity.
 
 **Qualify the platform before trusting it.** An hour of hwlatdetect at
 idle, and the SMI counter (turbostat) logged across every run. Firmware
