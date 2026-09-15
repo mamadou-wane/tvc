@@ -221,6 +221,7 @@ Priority 80 rather than 99 leaves headroom above the loop for kernel threads. At
 Expect L1 and L4 to produce the largest single improvements. If L3 makes things *worse*, the loop is not pinned yet and `SCHED_FIFO` is fighting the rest of the system for a shared core; that is L4's job.
 
 Run each level long enough for the tail to be real. At 500 Hz, 300,000 cycles is ten minutes, which puts roughly 300 samples beyond p99.9. Fewer than that and the figure is noise.
+The L8 evidence gates require exactly 300,000 recorded cycles + 5,000 warmup cycles at 500 Hz; an L8 row of any other length is a development diagnostic, not qualified evidence.
 
 ---
 

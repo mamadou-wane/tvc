@@ -93,6 +93,27 @@ def discipline_problem(summary, peer_cpu=None):
     return None
 
 
+# The qualified L8 measurement window (docs/methodology.md): exactly this, so
+# every gated free-run row carries the same tail population. A row of any other
+# length is development data and never enters the evidence-candidate path.
+QUALIFIED_L8_WINDOW = dict(cycles=sweep.QUALIFIED_CYCLES, cycles_requested=sweep.QUALIFIED_CYCLES,
+                           warmup=5000, total_cycles=sweep.QUALIFIED_CYCLES + 5000, period_us=2000.0)
+
+
+def qualified_window_problem(summary):
+    """None when the row records exactly the qualified L8 window."""
+    window = QUALIFIED_L8_WINDOW
+    refusal = f'not the qualified L8 window ({window["cycles"]} recorded cycles + {window["warmup"]} warmup at 500 Hz): '
+    if not isinstance(summary, dict):
+        return refusal + 'no summary'
+    for key, expected in window.items():
+        value = summary.get(key)
+        permitted = (int, float) if key == 'period_us' else (int,)
+        if type(value) not in permitted or value != expected:
+            return refusal + f'{key}={value!r}'
+    return None
+
+
 def level_problem(summary, level, legacy_ok=False):
     mode, problem = sweep.summary_mode(summary, legacy_ok)
     expected = 'freerun' if level == 'L8' else 'harness'
@@ -163,7 +184,10 @@ def candidate_rows(directory):
             if not re.fullmatch(r'L[0-8]', label):
                 raise ValueError('unknown sweep level ' + label)
             peer_cpu = sessions[path.parent]
-            problem = level_problem(summary, label) or discipline_problem(summary, peer_cpu) or profile_problem(summary, label)
+            problem = level_problem(summary, label)
+            if not problem and label == 'L8':
+                problem = qualified_window_problem(summary)
+            problem = problem or discipline_problem(summary, peer_cpu) or profile_problem(summary, label)
             if problem:
                 raise ValueError(problem)
             prefix = path.with_name(path.name[:-len('.summary.json')])
