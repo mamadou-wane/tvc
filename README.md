@@ -26,9 +26,9 @@ The episode policy handles arming and stale sensor data. Control records
 pass through a bounded ring to a separate drain thread. After shutdown,
 the runner checks recordings against both processes' reports.
 
-The current model covers one rotational axis. Free-run execution and
-ground-station services remain planned. Timing qualification of the
-integrated runtime is still open.
+The current model covers one rotational axis. Free-run execution is
+measured on the qualified machine (qualified closed-loop timing, below);
+ground-station services remain planned.
 
 ## Quick start
 
@@ -89,6 +89,31 @@ without independently validating the physics.
 [Scenario goldens](tests/golden/lockstep/manifest.json) ·
 [Implementation and validation](https://github.com/mamadou-wane/tvc/pull/60)
 
+### Qualified closed-loop timing
+
+The integrated controller's campaign ran on 2026-09-15 on the qualified
+bare-metal machine: eight interleaved repeats of L5, L7 and L8, 24 runs of
+300,000 cycles at 500 Hz, the free-run L8 closed loop against the
+simulator peer on a declared housekeeping CPU. Each figure is a per-run
+statistic; the run is the experiment unit.
+
+| Measurement | Result |
+|---|---:|
+| L8 p99.9 wakeup jitter, median of 8 runs | 18.0 µs |
+| L8 minus L7 p99.9 wakeup jitter, median of 8 paired runs | -0.32 µs |
+| L8 served sensor-to-actuator latency p99.9, range over 8 runs | 401 to 433 µs |
+| L8 served coverage, minimum over 8 runs | 0.99990 |
+| L5 regression gate against the 2026-08-29 reference | pass (19.1 vs 16.5 µs, limit 24.8) |
+
+Served latency covers the cycles whose command was computed from a fresh
+sensor frame, not every cycle. The L5 reference session disciplined two
+CPUs; this session disciplined three. A hard real-time bound has not
+been established, and the long-duration free-run episode under loss
+that the design described remains unmeasured.
+
+[Campaign findings](docs/results.md#v02b-the-closed-loop-on-the-qualified-machine-tier-3-qualified-timing-evidence) ·
+[Compact baseline](baselines/2026-09-15-v02b-campaign/README.md)
+
 ### Historical timing-harness measurements
 
 The August 2026 campaign measured the earlier harness with its stand-in
@@ -110,8 +135,8 @@ reported zero ring drops.
 The investigation traced a major source of delayed wakeups to timer
 placement on another CPU. The results above use the recorded pinned-timer
 configuration. They describe the historical harness; the integrated
-controller needs its own timing campaign. A hard real-time bound has not
-been established.
+controller's own campaign is the section above. A hard real-time bound
+has not been established.
 
 [Campaign findings](docs/results.md#the-pinned-timer-campaign-configuration-of-record) ·
 [Measurement definitions](docs/methodology.md) ·

@@ -1,0 +1,4 @@
+2026-09-15 v0.2b qualified campaign, issue #77, main 7e7b70e9bc34b421928a0596c7db5dc4d6f86359, source identity 0294935f67fc7ea62de83689f2eb3d50009a7dae6c2e71f7242c22b60c7300fd, tvc_harness sha256 07aa6f61fad5d82d03a7c3edcadf4079f2eaec2a1a14ea66220a636216b99c92.
+Launch 16:37:46 EDT, sweep exit 0 at 20:43:54; 24 rows L5.r1..L8.r8 complete, no intervention, no row rerun or replaced, no void row; cpuidle 52x0/12x1 at every boundary and after run 24.
+Roster verifier (revision 3): 24 rows, frozen configuration. latency.py valid; bench_gate L5 pass (19.1 vs 16.5 us, limit 24.8); bench_gate L8 discipline/integrity pass; compare_arms valid, median L8-L7 -0.32 us (8 negative, sign p 0.0078, supplemental); plots written.
+timer_list observation intentionally omitted (owner decision). Sealed after analysis; restoration by the owner recorded in restore.txt, outside the sealed population.

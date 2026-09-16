@@ -1,0 +1,51 @@
+=== PRE-RUN RECORD: post-discipline verification block as reported to tvc-fd, 2026-09-15T16:35:18-04:00 (read-only) ===
+$ date -Is
+2026-09-15T16:35:18-04:00
+$ uname -r
+7.0.0-30-generic
+$ cat /sys/devices/system/cpu/isolated
+6-7
+$ cat /sys/devices/system/cpu/cpu7/cpufreq/scaling_governor
+performance
+$ cat /sys/devices/system/cpu/cpu7/cpufreq/energy_performance_preference
+performance
+$ cat /sys/class/power_supply/*/online
+1
+$ cat /proc/irq/default_smp_affinity
+ff3f
+$ cat /sys/devices/system/cpu/cpu*/cpuidle/state*/disable | sort | uniq -c
+     52 0
+     12 1
+cpu6: 1 1 1 1
+cpu7: 1 1 1 1
+cpu11: 1 1 1 1
+$ cat /proc/sys/kernel/timer_migration
+0
+$ systemctl is-active power-profiles-daemon irqbalance
+inactive
+inactive
+$ python3 -c 'import os; print(sorted(os.sched_getaffinity(0)))'
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+$ ulimit -r; ulimit -l
+99
+unlimited
+$ git rev-parse HEAD; git status --short --branch; git diff --cached --stat | wc -l
+7e7b70e9bc34b421928a0596c7db5dc4d6f86359
+## main...origin/main
+0
+$ python3 -B scripts/run_campaign.py --check-current
+campaign evidence current: 0294935f67fc7ea62de83689f2eb3d50009a7dae6c2e71f7242c22b60c7300fd
+$ sha256sum build/tvc_harness
+07aa6f61fad5d82d03a7c3edcadf4079f2eaec2a1a14ea66220a636216b99c92  build/tvc_harness
+$ df -BG --output=avail ~/tvc/results
+Avail
+ 408G
+$ grep -E 'nvme0q3|nvme0q4' /proc/interrupts
+  55:          0          0          0          0          0          0          5          0          0          0          0          0          0          0          0          0 IR-PCI-MSIX-0000:03:00.0    3-edge      nvme0q3
+  56:          0          0          0          0          0          0          0          6          0          0          0          0          0          0          0          0 IR-PCI-MSIX-0000:03:00.0    4-edge      nvme0q4
+$ ls -d results/2026-09-15-v02b-campaign 2>&1
+ls: cannot access 'results/2026-09-15-v02b-campaign': No such file or directory
+
+Checker (preflight-68.sh adapted for main 7e7b70e) at 16:34:46: ALL 22 PASS.
+launch 2026-09-15T16:37:51-04:00
+timer_list sample intentionally omitted (owner decision 2026-09-15): non-gating observation, not worth a privileged command inside the unattended no-intervention window

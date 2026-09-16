@@ -201,7 +201,7 @@ mechanism.
 
 ## The campaign
 
-`scripts/sweep.py` runs six levels, each adding exactly one mitigation to the previous one, so any difference between adjacent runs is attributable to a single change.
+`scripts/sweep.py` runs nine levels, L0 through L8, each adding exactly one mitigation to the previous one, so any difference between adjacent runs is attributable to a single change. The table covers the six open-loop harness levels through L5; L6 and the closed-loop levels follow under "Closing the loop" below.
 
 | | Adds |
 |---|---|
@@ -222,6 +222,14 @@ Expect L1 and L4 to produce the largest single improvements. If L3 makes things 
 
 Run each level long enough for the tail to be real. At 500 Hz, 300,000 cycles is ten minutes, which puts roughly 300 samples beyond p99.9. Fewer than that and the figure is noise.
 The L8 evidence gates require exactly 300,000 recorded cycles + 5,000 warmup cycles at 500 Hz; an L8 row of any other length is a development diagnostic, not qualified evidence.
+
+### Closing the loop
+
+Above L5, L6 adds the framed telemetry path through the SPSC ring and its drain thread (results.md, v0.2a). Two further levels carry the integrated controller. L7 keeps the harness workload and records the 128-byte control record through the telemetry ring. L8 replaces the stand-in with the free-run closed loop: the C++ vehicle on its 500 Hz schedule, the Python simulator peer on its own schedule from the same clock, sensor frames and actuator commands over UDP loopback, PID and episode machine live (ADR-002). The peer runs pinned to a declared housekeeping CPU with its idle states disabled ("Discipline the free-run peer", above).
+
+The L7 versus L8 comparison is paired by design: eight interleaved repeats of L5, L7 and L8, one run of each per repeat, so drift across the session lands on both arms alike. The run is the experiment unit. The rule is the median of the eight per-run L8 minus L7 wakeup p99.9 differences, at or below +2.0 us; a sign test is reported beside it and decides nothing. Cycles are never pooled across runs.
+
+L8 also reports served sensor-to-actuator latency: from the simulator's send stamp on a sensor frame to the vehicle's local send completion of the command computed from it, over the served observations only. Cycles that coasted on the previous command are counted in the served coverage, not in the latency population, so the figure is a served latency and not an all-cycle one. A qualified L8 run must hold coverage at or above 0.99, served p99.9 at or below 1000 us and max at or below 2000 us, with reconciliation showing zero unexplained missing traffic.
 
 ---
 
