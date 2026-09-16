@@ -332,6 +332,12 @@ own. Re-enable the peer CPU's idle states before running harness
 levels on their own: a harness-only sweep cannot declare a peer, so
 its rows must show the pair alone.
 
+The v0.2b campaign of 2026-09-15 (baselines/2026-09-15-v02b-campaign)
+ran its 24 rows under this three-CPU discipline, L5 and L7 included. Its
+L5 rows are gated against the 2026-08-29 pair-only reference under that
+stated difference in machine state; the two configurations are not
+identical.
+
 ## Pending
 
 - The 12.7 us median on a polling core woken by its own timer

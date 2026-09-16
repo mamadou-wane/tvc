@@ -1,0 +1,16 @@
+=== RESTORE after 2026-09-15 v0.2b qualified campaign (owner, sudo, TTY: scratchpad/restore-71.sh = cpupower -c 11 idle-set -E; systemctl unmask power-profiles-daemon && systemctl start power-profiles-daemon) ===
+restored 2026-09-15T21:14:35-04:00
+cpu11 cpuidle: 0000
+cpuidle summary:
+     56 0
+      8 1
+cpu6: 1111
+cpu7: 1111
+cpu10: 0000
+ppd: enabled / active
+cpu7 governor: powersave; governors:      16 powersave 
+epp:      16 balance_performance 
+timer_migration: 0; default_smp_affinity: ff3f
+k10temp=70500 acpitz=71000
+RESTORED: cpu11 idle states; ppd; governor/EPP reverted under ppd. LEFT until reboot: cpuidle off on 6/7, timer_migration 0, IRQ affinities.
+Sealed population untouched: inventory-verified (264 files)

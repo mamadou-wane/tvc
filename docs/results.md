@@ -220,11 +220,11 @@ The CDF is unchanged within run-to-run variation: 48 nanoseconds of
 difference at pooled p99.9, and no threshold where the telemetry arm
 systematically exceeds the quiet one. A rank test across the sixteen
 per-run p99.9 values agrees (Mann-Whitney U, p = 0.44). The 3-repeat
-median check was the wrong instrument at this floor; the planned v0.2b comparison
-will use eight interleaved L7/L8 pairs, treating each run as the
-experimental unit. It will compare per-run p99.9 values through paired
+median check was the wrong instrument at this floor; the v0.2b comparison
+below uses eight interleaved L7/L8 pairs, treating each run as the
+experimental unit. It compares per-run p99.9 values through paired
 L8 minus L7 differences, with acceptance at a median difference of
-<= +2.0 us. The sign test will be supplemental, not the decision rule.
+<= +2.0 us. The sign test is supplemental, not the decision rule.
 
 The recording side held its contract in every run: 305,000 records per
 run, zero ring drops across all eight telemetry runs, every recording
@@ -522,6 +522,84 @@ machine). Non-gating context from the same runs: vehicle wakeup p99.9
 17.6 to 18.3 us on every row, and one 400 us run with served p50 at
 496 us against 395 to 400 us on the other two, recorded without a
 cause being assigned.
+
+## v0.2b: the closed loop on the qualified machine (tier 3, qualified timing evidence)
+
+The integrated controller's own campaign ran on 2026-09-15 on the
+qualified machine. Every rule was fixed before the first run: eight
+interleaved repeats of L5 (the open-loop harness, telemetry off), L7
+(harness with the 128-byte control record) and L8 (the free-run closed
+loop against the simulator peer), 24 runs of 300,000 recorded cycles
+after 5,000 warmup at 500 Hz, in the order L5.r1, L7.r1, L8.r1 through
+L8.r8. Vehicle on CPU 7 under SCHED_FIFO 80; L8 peer
+on CPU 11 under SCHED_OTHER at the calibrated 400 us phase offset, S1-hold
+at zero loss with the one-tick actuator FIFO; idle states off on CPUs 6,
+7 and 11 for the whole session (qualification.md, simulator peer CPU). No
+run was repeated, replaced or discarded, and nothing changed after a
+result was seen. Compact record: baselines/2026-09-15-v02b-campaign, with
+the hash inventory of the 3.16 GB raw population retained on the machine.
+
+The run is the experiment unit. Each figure below is a per-run statistic
+or a comparison of per-run statistics; the 7.2 million cycles are never
+pooled into one population and no cycle-level inference is made.
+
+| Level | Wakeup p99.9, median of 8 runs (min to max) | Worst cycle | Missed deadlines |
+|---|---|---|---|
+| L5 | 19.10 us (18.75 to 19.58) | 109.6 us | 0 |
+| L7 | 18.29 us (18.13 to 18.56) | 57.4 us | 0 |
+| L8 | 17.96 us (17.81 to 18.13) | 89.0 us | 0 |
+
+Closing the loop did not raise the wakeup tail in this campaign. The
+eight paired L8 minus L7 p99.9 differences are all negative, -0.624 to
+-0.048 us, median -0.32 us against the predeclared practical margin of
++2.0 us; the consistent negative direction is recorded without a cause
+being assigned.
+The sign test (8 negative, 0 positive, two-sided p = 0.0078) is
+supplemental and decides nothing; the median difference is the rule.
+
+The L5 regression gate passes: median p99.9 19.1 us against the
+2026-08-29 reference of 16.5 us, limit 24.8 us at 50 percent. The two
+sessions are not identical machines: the reference held idle states off
+on the isolated pair only, this session on the pair plus the peer CPU
+for every row. The gap is reported under that difference; no cause is
+assigned.
+
+Served sensor-to-actuator latency, measured from the simulator's send
+stamp to the vehicle's local send completion over the served
+observations only, as the range over the eight runs:
+
+| Level | Served coverage | p50 | p99.9 | max |
+|---|---|---|---|---|
+| L8 | 0.99990 to 0.99997 | 394.8 to 419.3 us | 401.4 to 432.9 us | 452.4 to 484.9 us |
+
+Every run passes the predeclared L8 gate: coverage at or above 0.99,
+p99.9 at or below 1000 us, max at or below 2000 us, zero recorded
+actuator send failures, reconciliation valid with zero unexplained
+missing traffic in either direction, full session discipline. The served
+population excludes the coast cycles (9 to 30 per run) that held the
+previous command, so these are not all-cycle latencies; the coverage
+column is where those cycles are counted. One run, L8.r4, sits about
+22 us at p50 and 25 us at p99.9 above the other seven runs' medians (not
+at the maximum, where L8.r6 is higher): its uplink wait p99.9 is 427.0 us against 392.7
+to 399.9 on the other runs while the vehicle's wake and compute figures
+are unchanged, consistent with a peer-side run-scale shift; no retained
+diagnostic establishes the cause.
+
+![Served sensor-to-actuator latency and its components, eight L8 runs](latency.svg)
+
+The harness and the plot script never assert qualification themselves:
+every free-run summary carries `timing_qualified: false` and every
+rendering is stamped diagnostic. Qualification is established by the
+session discipline and the gates whose outputs are in the baseline
+(gate-L5.txt, gate-L8.txt, latency.json, compare.json).
+
+What this section does not claim: a hard real-time bound (these are
+observed percentiles over 24 ten-minute runs), an all-cycle latency, or
+any reliability figure. The deterministic 400-case acceptance campaign
+is separate lockstep evidence. The standalone long-duration free-run
+episode under loss that the v0.2b design described was deferred and
+remains unmeasured; neither the lockstep campaign nor the short
+container tests stand in for it.
 
 ## Regression gate
 

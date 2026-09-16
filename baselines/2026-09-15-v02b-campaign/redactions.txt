@@ -1,0 +1,133 @@
+# Public copies that are deterministic derivatives of sealed originals.
+# transformation for every entry: absolute home path redacted: /home/wane -> /home/<user>
+# columns: path, sealed-original sha256, published-copy sha256, occurrences replaced
+
+sweep.json
+  sealed-original: ce7dbaba58be6396cb56f1abc950f1871701fa416599c63ae5fee14de1ae3e8f
+  published-copy:  b50d345edfb653e11bdebb9707086f3a247104f4a230494f2923a1355673f957
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (80 occurrences)
+
+L5.r1.result.json
+  sealed-original: 0774438c19bcca8db2bd41243f2f86cf6e2f1e749bc5eb8e28c927b47f7b9d4c
+  published-copy:  e70d0fe5b8f5a1f2f99f998eeb8616da4bd26441fcf4f2291094f06734fe2378
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L5.r2.result.json
+  sealed-original: 50fe7cbafc4a8f3a39ff75abbae7f1734c54e4c8030509b3b1f543dca2dbe74d
+  published-copy:  288082c2f38c252e193a2cdd5e54b0316c035a04ae7f945e953df3fe221c9568
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L5.r3.result.json
+  sealed-original: 5779672701fed83a2188c0900b1c6c2437e689a9b02b781c757232391e25b02f
+  published-copy:  39831079b3ab66f2c514490015a8e413bf2a847f002bd54a6b8fc60934b5fa81
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L5.r4.result.json
+  sealed-original: efb92c5a57d53c09e52e279e0a7a703acddb573d8a1417850cf7c8939b1ddffc
+  published-copy:  8fd14fb27f832edc8360e2a37b54855356c57033a6ab83219045d2eb9e8d6a46
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L5.r5.result.json
+  sealed-original: 52017dcad8917accf3ee7cb54750af2de56c6027b37bb7f7a032c5083af91a25
+  published-copy:  108c9b72dcb2b01f25bc2cbbce9f2ce7541936ed1a76283ac8c1faa257cc7ef0
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L5.r6.result.json
+  sealed-original: cae7bdc874d8e75bb07d370537db8eec4f6c0f5ce00324ac4bf94de12e09b850
+  published-copy:  54d331090ceec7bcd6cdb28b37e36006acd1e92e8152811b88ba698fe027d7e7
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L5.r7.result.json
+  sealed-original: d12c10e3db6f1aa055bf44d0fab18e89c184bde295199ef217b3cb332c276882
+  published-copy:  41fb2638f010fd00c738a074168e3650206f2efd3275db7bbdfd8ef8a8442d75
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L5.r8.result.json
+  sealed-original: f898bd2c0ba559c322a63d69f3b3667d6551f94b6af890e642af130e2c5ba632
+  published-copy:  87b8241a7bd2ce621495130be56c5012ec2dcf1b7578bf3f36b914e5ce6b9cd9
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L7.r1.result.json
+  sealed-original: 9adc4fc418a2a1c2dc55dba95ddce2497e18505246d60bdb2b49f599b1f82162
+  published-copy:  601fd00ed7a42408b3a05df5651377e27959f166cb506e29a93c1a0b4722b301
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L7.r2.result.json
+  sealed-original: d2229016f12955965aae9ef48bb4c619d00f968de6485958a5f83f98057c9105
+  published-copy:  ba5b3d2b200267be08c6d9c029e10bd44611d25c1b25228e9b1bcbcafdf3115a
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L7.r3.result.json
+  sealed-original: b7aa1bf262e6821cfa1e8b48c7c54e60cc878dc1a5061bef67ac3bb1cdb95fe4
+  published-copy:  5981dd4ffc5bab0dda9111cdd850b90955a841864806d59aec2f6c783dded038
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L7.r4.result.json
+  sealed-original: 6ca4c7c0c08e5a4e6776f19b8b345d1f64c93e4a3e9e54d4a8402641eb0a257d
+  published-copy:  3148cfbec0270e5b0fe81f49e78e34a3fe2538a43c26d289a1b1abf157116e5e
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L7.r5.result.json
+  sealed-original: 6a370cede65e4b89e63487457acd8de556fc81376a9c9014eff4c14ca4737cb6
+  published-copy:  8e1690c031eef50b665aada9dd7d5153221a20a55cf2b96b2ac2a82bcd3acfe6
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L7.r6.result.json
+  sealed-original: 126efbcd2063326bf8f00c493723c95cfb3b9881d8827b86f2643d60681707f1
+  published-copy:  71395a6239cb27e82f66d0c01470dd825410e966c21d8595682e555a4881b7f4
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L7.r7.result.json
+  sealed-original: 66f511319b5322aed4a356a68cb96d58307a42b42f2cbe75bc6ba45da5b1c3cd
+  published-copy:  3478defd07c05f92986082162c35852c61ba9115a2abbe31142cdea156db906f
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L7.r8.result.json
+  sealed-original: afb549ded593147043e45a8c9ed153c1ba26b92b60ba2cb40dd9cda3948e167f
+  published-copy:  5e87213e7dc1cc58290af1ed7dc8ba69419826f33c2570f21800dd4ec78b86fe
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (2 occurrences)
+
+L8.r1.result.json
+  sealed-original: fb4b08d2c2d228387f5cb3ba6bfbd782a5a76ee2ee6e33df677337f6dd0f6c3d
+  published-copy:  094d172b9bc6b4ca926b98b021f0fe85b24a37ddf3cf1321562db58bbaeff778
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (6 occurrences)
+
+L8.r2.result.json
+  sealed-original: 63f586b5757e0ff78fdc6ffa8bad0f736229fffb011caf218ec1f998f9fae13b
+  published-copy:  496407d1dcf283aeffadc890b6076684acd48c9aee5c55440410e49226e3890c
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (6 occurrences)
+
+L8.r3.result.json
+  sealed-original: 671117d1574a73678f0d165c43c9e50438978a26013f547099bc98de2e069979
+  published-copy:  bb6f820516e749486aa15ce36e98455f2284ed63a63eeceb091b6952c4886b43
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (6 occurrences)
+
+L8.r4.result.json
+  sealed-original: 369620733fe41972081cf2225b5e58149432f7d7cc4e0420b0f8b4d5ede5627d
+  published-copy:  1a5f9010b1c9bf2c8ac7fa34204e8d44918174b7099aef337ae537c9bdd1032a
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (6 occurrences)
+
+L8.r5.result.json
+  sealed-original: 25bbf122ae4796252869ac5e334c658a942ea7d3ee75d0f609ae6623eba024ee
+  published-copy:  7e55878b01d3940bec4137ce225585dd479f1e805414b4bd2a785741189bacde
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (6 occurrences)
+
+L8.r6.result.json
+  sealed-original: c7453c909f79f51bdcf641e00f6c72f1ba909a2d71acdbc2d78ef69cb85813f4
+  published-copy:  96c46ac491b4faa8af52f9340af9f1efabc6d759250ea5f54d0f3eadd123c0b6
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (6 occurrences)
+
+L8.r7.result.json
+  sealed-original: f2059d45f245488069d563b7707c7dcf35c56012fccca0359aeaf59efddfc031
+  published-copy:  3137281b7f825919039817f7bfa88749f3c54a751c7ba0f42d8fe59f09121bbd
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (6 occurrences)
+
+L8.r8.result.json
+  sealed-original: adb388ec215513dee63a9f1c9bd8f93441296ca48407dc54aaaebfc9872250b3
+  published-copy:  eab46f5c35954f3f1f95147494b9991da088f359ea98b5d4bea0b3f788d222f8
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (6 occurrences)
+
+sweep-console.log
+  sealed-original: 139c8accf1874b3c6cecc6c86144783cc4e5fcff0d0e237bcaa74cea02c72733
+  published-copy:  f1d3a0ac24e461bed1932c16b0eabcd383e807e3bc56b09aa9444c29908de4b7
+  transformation:  absolute home path redacted: /home/wane -> /home/<user> (1 occurrences)

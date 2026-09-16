@@ -1,0 +1,1 @@
+bench gate [L5] pass: new p99.9 median 19.1 us vs baseline 16.5 us (limit 24.8 at +50%)

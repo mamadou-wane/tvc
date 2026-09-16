@@ -1,0 +1,17 @@
+
+================================================================================================
+CAMPAIGN SUMMARY: wakeup jitter, microseconds
+================================================================================================
+           p50       p99            p99.9   p99.9 nv        max  missed   drop   config
+L5        12.7      15.1     19.1 (19-20)        9.1      109.6       0      0   abs-deadline mlock fifo:80 cpu:7 no-alloc
+L7        12.7      14.8     18.3 (18-19)        8.8       57.4       0      0   abs-deadline mlock fifo:80 cpu:7 no-alloc telemetry record:control
+L8        12.8      15.0     18.0 (18-18)        9.1       89.0       0      0   mode:freerun abs-deadline mlock fifo:80 cpu:7 telemetry record:control
+
+p99.9 improved 1.1x from L5 to L8.
+
+p99.99 median (min-max) across repeats:
+  L5         25.7 (25.4-26.5)
+  L7         24.1 (22.8-25.4)
+  L8         24.1 (23.1-24.6)
+
+Plot it:  ./scripts/plot_jitter.py --results /home/<user>/tvc/results/2026-09-15-v02b-campaign
