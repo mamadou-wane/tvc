@@ -6,8 +6,7 @@ Each level adds exactly one mitigation to the one before it, so the difference
 between two adjacent runs is attributable to a single change. That property is
 the entire value of the exercise; resist the urge to batch them.
 
-    ./scripts/sweep.py --cpu 3 --peer-cpu 11       # L8 at the qualified length needs a declared peer CPU
-    ./scripts/sweep.py --cpu 3 --peer-cpu 11 --cycles 600000     # 20 min per level at 500 Hz
+    ./scripts/sweep.py --cpu 3 --peer-cpu 11 --cycles 300000 --warmup 5000   # qualified L8 window (the defaults): 300,000 recorded + 5,000 warmup cycles at 500 Hz
     ./scripts/sweep.py --only L0 L1                # re-run two levels
 
 Levels above L2 need privileges. Without them the harness exits nonzero, the
